@@ -10,9 +10,10 @@ routed within battery and tank limits. Runs end to end with no hardware.
 ```bash
 pip install -r requirements.txt
 make demo          # the whole loop, ~45 s, no drone, no GPU, no network
-make test          # 122 tests
+make test          # 224 tests (+6 live-data tests: make test-network)
 make bench         # reproduces every number quoted below
 make twin-ui       # then open http://localhost:8099/twin.html
+make perfect ARCH=A5 YEAR=2025   # perfect run for one farm type on real data -> runs/
 ```
 
 ---
@@ -39,6 +40,57 @@ that are unflattering to the earlier design:
 | MC dropout → split conformal | ~30× cheaper inference *and* a distribution-free guarantee. [ADR 0002](docs/adr/0002-conformal-prediction.md) |
 
 ---
+
+## Global twin on real farms (31 Oct 2026)
+
+Six research archetypes, each a **virtual test farm built from real data** — a real
+field boundary (Fields of The World), SoilGrids soil, Copernicus DEM, NASA POWER
+weather, and the field's own Sentinel-2 cover anchoring the crop — scanned by a
+simulated camera drone, run by the twin with the **ECMWF ensemble forecasts actually
+issued that season**, and sprayed by a calibrated twin of the **10 L K3-A Pro drone**.
+Six to seven plans per farm x 3 replicate truths (blight arrival and weed field per
+seed; the weather is the real season). Money in the region's currency with
+illustrative prices. `bench/archetype_runs.py`, `bench/results/archetypes.json`,
+per-farm reports in `runs/`.
+
+| archetype | field | best plan | net (mean / CVaR20) | vs calendar | vs none | best flight (h, v, spacing, rate, RTK) | sprays | drone h/season | forecasts |
+|---|---|---|---|---|---|---|---|---|---|
+| A6 Sub-Saharan smallholder maize (Kakamega, Kenya, 2025) | 0.09 ha | twin_optimised_early_scan | 575,719 / 575,080 KES | +408 | +16,697 | 2.0 m, 7.0 m/s, 5.0 m, 15.0 L/ha, RTK | 0.0 | 0.0 | n/a (no weekly plan) |
+| A2 Southeast-Asian rice (Mekong Delta, Vietnam, 2025) | 1.42 ha | twin_optimised_early_scan | 63,595,844 / 63,094,263 VND | +348,807 | +42,820 | 2.0 m, 7.0 m/s, 5.0 m, 15.0 L/ha, no RTK | 0.0 | 0.2 | n/a (no weekly plan) |
+| A1 East-Asian smallholder paddy (Niigata, Japan, 2025) | 0.91 ha | twin_optimised_early_scan | 1,523,207 / 1,522,797 JPY | +483 | +35,226 | 2.0 m, 7.0 m/s, 5.0 m, 15.0 L/ha, RTK | 0.0 | 0.2 | n/a (no weekly plan) |
+| A4 US corn (Story County, Iowa, USA, 2025) | 56.32 ha | twin_optimised_early_scan | 1,966 / 1,963 USD | +60 | +28 | 2.0 m, 7.0 m/s, 5.0 m, 15.0 L/ha, no RTK | 0.0 | 11.1 | n/a (no weekly plan) |
+| A3 Brazilian soybean (Sorriso, Mato Grosso, Brazil, 2024) | 26.55 ha | twin_optimised_early_scan | 11,008 / 10,989 BRL | +208 | +60 | 3.0 m, 7.0 m/s, 5.0 m, 15.0 L/ha, RTK | 0.0 | 2.8 | n/a (no weekly plan) |
+| A5 European potato (Flevoland, Netherlands, 2025) | 15.14 ha | twin_alert_optimised_flight | 7,641 / 6,551 EUR | +966 | +488 | 2.0 m, 7.0 m/s, 5.0 m, 15.0 L/ha, RTK | 3.0 | 14.7 | ecmwf-ifs-ens x270 |
+
+What it shows
+
+- **The perfect run is the twin with an early scan (day 30) on 5 of 6 farms**, and on
+  potato the twin with a regional blight alert: +966 EUR/ha (+14 %) over calendar
+  spraying with 3 fungicide sprays instead of 12. On the herbicide-only farms the
+  margin over the calendar is small (0.1–0.6 %): the scan's value there is timing
+  and spot spraying, and a late scan (day 45) is worse than the calendar because the
+  critical period of weed control is mostly over.
+- **The drone's spec decides the flight settings: 2 m height, 7 m/s, 5 m pass
+  spacing, 15 L/ha on every farm** (3 m on the Brazilian field), RTK where skipped
+  strips are expensive. On the potato farm these settings alone are worth
+  +341 EUR/ha per season over the operator default (2.5 m, 5 m/s, 4 m) and halve
+  the drone's season from 90 to 44 hours.
+- **On fields over ~10 ha the 10 L drone is charger-bound.** With 4 packs and one
+  30-minute charger it works 2.7–2.9 ha/h; a second charger lifts it to
+  3.4–4.8 ha/h. One herbicide pass on the 56 ha Iowa field takes ~11 hours: this
+  aircraft is a smallholder, spot-spray and edge tool, as the research said.
+- Calibrated to the spec sheet: hover 12.3 / 27.3 min at 24 / 14 kg (sheet 12 / 28),
+  effective swath 5.2 m at 2.5 m height, return threshold 3.52 V/cell.
+
+What it does not show
+
+- Only potato late blight is a modelled disease; the other farms are herbicide-only.
+  Tree crops (A7) and cotton defoliation (A8) are refused.
+- One real season per farm and three seeds; prices, the weed-loss coefficients, the
+  spray-pattern coefficients and the drone's drag and battery resistance are stated
+  assumptions until field data and flight logs exist. Nothing here is field-validated.
+- The crop grown in each sampled field that season is not verified (no open global
+  crop map was reachable); its satellite cover is used for timing.
 
 ## Status after the 30 Oct 2026 audit and 31 Oct rebuild
 
