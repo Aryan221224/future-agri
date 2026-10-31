@@ -76,6 +76,11 @@ class TwinSettings:
     #: tuber-growth path per forecast member (the planner's job there is blight,
     #: not water).
     planning_irrigation_days: int = 10
+    #: Crops for which herbicide advice is given. The India loop kept potato only;
+    #: the global runner passes its crop when the region pack prices it.
+    herbicide_crops: frozenset = frozenset({"potato"})
+    #: Expected dry yield (kg/ha) valuing a weed loss; None -> the potato ceiling.
+    expected_yield_kg_ha: float | None = None
 
 
 class FieldTwin:
@@ -253,9 +258,9 @@ class FieldTwin:
         else:
             detail.append("crop not emerged; pass recorded, no state update")
             data.update(method="none")
-        if weed_density_cells is not None and not self.damage_modelled:
-            msg = (f"herbicide advice not modelled for {self.cfg.crop}: weed-loss coefficients "
-                   "and economics exist only for potato")
+        if weed_density_cells is not None and self.cfg.crop not in self.s.herbicide_crops:
+            msg = (f"herbicide advice not enabled for {self.cfg.crop}: no weed economics "
+                   "configured for this crop")
             detail.append(msg)
             data["herbicide"] = "not modelled"
             self.log.append(Decision(day, "herbicide", False, msg))
@@ -281,7 +286,7 @@ class FieldTwin:
         ~45 t/ha fresh x 20 % dry matter; ``PotatoEconomics.revenue`` applies the
         farm factor, so a weed loss is valued as a share of a farm-level crop.
         """
-        return 9000.0
+        return float(self.s.expected_yield_kg_ha) if self.s.expected_yield_kg_ha else 9000.0
 
     # -- weekly: fungicide + scouting ---------------------------------------------
     def _growth_fn(self, recs: list[dict]) -> dict:

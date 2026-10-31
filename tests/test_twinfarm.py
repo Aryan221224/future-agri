@@ -47,3 +47,21 @@ def test_twin_runs_on_digital_farm_only():
     assert tw.herbicide_option in ("none", "blanket", "spot")
     targets = tw.weed_targets()
     assert targets.shape == (truth.grid.n_cells,) and targets.dtype == bool
+
+
+def test_twin_advises_herbicide_for_non_potato_crops():
+    """Global product: weed economics exist for every crop with a regional price."""
+    a = load_archetypes()["A6"]
+    wx = _weather(dt.date(2025, 1, 1), 365, NL_NORMALS)
+    spec = _spec(arch="A6", w=60, h=60, cell=5.0, inoculum=False, seed=2)
+    truth = GroundTruthFarm(spec, wx)
+    day = truth.sowing + dt.timedelta(days=30)
+    truth.advance_to(day)
+    obs = simulate_scan(truth.state(), truth.grid, plan_scan(truth.grid, "p4rtk", 0.005),
+                        np.random.default_rng(0), crop="maize", days_after_sowing=30)
+    df = build_digital_farm(obs, truth.grid)
+    lat, lon = truth.spec.centroid
+    tw = TwinFarm(a, load_region("KE"), lat, lon, [r for r in wx if r["DAY"] < day], SoilParams(),
+                  truth.sowing, truth.harvest_date, expected_yield_kg_ha=6000.0)
+    tw.ingest(df, day - dt.timedelta(days=1))
+    assert tw.herbicide_option in ("blanket", "spot")

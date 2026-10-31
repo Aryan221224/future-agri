@@ -92,7 +92,7 @@ def run_season(vf, policy: str, seed: int = 0, feed: ForecastFeed | None = None,
                spec: DroneSpec | None = None, flight: MissionSettings | None = None,
                scan_das: int = 45, scan_gsd_m: float = 0.005, camera: str = "p4rtk",
                scout_gsd_m: float = 0.01, plan_members: int = 10, objective: str = "mean",
-               cache=None) -> SeasonResult:
+               cache=None, expected_yield_kg_ha: float | None = None) -> SeasonResult:
     if policy not in POLICIES:
         raise ValueError(f"policy must be one of {POLICIES}")
     spec = spec or load_spec()
@@ -116,8 +116,12 @@ def run_season(vf, policy: str, seed: int = 0, feed: ForecastFeed | None = None,
         inoc = (truth.blight_infection_day is not None) if policy == "twin_alert" else None
         first = vf.season_weather[0]["DAY"]
         obs0 = [r for r in vf.season_weather if first <= r["DAY"] < truth.sowing]
+        if expected_yield_kg_ha is None:
+            from .perfect import prior_yield
+            expected_yield_kg_ha = prior_yield(vf) or None
         twin = TwinFarm(a, region, lat, lon, obs0, vf.spec.soil, truth.sowing, truth.harvest_date,
-                        inoculum=inoc, objective=objective, plan_members=plan_members)
+                        inoculum=inoc, objective=objective, plan_members=plan_members,
+                        expected_yield_kg_ha=expected_yield_kg_ha)
 
     costs = {"fungicide_product": 0.0, "herbicide_product": 0.0, "application": 0.0, "scans": 0.0}
     pending: list[dict] = []       # {"product", "from": date, "targets": mask|None}

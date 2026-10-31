@@ -20,7 +20,8 @@ from .economics import Economics
 class TwinFarm:
     def __init__(self, archetype, region, lat: float, lon: float, observed_records: list[dict],
                  soil_prior: SoilParams, sowing: dt.date, harvest: dt.date,
-                 inoculum: bool | None = None, objective: str = "mean", plan_members: int = 10):
+                 inoculum: bool | None = None, objective: str = "mean", plan_members: int = 10,
+                 expected_yield_kg_ha: float | None = None):
         self.archetype = archetype
         self.region = region
         self.econ = Economics.from_region(region, archetype.crop)
@@ -28,7 +29,10 @@ class TwinFarm:
         cfg = ZoneConfig("twin", lat, lon, archetype.crop, archetype.variety, sowing, harvest,
                          soil=soil_prior)
         settings = TwinSettings(econ=self.econ.planner_econ(), objective=objective,
-                                plan_members=plan_members)
+                                plan_members=plan_members,
+                                herbicide_crops=frozenset({archetype.crop}) if archetype.weeds
+                                else frozenset(),
+                                expected_yield_kg_ha=expected_yield_kg_ha)
         self.field = FieldTwin(cfg, observed_records, settings=settings, inoculum=inoculum,
                                engine=engine)
         self.digital = None
