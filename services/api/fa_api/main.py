@@ -52,6 +52,11 @@ from .advisory import router as _advisory_router  # noqa: E402
 
 app.include_router(_advisory_router)
 
+# Virtual farm, spray-drone twin and iteration runner.
+from .farm_routes import router as _farm_router  # noqa: E402
+
+app.include_router(_farm_router)
+
 
 async def fetch(sql: str, *args):
     if _pool is None:
