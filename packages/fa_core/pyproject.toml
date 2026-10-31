@@ -1,0 +1,20 @@
+[project]
+name = "fa-core"
+version = "0.1.0"
+description = "Future Agri — shared domain model, geometry and configuration"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+  "pydantic>=2.7,<3",
+  "pydantic-settings>=2.3,<3",
+  "shapely>=2.0,<3",
+  "pyproj>=3.6,<4",
+  "numpy>=1.26,<3",
+  "orjson>=3.10",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["fa_core"]

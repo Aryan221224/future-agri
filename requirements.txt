@@ -1,0 +1,22 @@
+# Runtime. Versions pinned where a specific release matters (see the ADRs).
+pcse==6.0.13                 # EUPL-1.2 -- documented exception, ADR 0005/0009
+pandas>=2.2,<3               # pcse's own test suite breaks on pandas 3.x
+numpy>=1.26,<3
+shapely>=2.0,<3
+pyproj>=3.6,<4
+ortools>=9.12                # routing; also pulled in by Fields2Cover
+pydantic>=2.7,<3
+pillow>=10.0                 # bandwidth benchmark only
+
+# API / ingest (also installed in their own containers)
+fastapi>=0.115
+uvicorn[standard]>=0.30
+asyncpg>=0.29
+aiomqtt>=2.0
+
+# Optional. Both are large builds; the system degrades gracefully without them.
+# fields2cover==2.1.0        # sdist only -- compiles C++ against GDAL/GEOS/OR-Tools
+# mavsdk==3.17.2             # only needed to fly PX4 SITL or real hardware
+
+# Dev
+pytest>=8.0

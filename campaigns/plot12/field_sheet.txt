@@ -1,0 +1,60 @@
+FUTURE AGRI - INITIAL CAMERA CAMPAIGN
+field fa_30e71bccf67c7ca208a44295200dec52   29.29 ha   rice/Rice_501
+========================================================================
+
+NON-NEGOTIABLE SETTINGS -- set once, never change mid-campaign:
+  [ ] Exposure: MANUAL and FIXED. Auto-exposure dropped a published
+      nitrogen retrieval from R2 0.40 to 0.13. Note the value here: ______
+  [ ] White balance: MANUAL and FIXED.  Value: ______
+  [ ] Focus: fixed. Note it. Refocusing mid-season breaks comparability.
+  [ ] Camera height and tilt: measure and record. Same every visit.
+  [ ] Time window: 11:00-14:00 local STANDARD time only.
+  [ ] Skip the visit if the sky is broken/popcorn cloud. Reschedule.
+      Uniform overcast is acceptable; patchy sun is not.
+
+REFERENCE PANEL:
+  [ ] Two panels. One travels and is used every capture; one stays
+      COVERED and is exposed only at visit 1 and the final visit.
+      The covered one measures how much the working panel degraded.
+      Without it you are guessing at your own calibration drift.
+
+VISITS:
+  Round 1 (baseline): Tue 01 Jul 2025  11:00-14:00   date done: ________
+  Round 2 (mid): Fri 11 Jul 2025  11:00-14:00   date done: ________
+  Round 3 (final): Tue 22 Jul 2025  11:00-14:00   date done: ________
+
+STATIONS (11) -- VISIT THE SAME ONES EVERY ROUND.
+  Mark each permanently (painted stake / driven rod + flagging tape).
+  Revisiting the same ground is what makes the campaign work at all;
+  sampling new spots each round constrains nothing about growth rate.
+
+  id       latitude   longitude  r1  r2  r3   notes
+  S01     30.900557   75.851155  [ ] [ ] [ ]   ____________
+  S02     30.900370   75.852285  [ ] [ ] [ ]   ____________
+  S03     30.900989   75.854868  [ ] [ ] [ ]   ____________
+  S04     30.900848   75.856410  [ ] [ ] [ ]   ____________
+  S05     30.902212   75.851071  [ ] [ ] [ ]   ____________
+  S06     30.901537   75.853114  [ ] [ ] [ ]   ____________
+  S07     30.901547   75.854920  [ ] [ ] [ ]   ____________
+  S08     30.901637   75.856547  [ ] [ ] [ ]   ____________
+  S09     30.903114   75.851417  [ ] [ ] [ ]   ____________
+  S10     30.903022   75.852582  [ ] [ ] [ ]   ____________
+  S11     30.902800   75.854055  [ ] [ ] [ ]   ____________
+
+AT EACH STATION (6 captures):
+  1. panel_before   Calibrated reference panel filling >=30% of frame, same distance every time, camera not shadowing it
+  2. nadir_canopy   Camera looking straight down at canopy from fixed height (1.5-2.0 m), monopod or tripod arm, same height every visit
+  3. oblique_row    45 deg oblique along the crop row, for canopy structure and to see leaf undersides where many diseases start
+  4. closeup_leaf   Macro of 3-5 representative leaves at ~0.3 m, for lesion-scale detail the drone can never resolve
+  5. wide_context   Wide shot showing the station marker and surroundings, so a reviewer can tell later whether the sample was representative
+  6. panel_after    Reference panel again -- brackets the station's illumination and catches a cloud passing mid-capture
+
+ALSO RECORD, EVERY VISIT:
+  [ ] Growth stage (BBCH or local scale) at each station
+  [ ] Any operation since last visit: irrigation, fertiliser, spray
+      -- with dates and rates. The twin cannot infer these and will
+      attribute their effects to the wrong cause if you omit them.
+  [ ] Rainfall since last visit, if a gauge is on site
+  [ ] Anything visibly wrong: lodging, pest damage, waterlogging
+
+TOTAL: 198 captures over 3 visits, ~80 min per visit

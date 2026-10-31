@@ -1,0 +1,96 @@
+{
+  "alpha": 0.1,
+  "min_n": 200,
+  "global": {
+    "alpha": 0.1,
+    "q": 0.8146110475063324,
+    "n": 1839,
+    "classes": [
+      "maize",
+      "amaranth",
+      "barnyard_grass",
+      "quickweed",
+      "weed_other",
+      "background"
+    ],
+    "score": "lac",
+    "k_reg": 1,
+    "lam": 0.05,
+    "stratum": "global",
+    "randomized": false
+  },
+  "strata": {
+    "maize|2023-05-25|weedsgalore-de": {
+      "alpha": 0.1,
+      "q": 0.7131672501564026,
+      "n": 208,
+      "classes": [
+        "maize",
+        "amaranth",
+        "barnyard_grass",
+        "quickweed",
+        "weed_other",
+        "background"
+      ],
+      "score": "lac",
+      "k_reg": 1,
+      "lam": 0.05,
+      "stratum": "maize|2023-05-25|weedsgalore-de",
+      "randomized": false
+    },
+    "maize|2023-05-30|weedsgalore-de": {
+      "alpha": 0.1,
+      "q": 0.7895138263702393,
+      "n": 457,
+      "classes": [
+        "maize",
+        "amaranth",
+        "barnyard_grass",
+        "quickweed",
+        "weed_other",
+        "background"
+      ],
+      "score": "lac",
+      "k_reg": 1,
+      "lam": 0.05,
+      "stratum": "maize|2023-05-30|weedsgalore-de",
+      "randomized": false
+    },
+    "maize|2023-06-06|weedsgalore-de": {
+      "alpha": 0.1,
+      "q": 0.8292373269796371,
+      "n": 889,
+      "classes": [
+        "maize",
+        "amaranth",
+        "barnyard_grass",
+        "quickweed",
+        "weed_other",
+        "background"
+      ],
+      "score": "lac",
+      "k_reg": 1,
+      "lam": 0.05,
+      "stratum": "maize|2023-06-06|weedsgalore-de",
+      "randomized": false
+    },
+    "maize|2023-06-15|weedsgalore-de": {
+      "alpha": 0.1,
+      "q": 0.843477413058281,
+      "n": 285,
+      "classes": [
+        "maize",
+        "amaranth",
+        "barnyard_grass",
+        "quickweed",
+        "weed_other",
+        "background"
+      ],
+      "score": "lac",
+      "k_reg": 1,
+      "lam": 0.05,
+      "stratum": "maize|2023-06-15|weedsgalore-de",
+      "randomized": false
+    }
+  }
+}

@@ -1,0 +1,159 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "station": "S01",
+        "stratum": "r1c1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.85115514513602,
+          30.90055681669001
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station": "S02",
+        "stratum": "r1c2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.85228499184113,
+          30.900369639595063
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station": "S03",
+        "stratum": "r1c3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.85486801075697,
+          30.90098865285235
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station": "S04",
+        "stratum": "r1c4"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.8564097466374,
+          30.900848396637585
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station": "S05",
+        "stratum": "r2c1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.85107115265936,
+          30.902212363168033
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station": "S06",
+        "stratum": "r2c2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.85311424642795,
+          30.90153722608812
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station": "S07",
+        "stratum": "r2c3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.85491961617444,
+          30.901547200433814
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station": "S08",
+        "stratum": "r2c4"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.85654677961786,
+          30.901637264822796
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station": "S09",
+        "stratum": "r3c1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.85141684348822,
+          30.90311357975559
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station": "S10",
+        "stratum": "r3c2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.8525819329845,
+          30.90302161227654
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "station": "S11",
+        "stratum": "r3c3"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          75.85405454553275,
+          30.902800120618036
+        ]
+      }
+    }
+  ]
+}

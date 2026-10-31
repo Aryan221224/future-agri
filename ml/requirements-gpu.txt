@@ -1,0 +1,10 @@
+# Perception training on the lab PC (RTX A6000). Install torch FIRST from the CUDA
+# index -- PyPI's Windows torch wheels are CPU-only:
+#   python -m pip install torch==2.13.0 torchvision==0.28.0 --index-url https://download.pytorch.org/whl/cu130
+# then:
+#   python -m pip install -r ml/requirements-gpu.txt -c ml/constraints.txt
+rfdetr[train,onnx]==1.10.1      # Apache-2.0; Nano..Large weights Apache-2.0 (XL/2XL are PML 1.0: not used)
+pycocotools>=2.0.8              # COCO mAP
+matplotlib>=3.8                 # figures
+# Optional, for the TensorRT engine and benchmark (ml/export.py --trt):
+#   python -m pip install "rfdetr[tensorrt]==1.10.1" -c ml/constraints.txt

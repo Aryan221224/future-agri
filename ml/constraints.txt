@@ -1,0 +1,4 @@
+# Keep pip from swapping the CUDA build of torch for PyPI's CPU build while
+# resolving rfdetr's dependencies.
+torch==2.13.0
+torchvision==0.28.0

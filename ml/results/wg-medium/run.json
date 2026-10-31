@@ -1,0 +1,176 @@
+{
+ "name": "wg-medium",
+ "size": "medium",
+ "resolution": 608,
+ "classes": [
+  "maize",
+  "amaranth",
+  "barnyard_grass",
+  "quickweed",
+  "weed_other"
+ ],
+ "dataset": "/home/paawan_kumar/data/weedsgalore_coco",
+ "dataset_meta": {
+  "dataset": "WeedsGalore",
+  "licence": "CC BY 4.0",
+  "citation": "Celikkan E., Kunzmann T., Yeskaliyev Y., Itzerott S., Klein N., Herold M. WeedsGalore: A Multispectral and Multitemporal UAV-Based Dataset for Crop and Weed Segmentation in Agricultural Maize Fields. WACV 2025, pp. 4767-4777.",
+  "rgb_gain": [
+   1.2633,
+   1.3081,
+   1.3493
+  ],
+  "synthetic": null,
+  "splits": {
+   "train": {
+    "images": 104,
+    "annotations": 7587,
+    "by_date": {
+     "2023-05-25": {
+      "maize": 556,
+      "weed_other": 571,
+      "amaranth": 96,
+      "barnyard_grass": 66,
+      "quickweed": 2
+     },
+     "2023-05-30": {
+      "maize": 358,
+      "amaranth": 692,
+      "weed_other": 522,
+      "barnyard_grass": 283,
+      "quickweed": 5
+     },
+     "2023-06-06": {
+      "maize": 427,
+      "barnyard_grass": 1233,
+      "weed_other": 428,
+      "quickweed": 90,
+      "amaranth": 1353
+     },
+     "2023-06-15": {
+      "maize": 119,
+      "amaranth": 446,
+      "quickweed": 62,
+      "barnyard_grass": 213,
+      "weed_other": 65
+     }
+    }
+   },
+   "valid": {
+    "images": 26,
+    "annotations": 2138,
+    "by_date": {
+     "2023-05-25": {
+      "maize": 143,
+      "weed_other": 172,
+      "barnyard_grass": 10,
+      "amaranth": 22
+     },
+     "2023-05-30": {
+      "maize": 106,
+      "amaranth": 232,
+      "weed_other": 142,
+      "barnyard_grass": 25,
+      "quickweed": 6
+     },
+     "2023-06-06": {
+      "amaranth": 445,
+      "weed_other": 189,
+      "barnyard_grass": 186,
+      "maize": 137,
+      "quickweed": 20
+     },
+     "2023-06-15": {
+      "maize": 64,
+      "amaranth": 157,
+      "weed_other": 16,
+      "quickweed": 31,
+      "barnyard_grass": 35
+     }
+    }
+   },
+   "test": {
+    "images": 26,
+    "annotations": 1867,
+    "by_date": {
+     "2023-05-25": {
+      "amaranth": 42,
+      "maize": 122,
+      "weed_other": 257,
+      "quickweed": 2,
+      "barnyard_grass": 19
+     },
+     "2023-05-30": {
+      "maize": 55,
+      "amaranth": 219,
+      "quickweed": 4,
+      "weed_other": 115,
+      "barnyard_grass": 85
+     },
+     "2023-06-06": {
+      "amaranth": 304,
+      "barnyard_grass": 292,
+      "maize": 68,
+      "weed_other": 98,
+      "quickweed": 20
+     },
+     "2023-06-15": {
+      "quickweed": 4,
+      "amaranth": 67,
+      "weed_other": 20,
+      "barnyard_grass": 63,
+      "maize": 11
+     }
+    }
+   }
+  }
+ },
+ "checkpoint": "checkpoint_best_total.pth",
+ "smoke": false,
+ "model_version": "rfdetr-medium-wg-medium",
+ "args": {
+  "data": "/home/paawan_kumar/data/weedsgalore_coco",
+  "size": "medium",
+  "name": "wg-medium",
+  "resolution": "608",
+  "epochs": "150",
+  "batch_size": "auto",
+  "grad_accum": "1",
+  "lr": "0.0001",
+  "workers": "4",
+  "patience": "25",
+  "seed": "0",
+  "device": "None",
+  "resume": "None",
+  "smoke": "False"
+ },
+ "env": {
+  "utc": "2026-10-30T06:04:57+00:00",
+  "python": "3.12.3",
+  "os": "Linux 6.8.0-117-generic",
+  "machine": "aa289a2283ba",
+  "git": "unknown",
+  "torch": "2.12.0a0+0291f960b6.nv26.04.48445190",
+  "cuda": "13.2",
+  "gpu": "NVIDIA H200",
+  "gpu_mem_gb": 139.8,
+  "rfdetr": "1.10.1",
+  "onnxruntime": "1.31.1",
+  "tensorrt": "10.16.1.11"
+ },
+ "status": "trained",
+ "train_minutes": 16.2,
+ "finished_env": {
+  "utc": "2026-10-30T06:21:07+00:00",
+  "python": "3.12.3",
+  "os": "Linux 6.8.0-117-generic",
+  "machine": "aa289a2283ba",
+  "git": "unknown",
+  "torch": "2.12.0a0+0291f960b6.nv26.04.48445190",
+  "cuda": "13.2",
+  "gpu": "NVIDIA H200",
+  "gpu_mem_gb": 139.8,
+  "rfdetr": "1.10.1",
+  "onnxruntime": "1.31.1",
+  "tensorrt": "10.16.1.11"
+ }
+}

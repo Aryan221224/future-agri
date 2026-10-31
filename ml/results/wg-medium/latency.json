@@ -1,0 +1,84 @@
+{
+ "run": "wg-medium",
+ "model_version": "rfdetr-medium-wg-medium",
+ "resolution": 608,
+ "operating_threshold": 0.35,
+ "batch": 1,
+ "results": {
+  "torch-fp32": {
+   "backend": "torch",
+   "forward": {
+    "median_ms": 8.119,
+    "p90_ms": 8.165,
+    "fps": 123.2,
+    "iters": 200
+   },
+   "end_to_end": {
+    "median_ms": 31.015,
+    "p90_ms": 31.485,
+    "fps": 32.2,
+    "iters": 50
+   },
+   "parity": "reference"
+  },
+  "torch-fp16": {
+   "backend": "torch-fp16",
+   "forward": {
+    "median_ms": 10.976,
+    "p90_ms": 11.022,
+    "fps": 91.1,
+    "iters": 200
+   },
+   "end_to_end": {
+    "median_ms": 34.76,
+    "p90_ms": 35.384,
+    "fps": 28.8,
+    "iters": 50
+   },
+   "parity": {
+    "max_abs_dprob": 0.83953,
+    "mean_max_abs_dprob": 0.57343,
+    "max_box_err_px": 594.321,
+    "images_with_identical_decisions": "7/20",
+    "kept_detections_ref": 1416
+   }
+  },
+  "onnx": {
+   "backend": "onnxruntime-cpu",
+   "forward": {
+    "median_ms": 121.91,
+    "p90_ms": 187.795,
+    "fps": 8.2,
+    "iters": 200
+   },
+   "end_to_end": {
+    "median_ms": 171.05,
+    "p90_ms": 210.921,
+    "fps": 5.8,
+    "iters": 50
+   },
+   "parity": {
+    "max_abs_dprob": 0.83952,
+    "mean_max_abs_dprob": 0.4808,
+    "max_box_err_px": 592.999,
+    "images_with_identical_decisions": "11/20",
+    "kept_detections_ref": 1416
+   }
+  }
+ },
+ "env": {
+  "utc": "2026-10-31T04:24:28+00:00",
+  "python": "3.12.3",
+  "os": "Linux 6.8.0-117-generic",
+  "machine": "09e74e541f19",
+  "git": "unknown",
+  "torch": "2.12.0a0+0291f960b6.nv26.04.48445190",
+  "cuda": "13.2",
+  "gpu": "NVIDIA H200",
+  "gpu_mem_gb": 139.8,
+  "rfdetr": "1.10.1",
+  "onnxruntime": "1.31.1",
+  "tensorrt": "10.16.1.11"
+ },
+ "note": "forward = model only on a preprocessed tensor; end_to_end = numpy preprocessing + forward + decoding on one 600x600 frame. The TensorRT engine is specific to this GPU and TensorRT version; Jetson numbers must be measured on the Jetson."
+}

@@ -1,0 +1,27 @@
+name: ci
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: pip install -r requirements.txt
+      - name: Licence gate
+        run: python scripts/check_licences.py
+      - name: Tests
+        run: make test
+      - name: End-to-end closed loop
+        run: make demo
+      - name: SQL schema parses against the PostgreSQL grammar
+        run: |
+          pip install pglast
+          python - <<'EOF'
+          import glob, pglast
+          for f in sorted(glob.glob('db/migrations/*.sql')):
+              pglast.parse_sql(open(f).read()); print(f, 'ok')
+          EOF
+      - name: Compose config is valid
+        run: docker compose config --quiet

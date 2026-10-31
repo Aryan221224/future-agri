@@ -1,0 +1,268 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Future Agri — field twin</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<style>
+  :root{
+    --bg:#0f1613; --panel:#16211c; --line:#26362e; --ink:#e8f0ea; --muted:#8fa79a;
+    --ok:#5fb87f; --warn:#e0a33a; --bad:#d9613f; --accent:#7fc9a0;
+  }
+  @media (prefers-color-scheme: light){
+    :root{--bg:#f6f8f6;--panel:#fff;--line:#dde5df;--ink:#16211c;--muted:#5d7268;}
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+       background:var(--bg);color:var(--ink);display:grid;grid-template-columns:360px 1fr;height:100vh}
+  aside{background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;padding:16px}
+  h1{font-size:15px;margin:0 0 2px;letter-spacing:.02em}
+  .sub{color:var(--muted);font-size:12px;margin-bottom:16px}
+  section{border-top:1px solid var(--line);padding:14px 0}
+  h2{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0 0 10px}
+  .kv{display:flex;justify-content:space-between;gap:12px;padding:3px 0}
+  .kv b{font-weight:600;font-variant-numeric:tabular-nums}
+  .pill{display:inline-block;padding:1px 7px;border-radius:99px;font-size:11px;font-weight:600}
+  .pill.ok{background:color-mix(in srgb,var(--ok) 22%,transparent);color:var(--ok)}
+  .pill.warn{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--warn)}
+  .pill.bad{background:color-mix(in srgb,var(--bad) 22%,transparent);color:var(--bad)}
+  .item{border:1px solid var(--line);border-radius:7px;padding:9px;margin-bottom:7px}
+  .item .t{display:flex;justify-content:space-between;font-size:12px}
+  .item .m{color:var(--muted);font-size:11.5px;margin-top:3px}
+  .bar{height:5px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:6px}
+  .bar > i{display:block;height:100%;background:var(--accent)}
+  #map{height:100vh}
+  .note{color:var(--muted);font-size:11.5px;line-height:1.45}
+  code{background:color-mix(in srgb,var(--line) 60%,transparent);padding:1px 4px;border-radius:3px;font-size:11.5px}
+</style>
+<aside>
+  <h1>Future Agri</h1>
+  <div class="sub" id="src">connecting to API…</div>
+
+  <section>
+    <h2>Field</h2>
+    <div class="kv"><span>Parcel</span><b id="parcel">—</b></div>
+    <div class="kv"><span>Area</span><b id="area">—</b></div>
+    <div class="kv"><span>GeoID</span><b id="geoid" style="font-size:11px">—</b></div>
+  </section>
+
+  <section>
+    <h2>Crop state</h2>
+    <div class="kv"><span>LAI (observed)</span><b id="lai">—</b></div>
+    <div class="kv"><span>90% interval</span><b id="laiband">—</b></div>
+    <div class="kv"><span>Yield estimate</span><b id="yield">—</b></div>
+    <div class="kv"><span>p05 – p95</span><b id="yband">—</b></div>
+    <p class="note" id="cropnote"></p>
+  </section>
+
+  <section>
+    <h2>Calibration monitor</h2>
+    <div id="coverage"></div>
+    <p class="note">Observed conformal coverage against nominal, per stratum.
+      An alarm means the calibration set is no longer exchangeable with what the
+      model is seeing — a new season, cultivar or light regime. The fix is to
+      recalibrate, not to widen the interval.</p>
+  </section>
+
+  <section>
+    <h2>Review queue</h2>
+    <div id="review"></div>
+    <p class="note">Findings whose conformal prediction set was not a singleton.
+      An empty set means out-of-distribution; more than one means genuine
+      ambiguity. Both go to a human rather than into an automated decision.</p>
+  </section>
+
+  <section>
+    <h2>Mission</h2>
+    <div class="kv"><span>Sorties</span><b id="sorties">—</b></div>
+    <div class="kv"><span>Flight time</span><b id="ftime">—</b></div>
+    <div class="kv"><span>Worst sortie</span><b id="worst">—</b></div>
+    <div id="sortiebars"></div>
+  </section>
+
+  <section>
+    <h2>Prescription</h2>
+    <div id="rx"></div>
+  </section>
+</aside>
+<div id="map"></div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>
+const API = '/api';
+const $ = id => document.getElementById(id);
+
+// The dashboard reads the API when one is up, and otherwise renders the output
+// of `make demo` so the UI is inspectable without the stack running.
+async function load(path, fallback){
+  try{
+    const r = await fetch(API + path, {signal: AbortSignal.timeout(1500)});
+    if(!r.ok) throw new Error(r.status);
+    return {data: await r.json(), live: true};
+  }catch(e){ return {data: fallback, live: false}; }
+}
+
+const DEMO = {
+  parcel: {name:'Ludhiana Plot 12', area_ha:29.29, geoid:'fa_30e71bcc…dec52'},
+  state: {lai:0.61, lo:0.44, hi:0.78, yield:1135, p05:654, p95:1635,
+          note:'Rice_501 — generic parameter set, not calibrated for this cultivar or zone. Treat absolute yield as indicative; relative signals are defensible.'},
+  coverage: [
+    {stratum:'rice|tillering|ludhiana', nominal:0.90, observed:0.898, n:2140, alarm:false},
+    {stratum:'rice|booting|ludhiana',   nominal:0.90, observed:0.801, n:640,  alarm:true},
+    {stratum:'global (fallback)',       nominal:0.90, observed:0.652, n:118,  alarm:true}
+  ],
+  review: [
+    {zone:'zone-3', set:['broadleaf_weed','grass_weed'], why:'ambiguous between 2 classes'},
+    {zone:'zone-5', set:[], why:'out-of-distribution: empty conformal set'},
+    {zone:'zone-1', set:['disease_lesion','nutrient_deficiency'], why:'ambiguous between 2 classes'}
+  ],
+  mission: {sorties:[{wh:198.7,min:16.4},{wh:207.6,min:17.2}], budget:220, total_min:33.6},
+  rx: [{product:'urea', rate:30, unit:'kg N/ha', when:'2025-07-05',
+        cvar:9034, mean:19291, ok:true}]
+};
+
+(async () => {
+  const {live} = await load('/health', null);
+  $('src').textContent = live ? 'live — connected to API'
+                              : 'offline — showing the output of `make demo`';
+
+  const p = DEMO.parcel;
+  $('parcel').textContent = p.name;
+  $('area').textContent = p.area_ha.toFixed(2) + ' ha';
+  $('geoid').textContent = p.geoid;
+
+  const s = DEMO.state;
+  $('lai').textContent = s.lai.toFixed(2);
+  $('laiband').textContent = s.lo.toFixed(2) + ' – ' + s.hi.toFixed(2);
+  $('yield').textContent = s.yield.toLocaleString() + ' kg/ha';
+  $('yband').textContent = s.p05.toLocaleString() + ' – ' + s.p95.toLocaleString();
+  $('cropnote').textContent = s.note;
+
+  $('coverage').innerHTML = DEMO.coverage.map(c => `
+    <div class="item">
+      <div class="t"><span>${c.stratum}</span>
+        <span class="pill ${c.alarm?'bad':'ok'}">${(c.observed*100).toFixed(1)}%</span></div>
+      <div class="m">nominal ${(c.nominal*100).toFixed(0)}% · n=${c.n}
+        ${c.alarm ? '· <b>recalibrate</b>' : ''}</div>
+      <div class="bar"><i style="width:${Math.min(100,c.observed/c.nominal*100)}%;
+        background:${c.alarm?'var(--bad)':'var(--ok)'}"></i></div>
+    </div>`).join('');
+
+  $('review').innerHTML = DEMO.review.map(r => `
+    <div class="item">
+      <div class="t"><span>${r.zone}</span>
+        <span class="pill ${r.set.length===0?'bad':'warn'}">
+          ${r.set.length===0?'OOD':'|set|='+r.set.length}</span></div>
+      <div class="m">${r.why}${r.set.length?' — '+r.set.join(', '):''}</div>
+    </div>`).join('');
+
+  const m = DEMO.mission;
+  $('sorties').textContent = m.sorties.length;
+  $('ftime').textContent = m.total_min.toFixed(0) + ' min';
+  const worst = Math.max(...m.sorties.map(x=>x.wh));
+  $('worst').textContent = worst.toFixed(0) + ' / ' + m.budget + ' Wh';
+  $('sortiebars').innerHTML = m.sorties.map((x,i) => `
+    <div class="item"><div class="t"><span>sortie ${i}</span>
+      <span>${x.wh.toFixed(0)} Wh · ${x.min.toFixed(1)} min</span></div>
+      <div class="bar"><i style="width:${x.wh/m.budget*100}%;
+        background:${x.wh/m.budget>0.95?'var(--bad)':'var(--accent)'}"></i></div></div>`).join('');
+
+  $('rx').innerHTML = DEMO.rx.map(r => `
+    <div class="item">
+      <div class="t"><span>${r.rate} ${r.unit} ${r.product}</span>
+        <span class="pill ${r.ok?'ok':'bad'}">${r.ok?'label OK':'BLOCKED'}</span></div>
+      <div class="m">${r.when} · CVaR80 ₹${r.cvar.toLocaleString()}/ha ·
+        mean ₹${r.mean.toLocaleString()}/ha</div>
+    </div>`).join('');
+
+  // Map. No basemap tiles by default: a field twin must work offline, and a
+  // dashboard that shows nothing without internet is not offline-first. The
+  // same rule applies to the library itself — if MapLibre did not load (no
+  // internet on an HPC compute node), draw the geometry on a canvas instead.
+  const w = 700/(111320*Math.cos(30.90*Math.PI/180)), h = 420/111320;
+  const field = {type:'Feature', properties:{}, geometry:{type:'Polygon', coordinates:[[
+    [75.85,30.90],[75.85+w,30.90],[75.85+w,30.90+h],[75.85,30.90+h],[75.85,30.90]]]}};
+  const swaths = {type:'FeatureCollection', features: Array.from({length:16}, (_,i)=>{
+    const y = 30.90 + h*(i+0.5)/16;
+    return {type:'Feature', properties:{sortie: i<9?0:1},
+            geometry:{type:'LineString', coordinates:[[75.85,y],[75.85+w,y]]}};
+  })};
+
+  const css = n => getComputedStyle(document.body).getPropertyValue(n).trim();
+
+  function drawOffline(){
+    const host = $('map');
+    host.innerHTML = '';
+    const cv = document.createElement('canvas');
+    const dpr = window.devicePixelRatio || 1;
+    const W = host.clientWidth, H = host.clientHeight;
+    cv.width = W*dpr; cv.height = H*dpr;
+    cv.style.width = W+'px'; cv.style.height = H+'px';
+    host.appendChild(cv);
+    const g = cv.getContext('2d'); g.scale(dpr, dpr);
+
+    g.fillStyle = css('--bg'); g.fillRect(0,0,W,H);
+
+    const pad = 56, cosl = Math.cos(30.90*Math.PI/180);
+    const sx = (W-2*pad)/w, sy = (H-2*pad)/h, k = Math.min(sx, sy*1);
+    const scaleX = Math.min((W-2*pad)/w, (H-2*pad)/h*(1/cosl));
+    const scaleY = scaleX*cosl;
+    const ox = (W - w*scaleX)/2, oy = (H + h*scaleY)/2;
+    const X = lon => ox + (lon-75.85)*scaleX;
+    const Y = lat => oy - (lat-30.90)*scaleY;
+
+    const ring = field.geometry.coordinates[0];
+    g.beginPath(); ring.forEach((c,i) => i ? g.lineTo(X(c[0]),Y(c[1])) : g.moveTo(X(c[0]),Y(c[1])));
+    g.closePath();
+    g.fillStyle = css('--accent'); g.globalAlpha = 0.10; g.fill(); g.globalAlpha = 1;
+    g.strokeStyle = css('--accent'); g.lineWidth = 1.5; g.stroke();
+
+    g.lineWidth = 1.6;
+    for(const f of swaths.features){
+      const c = f.geometry.coordinates;
+      g.strokeStyle = f.properties.sortie === 0 ? css('--ok') : css('--warn');
+      g.beginPath(); g.moveTo(X(c[0][0]),Y(c[0][1])); g.lineTo(X(c[1][0]),Y(c[1][1])); g.stroke();
+    }
+
+    // Scale bar — 200 m.
+    const barPx = 200/700 * (w*scaleX);
+    const bx = ox, by = oy + 26;
+    g.strokeStyle = css('--muted'); g.lineWidth = 1;
+    g.beginPath(); g.moveTo(bx,by); g.lineTo(bx+barPx,by);
+    g.moveTo(bx,by-4); g.lineTo(bx,by+4);
+    g.moveTo(bx+barPx,by-4); g.lineTo(bx+barPx,by+4); g.stroke();
+    g.fillStyle = css('--muted');
+    g.font = '11px ui-sans-serif,system-ui,sans-serif';
+    g.fillText('200 m', bx+barPx+8, by+4);
+
+    g.fillStyle = css('--ink');
+    g.font = '600 12px ui-sans-serif,system-ui,sans-serif';
+    g.fillText(DEMO.parcel.name + ' — 16 swaths, 2 sorties', ox, oy - h*scaleY - 16);
+    g.fillStyle = css('--muted');
+    g.font = '11px ui-sans-serif,system-ui,sans-serif';
+    g.fillText('canvas fallback — MapLibre unavailable offline; geometry is the same',
+               ox, oy - h*scaleY - 2);
+  }
+
+  if(typeof maplibregl === 'undefined'){
+    drawOffline();
+    addEventListener('resize', drawOffline);
+  } else {
+    const map = new maplibregl.Map({
+      container:'map', style:{version:8, sources:{}, layers:[
+        {id:'bg', type:'background', paint:{'background-color': css('--bg')}}]},
+      center:[75.8525, 30.9019], zoom:14.2
+    });
+    map.on('load', () => {
+      map.addSource('f',{type:'geojson',data:field});
+      map.addLayer({id:'ffill',type:'fill',source:'f',
+        paint:{'fill-color':'#7fc9a0','fill-opacity':0.10}});
+      map.addLayer({id:'fline',type:'line',source:'f',
+        paint:{'line-color':'#7fc9a0','line-width':1.5}});
+      map.addSource('s',{type:'geojson',data:swaths});
+      map.addLayer({id:'sline',type:'line',source:'s',paint:{
+        'line-width':1.6,
+        'line-color':['match',['get','sortie'],0,'#5fb87f',1,'#e0a33a','#888']}});
+    });
+  }
+})();
+</script>

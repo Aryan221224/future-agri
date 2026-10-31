@@ -1,0 +1,75 @@
+# Future Agri stack.
+#
+# Hand-assembled rather than adopting the eoAPI bundle: eoAPI's own compose
+# pins stac-fastapi-pgstac 5.0.2 against a current 6.3.1, titiler-pgstac 1.7.2
+# against 3.1.0, and its README concedes the components have incompatible
+# Python dependencies. One container per service makes that version matrix
+# disappear, because each image ships its own resolved environment. This is
+# ~60 lines against official images, and it can be upgraded piecemeal.
+#
+# Storage note: MinIO is deliberately absent. Its repository was archived by its
+# owner in April 2026, pre-built binaries and images were discontinued, and the
+# community edition has no security-patch commitment. Objects live on the
+# filesystem here; use Garage or SeaweedFS if an S3 API is needed.
+
+name: futureagri
+
+services:
+  db:
+    # timescaledb-ha bundles PostGIS, which is what lets the catalog, the
+    # entity tables and the timeseries hypertables share one instance -- an
+    # important saving at the field edge where RAM is the constraint.
+    image: timescale/timescaledb-ha:pg17
+    environment:
+      POSTGRES_USER: futureagri
+      POSTGRES_PASSWORD: futureagri
+      POSTGRES_DB: futureagri
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/home/postgres/pgdata/data
+      - ./db/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U futureagri"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    ports: ["1883:1883"]
+    volumes:
+      - ./deploy/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mqttdata:/mosquitto/data
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -t '$$SYS/#' -C 1 -W 3 -q 1 || exit 1"]
+      interval: 10s
+      retries: 5
+
+  api:
+    build: {context: ., dockerfile: deploy/api.Dockerfile}
+    environment:
+      FA_DSN: postgresql://futureagri:futureagri@db:5432/futureagri
+    ports: ["8000:8000"]
+    depends_on:
+      db: {condition: service_healthy}
+
+  ingest:
+    build: {context: ., dockerfile: deploy/ingest.Dockerfile}
+    environment:
+      FA_DSN: postgresql://futureagri:futureagri@db:5432/futureagri
+      FA_MQTT_HOST: mqtt
+    depends_on:
+      db: {condition: service_healthy}
+      mqtt: {condition: service_started}
+
+  web:
+    image: nginx:alpine
+    ports: ["8080:80"]
+    volumes:
+      - ./web:/usr/share/nginx/html:ro
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on: [api]
+
+volumes:
+  pgdata:
+  mqttdata:
