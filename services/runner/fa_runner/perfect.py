@@ -154,7 +154,8 @@ def perfect_run(vf, seeds=(0, 1, 2), lam: float = 0.5, workers: int | None = Non
     plans = [PlanSpec("none", "none", default), PlanSpec("calendar", "calendar", default),
              PlanSpec("twin_default_flight", "twin", default),
              PlanSpec("twin_optimised_flight", "twin", best_flight),
-             PlanSpec("twin_optimised_cheap_scan", "twin", best_flight, scan_gsd_m=0.01)]
+             PlanSpec("twin_optimised_cheap_scan", "twin", best_flight, scan_gsd_m=0.01),
+             PlanSpec("twin_optimised_early_scan", "twin", best_flight, scan_das=30)]
     if "late_blight" in a.diseases:
         plans.append(PlanSpec("twin_alert_optimised_flight", "twin_alert", best_flight))
     jobs = [(vf, p, s, plan_members, sources, cache_root) for p in plans for s in seeds]
@@ -178,6 +179,7 @@ def perfect_run(vf, seeds=(0, 1, 2), lam: float = 0.5, workers: int | None = Non
         mean, cv = float(np.mean(nets)), cvar_low(nets)
         table.append({
             "plan": p.name, "policy": p.policy, "flight": asdict(p.flight), "scan_gsd_m": p.scan_gsd_m,
+            "scan_das": p.scan_das,
             "net_mean": round(mean, 2), "net_cvar20": round(cv, 2),
             "score": round(mean - lam * (mean - cv), 2),
             "yield_dry_mean": round(float(np.mean([r.yield_dry_kg_ha for r in rs])), 1),

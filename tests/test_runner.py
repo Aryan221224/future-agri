@@ -151,3 +151,4 @@ def test_perfect_run_end_to_end_fields():
     assert all(isinstance(w, str) for w in pr.warnings)
     assert pr.flight_ranking and pr.flight_ranking[0]["scale"].startswith("whole field")
     assert pr.flight_ranking_patch and pr.flight_ranking_patch[0]["scale"].startswith("patch")
+    assert any(t["plan"] == "twin_optimised_early_scan" and t["scan_das"] == 30 for t in pr.ranked)
