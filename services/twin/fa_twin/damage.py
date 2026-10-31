@@ -226,3 +226,18 @@ def run_with_damage(twin, records: list[dict], blight: Blight | None = None,
     wl = weed_loss_frac(dens, weeds)
     return DamageResult(TWSO_healthy_path=y, TWSO=y * (1 - wl), sprays=sprays,
                         final_severity=blight.S, weed_loss=wl)
+
+
+def dose_efficacy(dose_frac, emax: float, k: float = 3.0):
+    """Efficacy achieved by a deposited dose, as a fraction of the label dose.
+
+    Saturating dose-response normalised so the label dose (``dose_frac`` = 1)
+    gives ``emax`` and nothing gives 0; over-dosing adds little (capped at 1).
+    This is what ties the drone's coverage -- skipped strips from GNSS error,
+    drift, swath overlap -- to agronomic outcome. ``k`` = 3 is an assumption
+    (half the label dose gives ~82 % of label efficacy); replace with product
+    dose-response data where it exists.
+    """
+    d = np.maximum(np.asarray(dose_frac, dtype=float), 0.0)
+    e = emax * (1.0 - np.exp(-k * d)) / (1.0 - np.exp(-k))
+    return np.minimum(e, 1.0)
