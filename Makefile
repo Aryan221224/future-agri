@@ -1,8 +1,8 @@
-.PHONY: help install demo test bench lint licences up down clean sitl ml-smoke
+.PHONY: help install demo test bench bench-quick gate-eval twin-ui lint licences up down clean sitl ml-smoke
 .DEFAULT_GOAL := help
 
 PY ?= python3
-PYTHONPATH := packages/fa_core:services/twin:services/planner:services/gateway:sim
+PYTHONPATH := packages/fa_core:services/twin:services/planner:services/gateway:services/loop:services/api:sim
 export PYTHONPATH
 
 help:  ## Show this help
@@ -18,11 +18,24 @@ demo:  ## Run the full closed loop with no hardware (~45 s)
 test:  ## Run the test suite
 	$(PY) -m pytest tests/ -q -p no:warnings
 
-bench: ## Reproduce every number quoted in the docs (~10 min)
+bench: ## Reproduce every number quoted in the docs (~60 min on 2 cores)
+	$(PY) bench/policy_comparison.py --seasons 40 --members 10
+	$(PY) bench/one_pass_osse.py --trials 60 --members 24 --pass-day 30 45 --inflation 1.0 1.3
+	$(PY) bench/nitrogen_response.py --seasons 6
 	$(PY) bench/osse_assimilation.py --trials 16 --members 30 --cadence-days 7
 	$(PY) bench/planner_comparison.py --scenarios 5 --epochs 4 --beam 5
 	$(PY) bench/bandwidth.py
 	$(PY) bench/conformal_coverage.py
+
+bench-quick: ## Smaller versions of the headline benchmarks (~5 min)
+	$(PY) bench/policy_comparison.py --seasons 6 --members 10 --out bench/results/policy_quick.json
+	$(PY) bench/one_pass_osse.py --trials 8 --members 16 --pass-day 30 --inflation 1.0 --out bench/results/one_pass_quick.json
+
+twin-ui: ## Serve the API + web pages locally (open http://localhost:8099/twin.html)
+	$(PY) scripts/dev_server.py
+
+gate-eval: ## Compare conformal gates on the real detector's cached scores (needs the H200 files)
+	$(PY) ml/gate_eval.py --run ml/runs/wg-medium
 
 ml-smoke:  ## Train/evaluate/export on synthetic data (CPU, checks plumbing only)
 	$(PY) ml/prepare_data.py --synthetic

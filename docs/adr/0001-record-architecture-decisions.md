@@ -42,3 +42,5 @@ about which of its answers are fragile.
 | 0010 | Adopt farmOS/OCSM/ISOXML data models | new |
 | 0011 | Feasibility gates before any number is emitted | new |
 | 0012 | Conformal sets for detections, with background as a class | new |
+| 0013 | Post-audit rebuild: realistic weather, fixed EnKF, weekly loop | **yes** — replaces the poster's headline numbers |
+| 0014 | Gate on actions (crop/weed), class-conditional, field-recalibrated | narrows 0012 |

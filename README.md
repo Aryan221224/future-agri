@@ -1,15 +1,18 @@
 # Future Agri
 
-A closed-loop digital twin for agricultural UAV operations: coverage planning
-under battery endurance, edge perception with calibrated uncertainty, a WOFOST
-crop twin with ensemble data assimilation, and risk-aware intervention
-scheduling — running end to end with no hardware.
+A crop digital twin that tells a farmer, every week, whether to **irrigate,
+spray fungicide, spray herbicide, or wait** — and how sure it is. A WOFOST crop
+model kept in step with the field by one camera pass and ensemble data
+assimilation, a forecast-ensemble planner scored in ₹/ha, a calibrated
+crop/weed detector whose uncertain calls go to a person, and drone missions
+routed within battery and tank limits. Runs end to end with no hardware.
 
 ```bash
 pip install -r requirements.txt
 make demo          # the whole loop, ~45 s, no drone, no GPU, no network
-make test          # 72 tests
+make test          # 110 tests
 make bench         # reproduces every number quoted below
+make twin-ui       # then open http://localhost:8099/twin.html
 ```
 
 ---
@@ -37,25 +40,37 @@ that are unflattering to the earlier design:
 
 ---
 
-## What the system does, and what it measured
+## Status after the 30 Oct 2026 audit and 31 Oct rebuild
 
-### 1. Assimilating UAV LAI genuinely improves the crop estimate
+The September numbers in this README (−57.9 % LAI error, −51.3 % yield error,
+"one visit is enough") came from a weather generator with **102 mm of rain a
+year** and an OSSE with **16 weekly observations**. A section-by-section audit
+reran everything on realistic Bennett weather; the rebuild ported what held up
+and fixed two filter bugs found afterwards. [ADR 0013](docs/adr/0013-post-audit-rebuild.md)
+has the full record. What the system measures now, all in simulation:
 
-An OSSE — perturb the crop parameters to make a "truth", sample noisy LAI at a
-realistic flight cadence, then run the ensemble open-loop and with the EnKF.
-Comparison is **paired** per truth draw, because the ratio-of-medians can report
-a loss while a clear majority of trials improve. (It did, on the first run.)
+### A. The closed loop, season by season
+
+{{POLICY_TABLE}}
+
+`bench/policy_comparison.py` — potato at Bennett, 25 Oct – 10 Feb; the twin's
+soil parameters wrong by up to ±10 %; economics are stated assumptions (potato
+₹10/kg, spray ₹1,500, scouting ₹300/flight, herbicide ₹2,000, water ₹300/cm).
+
+### B. One camera pass: canopy yes, yield no — and the day matters
 
 ```
-16 trials · 30 members · survey every 7 d · LAI retrieval sd 25% of signal
-
-LAI RMSE       open loop 0.130  ->  assimilated 0.052    -57.9% median, better in 14/16
-Yield |error|  open loop   363  ->  assimilated   234    -51.3% median, better in 13/16
+60 trials · 24 members · cover (sd 0.04) + growth stage (sd 0.05) · fixed EnKF
+pass day 30   30-day canopy RMSE  -13 %   better in 33/60   yield: no gain
+pass day 45   30-day canopy RMSE  -48 %   better in 42/60   yield: no gain
 ```
 
-`bench/osse_assimilation.py`
+`bench/one_pass_osse.py`. Schedule the pass near day 45 for the canopy
+forecast; make no yield claim from it.
 
-### 2. Search width buys nothing; the naive heuristic is worse than nothing
+### C. Earlier findings that still stand
+
+#### Search width buys nothing; the naive heuristic is worse than nothing
 
 All methods on the real crop model, N-limited paddy, 5 weather scenarios,
 CVaR-80 objective:
@@ -81,7 +96,7 @@ Three findings, one of which contradicts what the design predicted:
 
 `bench/planner_comparison.py`
 
-### 3. Conformal coverage holds — and the monitor catches it when it stops
+#### Conformal coverage holds — and the monitor catches it when it stops
 
 | score | mode | α | coverage | mean set | review rate |
 |---|---|---:|---:|---:|---:|
@@ -106,7 +121,7 @@ severe shift      coverage 0.6522   monitor FIRES
 
 `bench/conformal_coverage.py`
 
-### 4. The review queue, not the imagery, is the real uplink constraint
+#### The review queue, not the imagery, is the real uplink constraint
 
 A 25 ha sortie at 3 cm GSD, measured with real JPEG compression:
 
@@ -125,7 +140,7 @@ obvious before measuring it.
 
 `bench/bandwidth.py`
 
-### 5. Endurance, not coverage, is what makes a mission hard
+#### Endurance, not coverage, is what makes a mission hard
 
 Fields2Cover plans routes for a vehicle with no battery — its `Robot` type has
 no capacity, energy or refill field anywhere. An agricultural multirotor flies
@@ -213,16 +228,24 @@ offline-capable and cloud-controlled:
 
 ```
 packages/fa_core/      geoid · imaging geometry · domain model · conformal prediction
-services/twin/         WOFOST engine · weather · ensemble Kalman assimilation
-services/planner/      coverage · energy-constrained routing · CVaR scheduling
+                       (marginal, class-conditional, action-level gates)
+services/twin/         WOFOST engine · normals-calibrated weather + forecast ensemble ·
+                       ensemble Kalman assimilation (LAI, canopy cover, growth stage) ·
+                       blight + weed damage layer
+services/planner/      coverage · energy- and tank-constrained routing · weekly planner
+                       (fungicide / herbicide / scouting) · irrigation scheduler ·
+                       SOP spray windows · N scheduling (greedy/beam/MPPI)
+services/loop/         FieldTwin orchestrator · one-pass ingest · season simulator
 services/gateway/      edge perception · conformal gate · zone aggregation
-services/api/          FastAPI: observations, review queue, coverage monitor
+services/api/          FastAPI: observations, review queue, coverage monitor,
+                       /twin advisory endpoints (no database needed)
 services/ingest/       MQTT → TimescaleDB, idempotent
 sim/                   kinematic simulator (always works) · PX4/MAVSDK (real)
 db/migrations/         PostGIS + TimescaleDB schema
 bench/                 every number in this README
 ml/                    detector training, conformal calibration on real images, ONNX/TensorRT export
-docs/adr/              12 decision records, including the reversals
+docs/adr/              14 decision records, including the reversals
+web/                   field dashboard (index.html) · twin advice + review labelling (twin.html)
 ```
 
 ---
@@ -277,18 +300,24 @@ agriculture, which forbids commercial use and requires deletion within 90 days.
   which are defensible far sooner.
 - **WOFOST has no puddled-transplanted-rice water balance**, and Indian kharif
   rice is grown in exactly that system. Not calibratable away.
-- **Perception is being trained, not yet measured.** `ml/` trains RF-DETR on
-  WeedsGalore (CC BY 4.0, German maize) on an RTX A6000, calibrates the conformal
-  gate on real detections and exports ONNX / TensorRT ([ml/README.md](ml/README.md),
-  [ADR 0012](docs/adr/0012-detection-conformal.md)). Until `ml/results/` holds a
-  run, the gateway still falls back to the deterministic stub, which stamps
-  `not for real advice` on everything it touches. The model will have seen no
-  Indian field.
+- **Perception is measured on German maize, not on an Indian field.**
+  RF-DETR-Medium on WeedsGalore (H200, 30 Oct 2026): test mAP50:95 0.281, AP50
+  0.487; maize 0.91 AP50, quickweed 0.25, other weeds 0.11. It has no potato,
+  wheat or disease classes. The gate must be recalibrated on 100–200 field
+  labels before its coverage means anything here ([ADR 0014](docs/adr/0014-action-level-class-conditional-gate.md)).
+  ONNX export works (parity 0.84 against fp32 — check before relying on it).
+- **Blight, weed and price figures are assumptions.** The fungicide, scouting and
+  herbicide verdicts move with them; the blight model infects ~65 % of seasons.
 - **The kinematic simulator is not a flight-dynamics simulator.** It models
   scheduling and energy. Anything depending on aerodynamics, wind, control loops
   or GPS error must be tested in PX4 SITL (`make sitl`).
-- **Synthetic weather is not a climate model** and is flagged as such in every
-  summary that uses it.
+- **The weather is a generator calibrated to IMD normals, not station data.** It
+  reproduces Delhi's statistics (755 mm/yr vs 774 normal) but not real days, and
+  is flagged NOT-FOR-ADVICE in every summary. Replace with IMD or station data.
+- **The irrigation result is optimistic for a field.** The simulated twin knew the
+  past weather exactly, WOFOST 7.2 does not penalise over-watering, and the
+  baseline is a fixed schedule. The field trial should meter water against a
+  cheap soil-moisture sensor as well as the farmer.
 - **Nothing here has flown.** Every result is from simulation or an OSSE. The
   field measurements required to validate it are listed in
   [ADR 0005](docs/adr/0005-crop-model.md).
@@ -298,9 +327,11 @@ agriculture, which forbids commercial use and requires deletion within 90 days.
 ## Reproducing
 
 ```bash
-make test                       # 72 tests
+make test                       # 110 tests, ~2.5 min
 make demo                       # end-to-end closed loop, ~45 s
-make bench                      # all four benchmarks, ~10 min
+make bench-quick                # small versions of the headline benchmarks, ~5 min
+make bench                      # every number in this README, ~60 min on 2 cores
+make gate-eval                  # conformal gates on the real detector's cached scores
 make licences                   # copyleft gate
 make up                         # docker: postgis+timescale, mosquitto, api, ingest, web
 make sitl                       # the verified PX4 SITL setup

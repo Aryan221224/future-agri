@@ -76,67 +76,252 @@ def get_weather(latitude: float, longitude: float, provider: str = "openmeteo",
     )
 
 
-def _synthetic_records(latitude, longitude, start, days, seed, elevation):
+# ---------------------------------------------------------------------------
+# Normals-calibrated stochastic weather (replaces the old sine generator)
+# ---------------------------------------------------------------------------
+#
+# Why this replaced ``_synthetic_records``
+# ----------------------------------------
+# The 30 Oct 2026 audit found that every benchmark had run on a sine-wave
+# generator producing **102 mm of rain a year** against ~775 mm at Delhi, with a
+# fixed 13 C diurnal range. Water stress, blight-favourable days and the value
+# of every irrigation decision depend on rain, so those headline numbers were
+# not about Indian conditions at all. This generator reproduces the *statistics*
+# of a real station (seasonality, monsoon, wet-day persistence, diurnal range,
+# inter-annual variability). It still produces invented days, not history, so
+# it keeps the NOT-FOR-ADVICE stamp.
+#
+# Station: New Delhi (Safdarjung). Tmax, Tmin, rain and rainy days (>= 2.5 mm)
+# are the IMD 1991-2020 normals. Radiation, vapour pressure and wind are
+# approximate values chosen to be physically consistent; replace them with
+# station records when available. Bennett University (28.45 N, 77.58 E) is
+# ~35 km from Safdarjung, close enough for statistics, not for day-to-day use.
+
+#: month -> (Tmax C, Tmin C, rain mm, rainy days, radiation MJ/m2/d, VAP hPa, wind m/s)
+DELHI_NORMALS: dict[int, tuple[float, ...]] = {
+    1: (20.1, 7.5, 19.1, 1.7, 12.5, 10.0, 1.8),
+    2: (24.2, 10.6, 21.3, 1.5, 15.8, 11.5, 2.1),
+    3: (29.9, 15.6, 17.4, 1.7, 19.5, 13.5, 2.3),
+    4: (36.5, 21.3, 16.3, 1.0, 22.6, 15.0, 2.5),
+    5: (39.9, 25.8, 30.7, 2.7, 24.0, 19.0, 2.7),
+    6: (39.0, 27.7, 74.1, 4.8, 22.0, 26.0, 2.7),
+    7: (35.6, 27.5, 209.7, 9.7, 18.5, 32.0, 2.3),
+    8: (34.2, 26.7, 233.1, 10.2, 17.5, 32.0, 2.0),
+    9: (34.1, 25.0, 123.5, 5.5, 18.5, 28.0, 1.9),
+    10: (33.0, 19.5, 15.1, 0.8, 17.5, 19.0, 1.6),
+    11: (28.4, 13.0, 6.0, 0.4, 14.5, 13.0, 1.5),
+    12: (22.8, 8.4, 8.1, 0.6, 12.0, 11.0, 1.6),
+}
+NORMALS_SOURCE = ("IMD New Delhi (Safdarjung) 1991-2020 normals for Tmax/Tmin/rain/rainy days; "
+                  "radiation, vapour pressure and wind approximate")
+_MDAYS = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+
+#: Daily rain is capped. A gamma draw has an unbounded tail and an occasional
+#: 400 mm day would dominate a season's water balance. Delhi's wettest days are
+#: of order 150-250 mm, so 200 mm is a physical ceiling for a generator, not a
+#: statement about extremes.
+RAIN_CAP_MM = 200.0
+
+
+def _smooth(day: date, idx: int, normals: dict) -> float:
+    """Linear interpolation between mid-month normals (no steps at month edges)."""
+    m = day.month
+    mid = date(day.year, m, 15)
+    if day >= mid:
+        m2 = m % 12 + 1
+        nxt = date(day.year + (1 if m == 12 else 0), m2, 15)
+        w = (day - mid).days / (nxt - mid).days
+        return normals[m][idx] * (1 - w) + normals[m2][idx] * w
+    m0 = 12 if m == 1 else m - 1
+    prv = date(day.year - (1 if m == 1 else 0), m0, 15)
+    w = (day - prv).days / (mid - prv).days
+    return normals[m0][idx] * (1 - w) + normals[m][idx] * w
+
+
+def generate_records(start: date, days: int, seed: int, normals: dict | None = None,
+                     anomaly: dict | None = None, rain_cap_mm: float = RAIN_CAP_MM) -> list[dict]:
+    """Daily weather records with realistic statistics.
+
+    Rain is a two-state Markov chain (wet-day persistence) with gamma amounts
+    scaled so each month's expected total matches the normal. Temperatures carry
+    AR(1) daily anomalies plus a season-level anomaly, and wet days are cooler by
+    day and warmer by night. ``anomaly`` fixes the season-level shifts
+    (``{"t": +C, "rain": factor}``); otherwise they are drawn, which gives
+    inter-annual variability (dry years, wet years).
+
+    Units: TMAX/TMIN C, RAIN mm/day, IRRAD J/m2/day, VAP hPa, WIND m/s.
+    """
     import numpy as np
+    nm = normals or DELHI_NORMALS
     rng = np.random.default_rng(seed)
-    out = []
+    an = anomaly or {}
+    t_an = float(an.get("t", rng.normal(0, 0.8)))
+    rain_fac = float(an.get("rain", np.exp(rng.normal(0, 0.3))))
+    ax = an_n = 0.0
+    wet = False
+    out: list[dict] = []
     for i in range(days):
         d = start + timedelta(days=i)
-        doy = d.timetuple().tm_yday
-        season = np.sin(2 * np.pi * (doy - 80) / 365.25)
-        tmean = 24.0 + 8.0 * season + rng.normal(0, 1.6)
-        irrad = (1.05e7 + 5.5e6 * season) * (0.55 + 0.45 * rng.random())
-        monsoon = 1.0 if 152 <= doy <= 273 else 0.12
-        svp = 6.11 * 10 ** (7.5 * tmean / (237.3 + tmean))
-        out.append(dict(
-            DAY=d, LAT=latitude, LON=longitude, ELEV=elevation,
-            IRRAD=float(max(2.0e6, irrad)),
-            TMIN=float(tmean - 6.5), TMAX=float(tmean + 6.5),
-            VAP=float(max(3.0, 0.55 * svp)),
-            WIND=float(max(0.3, rng.gamma(2.0, 1.0))),
-            RAIN=float(round(rng.gamma(0.6, 1.1) * monsoon, 3)),
-        ))
+        m = d.month
+        rain_m, rdays = nm[m][2], nm[m][3]
+        nd = _MDAYS[m - 1]
+        # Normals count days >= 2.5 mm; light-rain days roughly add 60 %.
+        p_wet = min(0.9, rdays * 1.6 / nd)
+        p_ww = min(0.95, p_wet + 0.35 * (1 - p_wet))
+        p_dw = max(0.0, (p_wet - p_wet * p_ww) / max(1e-6, 1 - p_wet))
+        wet = bool(rng.random() < (p_ww if wet else p_dw))
+        rain = 0.0
+        if wet and rain_m > 0:
+            mean_wet = rain_m * rain_fac / max(0.5, p_wet * nd)
+            rain = min(rain_cap_mm, float(rng.gamma(0.75, mean_wet / 0.75)))
+        ax = 0.7 * ax + rng.normal(0, 1.6)
+        an_n = 0.7 * an_n + rng.normal(0, 1.3)
+        tmax = _smooth(d, 0, nm) + t_an + ax - (2.5 if wet else 0.0)
+        tmin = _smooth(d, 1, nm) + t_an + 0.6 * an_n + (0.5 if wet else 0.0)
+        tmin = min(tmin, tmax - 2.0)
+        rad = _smooth(d, 4, nm) * (0.68 if wet else 1.06) * (1 + rng.normal(0, 0.06))
+        vap = _smooth(d, 5, nm) * (1.12 if wet else 1.0) * (1 + rng.normal(0, 0.06))
+        es_tmin = 6.108 * float(np.exp(17.27 * tmin / (tmin + 237.3)))
+        vap = min(vap, 0.98 * es_tmin)   # vapour pressure cannot exceed saturation at Tmin
+        wind = max(0.3, _smooth(d, 6, nm) * float(rng.gamma(4, 0.25)))
+        out.append(dict(DAY=d, TMAX=float(tmax), TMIN=float(tmin), RAIN=float(rain),
+                        IRRAD=float(max(3.0, rad) * 1e6), VAP=float(max(2.0, vap)),
+                        WIND=float(wind)))
     return out
 
 
-def make_synthetic_weather(latitude: float, longitude: float, start: date,
-                           days: int = 400, seed: int = 0, elevation: float = 250.0):
-    """Deterministic synthetic weather, for tests and offline demos.
+def records_provider(records: list[dict], latitude: float, longitude: float,
+                     elevation: float = 200.0, description: str = ""):
+    """Wrap daily records (RAIN in mm) as a PCSE WeatherDataProvider.
 
-    This exists so the entire system is runnable with no network at all -- which
-    matters both for CI and for a field gateway. It is not a climate model and
-    must never back a real recommendation, so the provider stamps a loud
-    description that the twin copies into every summary it produces. A synthetic
-    result that cannot be distinguished from a real one is a trap.
+    Reference ET is computed with PCSE's own Penman-Monteith so the water
+    balance is consistent with the driving variables. The records stay
+    attached as ``.records`` so forecasts and the damage layer can read the
+    same days the crop model saw.
     """
     from pcse.base import WeatherDataProvider, WeatherDataContainer
+    from pcse.util import reference_ET
 
-    class _Synthetic(WeatherDataProvider):
+    desc = description or "stochastic weather"
+
+    class _RecordsWeather(WeatherDataProvider):
         def __init__(self):
             super().__init__()
             self.latitude, self.longitude, self.elevation = latitude, longitude, elevation
             self.angstA, self.angstB = 0.25, 0.5
-            self.description = ["SYNTHETIC weather (deterministic, seeded) -- NOT for real advice"]
-            from pcse.util import reference_ET
-            for rec in _synthetic_records(latitude, longitude, start, days, seed, elevation):
-                # Reference ET is computed with PCSE's own Penman-Monteith
-                # routine rather than stubbed, so the synthetic water balance is
-                # at least internally consistent with the driving variables.
+            self.description = [desc]
+            for r in records:
                 e0, es0, et0 = reference_ET(
-                    DAY=rec["DAY"], LAT=latitude, ELEV=elevation,
-                    TMIN=rec["TMIN"], TMAX=rec["TMAX"], IRRAD=rec["IRRAD"],
-                    VAP=rec["VAP"], WIND=rec["WIND"],
-                    ANGSTA=self.angstA, ANGSTB=self.angstB, ETMODEL="PM")
-                rec = dict(rec, E0=e0 / 10.0, ES0=es0 / 10.0, ET0=et0 / 10.0)
-                wdc = WeatherDataContainer(**rec)
-                self._store_WeatherDataContainer(wdc, rec["DAY"])
+                    DAY=r["DAY"], LAT=latitude, ELEV=elevation, TMIN=r["TMIN"],
+                    TMAX=r["TMAX"], IRRAD=r["IRRAD"], VAP=r["VAP"], WIND=r["WIND"],
+                    ANGSTA=0.25, ANGSTB=0.5, ETMODEL="PM")
+                rec = dict(r, LAT=latitude, LON=longitude, ELEV=elevation,
+                           E0=e0 / 10.0, ES0=es0 / 10.0, ET0=et0 / 10.0,
+                           RAIN=r["RAIN"] / 10.0)   # PCSE wants cm/day
+                self._store_WeatherDataContainer(WeatherDataContainer(**rec), r["DAY"])
 
         def __str__(self):
-            return (f"SyntheticWeather(lat={latitude:.3f},lon={longitude:.3f},"
-                    f"seed={seed}) NOT-FOR-ADVICE")
+            return desc
 
-    return _Synthetic()
+    w = _RecordsWeather()
+    w.records = list(records)
+    return w
+
+
+def make_normals_weather(latitude: float, longitude: float, start: date, days: int = 400,
+                         seed: int = 0, elevation: float = 200.0, anomaly: dict | None = None,
+                         normals: dict | None = None):
+    """Normals-calibrated stochastic weather as a PCSE provider (``.records`` attached)."""
+    recs = generate_records(start, days, seed, normals=normals, anomaly=anomaly)
+    desc = (f"STOCHASTIC weather calibrated to {NORMALS_SOURCE.split(' for ')[0]} "
+            f"(lat={latitude:.3f},lon={longitude:.3f},seed={seed}) NOT-FOR-ADVICE")
+    return records_provider(recs, latitude, longitude, elevation, desc)
+
+
+def make_synthetic_weather(latitude: float, longitude: float, start: date,
+                           days: int = 400, seed: int = 0, elevation: float = 250.0):
+    """Deterministic stochastic weather for tests, demos and benchmarks.
+
+    Kept under its old name so every caller moved to realistic statistics at
+    once. It is still not a real weather record and must never back real
+    advice, so the description stamps NOT-FOR-ADVICE and the twin copies that
+    into every summary it produces.
+    """
+    return make_normals_weather(latitude, longitude, start, days, seed, elevation)
 
 
 # Backwards-compatible alias.
 SyntheticWeather = make_synthetic_weather
+
+
+# ---------------------------------------------------------------------------
+# Forecast ensemble: observed past + forecast (days 1-15) + climatology tail
+# ---------------------------------------------------------------------------
+
+def forecast_member(truth: list[dict], issue: date, seed: int, forecast_days: int = 15,
+                    normals: dict | None = None) -> list[dict]:
+    """One forecast-ensemble member issued on ``issue``.
+
+    * before ``issue``: the observed record (the twin has seen the past);
+    * lead 1..``forecast_days``: the truth plus error that grows with lead time,
+      which is how a real NWP ensemble behaves (temperature sd 0.5*sqrt(lead) C,
+      rain amounts mis-scaled and occasionally missed or invented);
+    * beyond: an independent climatology realisation, because past ~2 weeks
+      a forecast has no skill and pretending otherwise is overconfidence.
+
+    In operation the forecast part comes from a real ensemble (Open-Meteo
+    ensemble API); this function is the simulation stand-in that lets the
+    planner be tested against a known truth.
+    """
+    import numpy as np
+    rng = np.random.default_rng(seed)
+    clim = generate_records(truth[0]["DAY"], len(truth), seed + 7919, normals=normals)
+    out = []
+    for i, r in enumerate(truth):
+        lead = (r["DAY"] - issue).days
+        if lead < 0:
+            out.append(dict(r))
+        elif lead < forecast_days:
+            e = float(rng.normal(0, 0.5 * np.sqrt(lead + 1)))
+            if r["RAIN"] > 0:
+                miss = rng.random() < min(0.5, 0.03 * lead)
+                fac = float(np.exp(np.clip(rng.normal(0, 0.15 * np.sqrt(lead + 1)), -1, 1)))
+                rain = 0.0 if miss else min(RAIN_CAP_MM, r["RAIN"] * fac)
+            else:
+                rain = float(rng.gamma(0.5, 2.0)) if rng.random() < 0.02 * lead else 0.0
+            vap = r["VAP"] * (1 + float(rng.normal(0, 0.03 * (lead + 1))))
+            tmax, tmin = r["TMAX"] + e, r["TMIN"] + e
+            es_tmin = 6.108 * float(np.exp(17.27 * tmin / (tmin + 237.3)))
+            out.append(dict(r, TMAX=tmax, TMIN=tmin, RAIN=rain,
+                            VAP=float(max(2.0, min(vap, 0.98 * es_tmin)))))
+        else:
+            out.append(dict(clim[i], DAY=r["DAY"]))
+    return out
+
+
+def forecast_ensemble(truth: list[dict], issue: date, n_members: int, seed: int,
+                      forecast_days: int = 15, normals: dict | None = None) -> list[list[dict]]:
+    """``n_members`` forecast members issued on ``issue`` (see ``forecast_member``).
+
+    Member ``j`` always uses seed ``seed*1000 + j``, so two candidate actions
+    evaluated against the same ensemble see the *same* weather -- common random
+    numbers, which the audit measured at 92.9 % decision agreement with a
+    120-member reference against 85.8 % for independent draws.
+    """
+    return [forecast_member(truth, issue, seed * 1000 + j, forecast_days, normals)
+            for j in range(n_members)]
+
+
+def annual_totals(records: list[dict]) -> dict[str, float]:
+    """Summary statistics used by the tests and the benchmark headers."""
+    import numpy as np
+    rain = np.array([r["RAIN"] for r in records])
+    months = np.array([r["DAY"].month for r in records])
+    years = len(records) / 365.25
+    return {
+        "rain_mm_per_year": float(rain.sum() / years),
+        "jjas_mm_per_year": float(rain[np.isin(months, [6, 7, 8, 9])].sum() / years),
+        "wet_days_per_year": float((rain >= 2.5).sum() / years),
+        "max_daily_mm": float(rain.max()),
+        "mean_dtr_c": float(np.mean([r["TMAX"] - r["TMIN"] for r in records])),
+    }

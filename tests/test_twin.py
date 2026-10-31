@@ -130,3 +130,105 @@ def test_unsupported_observation_variable_raises(weather):
     ens.run_till(dt.date(2025, 8, 1))
     with pytest.raises(NotImplementedError):
         ens.assimilate(Observation(dt.date(2025, 8, 1), "biomass", 1.0, 0.1))
+
+
+# --- 31 Oct 2026 fixes: parameter write-back, real inflation, cover/stage operators ---
+
+def _potato_cfg():
+    return ZoneConfig(zone_id="p", latitude=28.45, longitude=77.58, crop="potato",
+                      variety="Potato_701", sowing_date=dt.date(2025, 10, 25),
+                      harvest_date=dt.date(2026, 2, 10))
+
+
+@pytest.fixture(scope="module")
+def bennett_weather():
+    return make_synthetic_weather(28.45, 77.58, dt.date(2025, 10, 1), days=200, seed=3)
+
+
+def _pert():
+    return ParameterPerturbation(TSUM1=0.2, TSUM2=0.2, SPAN=0.2, RGRLAI=0.2,
+                                 TDWI=0.2, WAV=0.0, NAVAILI=0.0)
+
+
+def test_parameter_update_reaches_the_running_crop(bennett_weather):
+    """The bug: updated factors used to live only in a bookkeeping dict."""
+    ens = EnsembleTwin(_potato_cfg(), bennett_weather, n_members=12, seed=4,
+                       perturbation=_pert(), engine="Wofost72_WLP_CWB")
+    day = dt.date(2025, 12, 5)
+    ens.run_till(day)
+    before = [ens.current_parameters(i)["TSUM2"] for i in range(ens.n)]
+    dvs = ens._augmented()[1]
+    ens.assimilate(Observation(day, "DVS", float(dvs.mean() + 2 * dvs.std()), 0.03))
+    after = [ens.current_parameters(i)["TSUM2"] for i in range(ens.n)]
+    assert any(abs(a - b) > 1e-6 for a, b in zip(after, before))
+    for i, m in enumerate(ens.members):        # running crop == bookkeeping
+        assert ens.current_parameters(i)["TSUM2"] == pytest.approx(m._base["TSUM2"] * m._perturb["TSUM2"])
+
+
+def test_inflation_widens_the_posterior(bennett_weather):
+    """The bug: inflation was divided back out in the same expression."""
+    day = dt.date(2025, 12, 1)
+    sds = []
+    for lam in (1.0, 1.3):
+        ens = EnsembleTwin(_potato_cfg(), bennett_weather, n_members=12, seed=5,
+                           perturbation=_pert(), engine="Wofost72_WLP_CWB", inflation=lam)
+        ens.run_till(day)
+        lai = ens._augmented()[0]
+        # A weak observation, so the posterior is mostly the (inflated) prior.
+        ens.assimilate(Observation(day, "LAI", float(lai.mean()), 1.5))
+        sds.append(float(ens._augmented()[0].std()))
+    assert sds[1] > sds[0] * 1.15
+
+
+def test_canopy_cover_operator_moves_lai_the_right_way(bennett_weather):
+    ens = EnsembleTwin(_potato_cfg(), bennett_weather, n_members=12, seed=6,
+                       perturbation=_pert(), engine="Wofost72_WLP_CWB")
+    day = dt.date(2025, 12, 1)
+    ens.run_till(day)
+    lai = ens._augmented()[0].mean()
+    cover = 1 - np.exp(-0.6 * lai)
+    ens.assimilate(Observation(day, "CC", float(min(0.97, cover + 0.15)), 0.04))
+    assert ens._augmented()[0].mean() > lai
+
+
+def test_cover_and_stage_are_assimilated_jointly(bennett_weather):
+    ens = EnsembleTwin(_potato_cfg(), bennett_weather, n_members=10, seed=7,
+                       perturbation=_pert(), engine="Wofost72_WLP_CWB")
+    day = dt.date(2025, 12, 1)
+    ens.run_till(day)
+    X = ens._augmented()
+    innov, rejected = ens.assimilate([
+        Observation(day, "CC", float(1 - np.exp(-0.6 * X[0].mean())), 0.04),
+        Observation(day, "DVS", float(X[1].mean()), 0.05)])
+    assert not rejected
+
+
+def test_per_member_weather_is_supported(bennett_weather):
+    from fa_twin.weather import forecast_ensemble, records_provider
+    ens_recs = forecast_ensemble(bennett_weather.records, dt.date(2025, 11, 20), 4, seed=1)
+    ws = [records_provider(r, 28.45, 77.58) for r in ens_recs]
+    ens = EnsembleTwin(_potato_cfg(), bennett_weather, n_members=4, seed=8,
+                       engine="Wofost72_WLP_CWB", weathers=ws)
+    ens.run([])
+    _, sd, vals = ens.yield_distribution()
+    assert len(vals) == 4 and np.all(vals > 0)
+
+
+def test_finite_ensemble_interval_holds_its_level():
+    """Order-statistic interval: exchangeable truth covered >= level; percentile one is not."""
+    from fa_twin.assimilation import EnsembleTwin as ET
+    rng = np.random.default_rng(0)
+    hits_os = hits_pct = 0
+    trials = 4000
+    for _ in range(trials):
+        vals = rng.normal(0, 1, 24)
+        truth = rng.normal(0, 1)
+        fake = ET.__new__(ET)
+        fake.yield_distribution = lambda v=vals: (v.mean(), v.std(), v)
+        lo, hi, lvl = fake.interval(0.8)
+        hits_os += lo <= truth <= hi
+        p10, p90 = np.percentile(vals, [10, 90])
+        hits_pct += p10 <= truth <= p90
+    assert lvl >= 0.8
+    assert hits_os / trials >= 0.79
+    assert hits_pct / trials < 0.77            # the naive interval undercovers

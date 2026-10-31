@@ -31,6 +31,25 @@ augmented state, so an observation informs both the current LAI and the
 parameters that generated it. That is the "joint state-parameter" formulation,
 and it is the reason the ensemble is built by perturbing parameters rather than
 by adding noise to a single trajectory.
+
+Two bugs fixed on 31 Oct 2026 (found reviewing the post-audit code)
+------------------------------------------------------------------
+1. **The parameter update never reached the crop.** The analysis wrote the
+   updated TSUM1/TSUM2/SPAN/RGRLAI factors into a bookkeeping dict and nothing
+   else, so the "joint" filter was really a state-only filter whose LAI nudge
+   decays within days. That is consistent with the audit finding that one pass
+   helped the 30-day canopy forecast but not yield. Updated parameters are now
+   written into each member's running PCSE phenology and leaf-dynamics objects.
+2. **Inflation was undone in the same line that applied it** (``A *= lam`` then
+   ``xm + A/lam + K@innov``), so the posterior spread was never widened -- which
+   fits the audit's 80 % intervals covering the truth only 60-75 % of the time.
+   Inflation is now applied to the forecast ensemble before the analysis.
+
+Parameters live in the augmented state as **log factors**, so every member
+stays positive and a symmetric Gaussian update is a sensible approximation.
+Observation operators are explicit: ``LAI`` (retrieved), ``CC`` (canopy cover,
+``1 - exp(-k*LAI)``, what a phone camera actually measures) and ``DVS``
+(growth stage, from BBCH staging). Several can be assimilated jointly.
 """
 from __future__ import annotations
 
@@ -104,67 +123,96 @@ class AssimilationResult:
     rejected: list[bool] = field(default_factory=list)
 
 
-def _enkf_update(X: np.ndarray, y: float, R: float, h_idx: int,
-                 rng: np.random.Generator, inflation: float = 1.02,
-                 loc: np.ndarray | None = None) -> np.ndarray:
-    """One stochastic EnKF analysis step on an augmented state matrix.
+#: Beer-Lambert extinction for canopy cover from LAI (green cover, nadir view).
+K_COVER = 0.6
 
-    ``X`` is (n_state, n_members). ``h_idx`` is the row the observation sees --
-    a linear observation operator, which is right here because we assimilate a
-    *retrieved* LAI rather than raw radiance. If you assimilate reflectance
-    directly, H becomes PROSAIL and this needs to change.
 
-    Multiplicative inflation counters the well-known ensemble collapse from
-    finite-member sampling error. Localisation (``loc``) damps spurious
-    correlations between the observed variable and unrelated parameters -- with
-    50 members, a sampling correlation of 0.2 between LAI and, say, initial soil
-    water is pure noise, and without damping the filter will happily update soil
-    water on the strength of it.
+def obs_operator(variable: str, state: dict) -> float:
+    """Predicted observation for one member state.
+
+    ``CC`` is green canopy cover, the quantity a fixed-exposure RGB photo gives
+    directly (``phone.py``). Assimilating cover through its operator beat both
+    a 25 %-error LAI retrieval and inverting cover to LAI in the audit (S2).
     """
-    n_state, n = X.shape
-    xm = X.mean(axis=1, keepdims=True)
-    A = X - xm
-    A *= inflation
-    # Cross-covariance of the full state with the observed row.
-    a_obs = A[h_idx : h_idx + 1, :]
-    PH = (A @ a_obs.T) / (n - 1)                 # (n_state, 1)
-    HPH = float(((a_obs @ a_obs.T) / (n - 1)).item())   # scalar
+    v = variable.upper()
+    lai = float(state.get("LAI") or 0.0)
+    if v == "LAI":
+        return lai
+    if v in ("CC", "COVER", "CANOPY_COVER"):
+        return 1.0 - math.exp(-K_COVER * lai)
+    if v == "DVS":
+        return float(state.get("DVS") or 0.0)
+    raise NotImplementedError(
+        f"observation operator for {variable!r} is not implemented "
+        "(supported: LAI, CC (canopy cover), DVS (growth stage))")
+
+
+def _enkf_update(X: np.ndarray, HX: np.ndarray, y: np.ndarray, R: np.ndarray,
+                 rng: np.random.Generator, loc: np.ndarray | None = None) -> np.ndarray:
+    """One stochastic EnKF analysis on an (already inflated) ensemble.
+
+    ``X`` is (n_state, n), ``HX`` the predicted observations (n_obs, n), ``y``
+    and ``R`` the observations and their error variances. Using the ensemble's
+    own predicted observations makes nonlinear operators (canopy cover) work
+    without a Jacobian. ``loc`` damps the observation's reach into state rows
+    it barely constrains; with ~30 members a sampling correlation of 0.2
+    between LAI and, say, leaf lifespan is mostly noise.
+    """
+    n = X.shape[1]
+    A = X - X.mean(axis=1, keepdims=True)
+    HA = HX - HX.mean(axis=1, keepdims=True)
+    PH = (A @ HA.T) / (n - 1)                          # (n_state, n_obs)
+    HPH = (HA @ HA.T) / (n - 1)                        # (n_obs, n_obs)
     if loc is not None:
         PH = PH * loc.reshape(-1, 1)
-    K = PH / (HPH + R)
-    # Perturbed observations: the stochastic EnKF needs them for the posterior
-    # spread to be correct rather than systematically too small.
-    d = y + rng.normal(0.0, math.sqrt(R), size=n)
-    innov = d - X[h_idx, :]
-    return xm + A / inflation + K @ innov.reshape(1, n)
+    K = PH @ np.linalg.inv(HPH + np.diag(R))
+    # Perturbed observations keep the posterior spread statistically correct.
+    D = y.reshape(-1, 1) + rng.normal(0.0, 1.0, size=(len(y), n)) * np.sqrt(R).reshape(-1, 1)
+    return X + K @ (D - HX)
 
 
 class EnsembleTwin:
-    """An ensemble of WOFOST runs with joint state-parameter assimilation."""
+    """An ensemble of WOFOST runs with joint state-parameter assimilation.
 
-    #: Parameters that are updated by the filter, in augmented-state order.
+    ``weathers`` (optional) gives each member its own weather -- a forecast
+    ensemble. Without it every member shares ``weather``, which makes the
+    ensemble a parameter-uncertainty ensemble only and its yield intervals too
+    narrow for anything after the forecast horizon.
+    """
+
+    #: Parameters updated by the filter, in augmented-state order (as log factors).
     AUG_PARAMS = ("TSUM1", "TSUM2", "SPAN", "RGRLAI")
+    #: Where each parameter lives inside a running PCSE crop.
+    _PARAM_HOME = {"TSUM1": "pheno", "TSUM2": "pheno", "SPAN": "lv_dynamics",
+                   "RGRLAI": "lv_dynamics"}
+    #: State rows before the parameters.
+    STATE_ROWS = ("LAI", "DVS", "TAGP", "TWSO")
+    #: Parameter log factors are clipped to +-1 (x0.37 .. x2.7): beyond that a
+    #: member is no longer the crop it claims to be.
+    LOG_CLIP = 1.0
 
     def __init__(self, cfg, weather, n_members: int = 50,
                  perturbation: ParameterPerturbation | None = None,
                  events: list[dict] | None = None, seed: int = 0,
-                 engine: str = "auto", inflation: float = 1.02,
-                 localisation: float = 0.5, reject_sigma: float = 5.0):
-        from .engine import ZoneTwin
-
+                 engine: str = "auto", inflation: float = 1.0,
+                 localisation: float = 0.5, reject_sigma: float = 5.0,
+                 weathers: list | None = None):
         self.cfg = cfg
         self.weather = weather
+        self.weathers = list(weathers) if weathers else None
+        if self.weathers is not None and len(self.weathers) != int(n_members):
+            raise ValueError("weathers must have one entry per member")
         self.events = list(events or [])
         self.n = int(n_members)
         self.rng = np.random.default_rng(seed)
         self.pert = perturbation or ParameterPerturbation()
         self.engine = engine
-        self.inflation = inflation
+        self.inflation = float(inflation)
         self.localisation = localisation
         self.reject_sigma = reject_sigma
 
         self._factors = self.pert.sample(self.rng, self.n)
-        self.members: list[ZoneTwin] = [self._make_member(i) for i in range(self.n)]
+        self.members: list = [self._make_member(i) for i in range(self.n)]
 
     # -- construction -----------------------------------------------------
     def _make_member(self, i: int):
@@ -175,39 +223,64 @@ class EnsembleTwin:
         for name in ("WAV", "NAVAILI"):
             if name in self._factors:
                 setattr(cfg, name, float(getattr(cfg, name) * self._factors[name][i]))
-        overrides = {p: float(self._factors[p][i]) for p in self.AUG_PARAMS
-                     if p in self._factors}
-        tw = ZoneTwin(cfg, self.weather, events=self.events, engine=self.engine)
-        # Scale the crop parameters this member was drawn with. PCSE's
-        # ParameterProvider supports overrides, which is cleaner than editing
-        # the YAML per member.
+        w = self.weathers[i] if self.weathers else self.weather
+        tw = ZoneTwin(cfg, w, events=self.events, engine=self.engine)
         pp = tw.model.parameterprovider
-        for p, f in overrides.items():
+        tw._base = {}
+        tw._perturb = {}
+        for p in self.AUG_PARAMS + ("TDWI",):
             try:
                 base = pp[p]
             except Exception:
                 continue
-            if isinstance(base, (int, float)):
-                pp.set_override(p, float(base) * f, check=False)
-        tw._perturb = overrides
+            if not isinstance(base, (int, float)):
+                continue
+            f = float(self._factors[p][i]) if p in self._factors else 1.0
+            if p in self.AUG_PARAMS:
+                tw._base[p] = float(base)
+                tw._perturb[p] = f
+            # Overrides set before the crop starts are read when it is created.
+            pp.set_override(p, float(base) * f, check=False)
         return tw
+
+    # -- parameter write-back ---------------------------------------------
+    def _write_params(self, m) -> None:
+        """Push a member's current parameter factors into its running crop."""
+        crop = getattr(m.model, "crop", None)
+        if crop is None:          # before sowing: the override path still applies
+            pp = m.model.parameterprovider
+            for p, f in m._perturb.items():
+                pp.set_override(p, m._base[p] * f, check=False)
+            return
+        for p, f in m._perturb.items():
+            obj = getattr(crop, self._PARAM_HOME[p], None)
+            if obj is not None and hasattr(obj.params, p):
+                setattr(obj.params, p, float(m._base[p] * f))
+
+    def current_parameters(self, i: int) -> dict[str, float]:
+        """The parameter values member ``i`` is actually running with."""
+        m = self.members[i]
+        crop = getattr(m.model, "crop", None)
+        out = {}
+        for p in m._perturb:
+            obj = getattr(crop, self._PARAM_HOME[p], None) if crop is not None else None
+            out[p] = float(getattr(obj.params, p)) if obj is not None else m._base[p] * m._perturb[p]
+        return out
 
     # -- stepping ---------------------------------------------------------
     def _augmented(self) -> np.ndarray:
-        """State matrix: [LAI, TAGP, TWSO, *scaled parameters] x members."""
+        """State matrix: [LAI, DVS, TAGP, TWSO, *log parameter factors] x members."""
         rows = []
         for m in self.members:
             st = m.state()
-            row = [st.get("LAI", 0.0), st.get("TAGP", 0.0), st.get("TWSO", 0.0)]
-            row += [m._perturb.get(p, 1.0) for p in self.AUG_PARAMS]
+            row = [float(st.get(v) or 0.0) for v in self.STATE_ROWS]
+            row += [math.log(max(m._perturb.get(p, 1.0), 1e-6)) for p in self.AUG_PARAMS]
             rows.append(row)
         return np.asarray(rows, float).T
 
     def _localisation_vector(self) -> np.ndarray:
-        """Damp the observation's reach into parameters it barely constrains."""
-        n_state = 3 + len(self.AUG_PARAMS)
-        loc = np.ones(n_state)
-        loc[3:] = self.localisation
+        loc = np.ones(len(self.STATE_ROWS) + len(self.AUG_PARAMS))
+        loc[len(self.STATE_ROWS):] = self.localisation
         return loc
 
     def run_till(self, day: date) -> None:
@@ -218,53 +291,76 @@ class EnsembleTwin:
                 except Exception as e:  # a diverged member must not kill the run
                     log.warning("member failed at %s: %s", day, e)
 
-    def assimilate(self, obs: Observation) -> tuple[float, bool]:
-        """Analysis step. Returns (innovation, rejected)."""
-        if obs.variable.upper() != "LAI":
-            raise NotImplementedError(
-                f"observation operator for {obs.variable!r} is not implemented; "
-                "retrieve to LAI first (see fa_twin.obsop)")
+    def assimilate(self, obs: "Observation | list[Observation]") -> tuple[float, bool]:
+        """Analysis step for one observation or several taken together.
+
+        Returns (innovation of the first observation, rejected). Each
+        observation is gross-error checked on its own; rejected ones are left
+        out and the rest are assimilated.
+        """
+        obs_list = list(obs) if isinstance(obs, (list, tuple)) else [obs]
+        states = [m.state() for m in self.members]
+        keep, first_innov, any_rejected = [], None, False
+        for o in obs_list:
+            hx = np.array([obs_operator(o.variable, st) for st in states])
+            innov = o.value - float(hx.mean())
+            if first_innov is None:
+                first_innov = innov
+            spread = float(hx.std(ddof=1)) if self.n > 1 else 0.0
+            total_sd = math.sqrt(spread ** 2 + o.sd ** 2)
+            # An observation many sigma from the whole ensemble is far more
+            # likely a cloud, a shadow, a mis-registered photo or a bad
+            # retrieval than a real crop state. Reject and flag it.
+            if total_sd > 0 and abs(innov) > self.reject_sigma * total_sd:
+                log.warning("rejecting %s observation %.3f on %s: %.1f sigma from ensemble",
+                            o.variable, o.value, o.day, abs(innov) / total_sd)
+                any_rejected = True
+                continue
+            keep.append((o, hx))
+        if not keep:
+            return float(first_innov or 0.0), True
+
         X = self._augmented()
-        prior = X[0, :]
-        innov = obs.value - float(prior.mean())
-        spread = float(prior.std(ddof=1)) if self.n > 1 else 0.0
-        total_sd = math.sqrt(spread**2 + obs.sd**2)
+        HX = np.vstack([hx for _, hx in keep])
+        if self.inflation != 1.0:
+            xm = X.mean(axis=1, keepdims=True)
+            hm = HX.mean(axis=1, keepdims=True)
+            X = xm + self.inflation * (X - xm)
+            HX = hm + self.inflation * (HX - hm)
+        y = np.array([o.value for o, _ in keep])
+        R = np.array([o.sd ** 2 for o, _ in keep])
+        Xa = _enkf_update(X, HX, y, R, self.rng, loc=self._localisation_vector())
 
-        # Gross-error check. An observation many sigma from the entire ensemble
-        # is far more likely to be a cloud, a shadow, a mis-georeferenced tile
-        # or a bad retrieval than a real crop state -- and assimilating it will
-        # wreck the season. Reject and flag rather than trust it.
-        if total_sd > 0 and abs(innov) > self.reject_sigma * total_sd:
-            log.warning("rejecting LAI observation %.2f on %s: %.1f sigma from ensemble",
-                        obs.value, obs.day, abs(innov) / total_sd)
-            return innov, True
-
-        Xa = _enkf_update(X, obs.value, obs.sd**2, h_idx=0, rng=self.rng,
-                          inflation=self.inflation, loc=self._localisation_vector())
+        ns = len(self.STATE_ROWS)
         lai_a = np.clip(Xa[0, :], 1e-3, 12.0)
+        logf = np.clip(Xa[ns:, :], -self.LOG_CLIP, self.LOG_CLIP)
         for i, m in enumerate(self.members):
             if m.terminated:
                 continue
+            for j, p in enumerate(self.AUG_PARAMS):
+                if p in m._perturb:
+                    m._perturb[p] = float(math.exp(logf[j, i]))
+            self._write_params(m)
             try:
-                m.set_lai(float(lai_a[i]))
+                if (m.state().get("LAI") or 0.0) > 0:
+                    m.set_lai(float(lai_a[i]))
             except Exception as e:
                 log.warning("could not set LAI on member %d: %s", i, e)
-        # Keep the parameter book-keeping in step with the analysis so the
-        # posterior parameter distribution is reportable.
-        for j, p in enumerate(self.AUG_PARAMS, start=3):
-            for i, m in enumerate(self.members):
-                m._perturb[p] = float(Xa[j, i])
-        return innov, False
+        return float(first_innov), any_rejected
 
     def run(self, observations: list[Observation]) -> AssimilationResult:
+        """Assimilate observations in date order (same-day ones jointly), then finish."""
         res = AssimilationResult([], [], [], [], [], list(observations), [])
-        for obs in sorted(observations, key=lambda o: o.day):
-            self.run_till(obs.day)
+        by_day: dict[date, list[Observation]] = {}
+        for o in observations:
+            by_day.setdefault(o.day, []).append(o)
+        for day in sorted(by_day):
+            self.run_till(day)
             X = self._augmented()
-            res.days.append(obs.day)
+            res.days.append(day)
             res.prior_mean.append(float(X[0].mean()))
             res.prior_sd.append(float(X[0].std(ddof=1)) if self.n > 1 else 0.0)
-            innov, rejected = self.assimilate(obs)
+            innov, rejected = self.assimilate(by_day[day])
             Xp = self._augmented()
             res.posterior_mean.append(float(Xp[0].mean()))
             res.posterior_sd.append(float(Xp[0].std(ddof=1)) if self.n > 1 else 0.0)
@@ -277,7 +373,7 @@ class EnsembleTwin:
                 except Exception as e:
                     log.warning("member failed to finish: %s", e)
         res.final_states = [m.summary() for m in self.members]
-        for j, p in enumerate(self.AUG_PARAMS):
+        for p in self.AUG_PARAMS:
             vals = np.array([m._perturb.get(p, 1.0) for m in self.members])
             res.parameter_posterior[p] = (
                 float(vals.mean()), float(vals.std(ddof=1)) if len(vals) > 1 else 0.0)
@@ -293,3 +389,26 @@ class EnsembleTwin:
     def quantiles(self, qs=(0.05, 0.5, 0.95)) -> dict[float, float]:
         _, _, vals = self.yield_distribution()
         return {q: float(np.quantile(vals, q)) for q in qs}
+
+    def interval(self, level: float = 0.8) -> tuple[float, float, float]:
+        """Yield interval that holds its level for a finite ensemble.
+
+        If the truth is exchangeable with the n members, it falls between the
+        k-th and m-th smallest member with probability (m - k)/(n + 1). The
+        usual ``np.percentile(vals, [10, 90])`` on 24 members therefore covers
+        only ~74 %, not 80 % -- which is most of what the audit read as an
+        "overconfident" ensemble (open loop covered 0.70 +- 0.06 in
+        ``bench/one_pass_osse.py``). Choosing order statistics so that
+        (m - k)/(n + 1) >= level fixes it without touching the filter.
+
+        Returns (low, high, guaranteed_level); with too few members for the
+        level the full range is returned and the guarantee is smaller.
+        """
+        _, _, vals = self.yield_distribution()
+        v = np.sort(vals)
+        n = len(v)
+        a = (1.0 - level) / 2.0
+        k = int(math.floor(a * (n + 1)))           # 1-based lower order statistic
+        m = int(math.ceil((1.0 - a) * (n + 1)))    # 1-based upper order statistic
+        k, m = max(1, k), min(n, m)
+        return float(v[k - 1]), float(v[m - 1]), (m - k) / (n + 1)

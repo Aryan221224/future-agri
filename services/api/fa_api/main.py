@@ -45,7 +45,12 @@ async def lifespan(app: FastAPI):
         await _pool.close()
 
 
-app = FastAPI(title="Future Agri API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Future Agri API", version="0.2.0", lifespan=lifespan)
+
+# The field twin (no database needed): setup, one-pass ingest, daily/weekly advice.
+from .advisory import router as _advisory_router  # noqa: E402
+
+app.include_router(_advisory_router)
 
 
 async def fetch(sql: str, *args):

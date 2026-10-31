@@ -81,3 +81,29 @@ def test_pipeline_without_calibrator_does_not_gate():
     s, reviews = pipe.process_zone("z", _frames(6), 2.0)
     assert reviews == []
     assert np.isnan(s.coverage_target)
+
+
+def test_action_gate_routes_on_crop_vs_weed_not_species():
+    from fa_core.uncertainty import calibrate_action_gate
+    classes = ["crop", "broadleaf_weed", "grass_weed", "background"]
+    rng = np.random.default_rng(4)
+    n = 4000
+    y = rng.choice(4, n, p=[0.4, 0.25, 0.2, 0.15])
+    lg = rng.normal(0, 1, (n, 4))
+    lg[np.arange(n), y] += 2.5
+    lg[(y == 1) | (y == 2), 1] += 1.0           # the two weeds are confused with each other
+    lg[(y == 1) | (y == 2), 2] += 1.0
+    p = np.exp(lg)
+    p /= p.sum(1, keepdims=True)
+    gate = calibrate_action_gate(p, y, classes, alpha=0.10)
+    det = StubDetector(classes=classes)
+    pipe_species = EdgePipeline(det, StratifiedCalibrator(
+        alpha=0.10, global_cal=calibrate_classification(p, y, classes, alpha=0.10, score="lac",
+                                                        randomized=False)), classes=classes)
+    pipe_action = EdgePipeline(det, classes=classes, action_gate=gate)
+    s1, r1 = pipe_species.process_zone("z", _frames(12), area_ha=1.0)
+    s2, r2 = pipe_action.process_zone("z", _frames(12), area_ha=1.0)
+    assert s2.action_counts is not None
+    assert s2.calibration_stratum == "action"
+    assert all(set(r.label_set) <= {"crop", "weed", "background"} for r in r2)
+    json.loads(s2.to_json())                       # still a valid uplink payload

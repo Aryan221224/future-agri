@@ -223,3 +223,31 @@ def test_rfdetr_detector_and_pipeline_drop_confident_background():
     s, reviews = pipe.process_zone("z", [img], 1.0)
     assert BACKGROUND not in s.class_counts
     assert s.class_counts.get("amaranth") == 1
+
+
+def test_gate_comparison_on_synthetic_detections():
+    """ml/gate_eval.evaluate_gates: Mondrian fixes the rare class, action level cuts review."""
+    import importlib.util
+    from pathlib import Path
+    spec = importlib.util.spec_from_file_location(
+        "gate_eval", Path(__file__).resolve().parents[1] / "ml" / "gate_eval.py")
+    ge = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ge)
+    rng = np.random.default_rng(0)
+    classes = ["maize", "amaranth", "quickweed", "background"]
+
+    def draw(n):
+        y = rng.choice(4, n, p=[0.5, 0.25, 0.08, 0.17])
+        lg = rng.normal(0, 1, (n, 4))
+        lg[np.arange(n), y] += np.array([4.0, 2.0, 0.3, 1.5])[y]
+        lg[y == 2, 1] += 1.5
+        p = np.exp(lg)
+        return p / p.sum(1, keepdims=True), y
+
+    vp, vl = draw(8000)
+    tp, tl = draw(8000)
+    r = ge.evaluate_gates(vp, vl, tp, tl, classes, 0.10, test_groups=np.arange(8000) // 20)
+    assert r["marginal_lac"]["worst_class_coverage"] < 0.8
+    assert r["class_conditional"]["worst_class_coverage"] > 0.85
+    assert r["action_level"]["review_rate"] < r["class_conditional"]["review_rate"]
+    assert r["marginal_lac"]["coverage_ci95"] is not None

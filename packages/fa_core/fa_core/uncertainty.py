@@ -252,6 +252,8 @@ class StratifiedCalibrator:
         def _mk(x):
             if x is None:
                 return None
+            if "qs" in x:
+                return ClassConditionalCalibration(**x)
             return (ClassificationCalibration(**x) if "classes" in x
                     else RegressionCalibration(**x))
         return cls(alpha=d["alpha"], min_n=d.get("min_n", 200),
@@ -274,3 +276,163 @@ def coverage_alarm(observed: float, nominal: float, n: int, z: float = 3.0) -> b
     """
     se = math.sqrt(max(nominal * (1 - nominal), 1e-9) / max(n, 1))
     return observed < nominal - z * se
+
+
+# ---------------------------------------------------------------------------
+# Class-conditional (Mondrian) conformal and action-level gating
+# ---------------------------------------------------------------------------
+#
+# Why: on the real H200 detector the marginal gate hit its target (0.923 at
+# alpha=0.10) while quickweed coverage was 0.52 (n=27) at alpha=0.05. Marginal
+# coverage is an average; a 90 % average can hide a class the gate almost
+# always gets wrong -- for a weed model, usually the rare weed. Class-
+# conditional conformal calibrates one quantile *per true class*, so every
+# class gets its own guarantee (given exchangeability within the class).
+#
+# And most decisions do not need species. Spray/no-spray needs crop vs weed vs
+# nothing. Summing softmax mass into those action groups before calibrating
+# removes the confusions that do not change an action (amaranth vs quickweed),
+# which on the repo's own classifier cut the review rate from 78.7 % to 2.5 %
+# at equal coverage (simulated; to be confirmed on real scores).
+
+#: Action groups for WeedsGalore-style detectors.
+ACTION_GROUPS = {"crop": ("maize", "crop", "potato", "wheat"),
+                 "background": ("background",)}
+
+
+def action_grouping(classes: list[str], crop_names=ACTION_GROUPS["crop"]) -> dict[str, list[str]]:
+    """Map fine classes to action groups: crop / weed / background."""
+    groups: dict[str, list[str]] = {"crop": [], "weed": [], "background": []}
+    for c in classes:
+        lc = c.lower()
+        if lc in ACTION_GROUPS["background"]:
+            groups["background"].append(c)
+        elif lc in crop_names:
+            groups["crop"].append(c)
+        else:
+            groups["weed"].append(c)
+    return {k: v for k, v in groups.items() if v}
+
+
+def group_probs(probs: np.ndarray, classes: list[str], groups: dict[str, list[str]]
+                ) -> tuple[np.ndarray, list[str]]:
+    """Sum class probabilities into groups. Returns (probs (N,G), group names)."""
+    probs = np.atleast_2d(np.asarray(probs, float))
+    names = list(groups)
+    idx = {c: i for i, c in enumerate(classes)}
+    out = np.stack([probs[:, [idx[c] for c in groups[g]]].sum(1) for g in names], axis=1)
+    return out, names
+
+
+def group_labels(labels: np.ndarray, classes: list[str], groups: dict[str, list[str]]) -> np.ndarray:
+    names = list(groups)
+    to_g = {classes.index(c): names.index(g) for g, cs in groups.items() for c in cs}
+    return np.array([to_g[int(y)] for y in labels], int)
+
+
+@dataclass
+class ClassConditionalCalibration:
+    """Mondrian LAC: one conformal quantile per true class.
+
+    A class with fewer calibration examples than needed for its alpha cannot be
+    calibrated honestly; its quantile is set to 1.0, so it is in *every*
+    prediction set and every detection that might be it goes to a human. That
+    is the conservative failure, and ``undercalibrated`` names those classes.
+    """
+    alpha: float
+    qs: list[float]
+    ns: list[int]
+    classes: list[str]
+    stratum: str = "global"
+    undercalibrated: list[str] = field(default_factory=list)
+
+    @property
+    def n(self) -> int:
+        return int(sum(self.ns))
+
+    def predict_set(self, probs: np.ndarray, u: float | None = None) -> list[str]:
+        probs = np.asarray(probs, float)
+        keep = [i for i, q in enumerate(self.qs) if probs[i] >= 1.0 - q]
+        if not keep:                                  # never return an empty set silently
+            keep = [int(np.argmax(probs))]
+        return [self.classes[i] for i in keep]
+
+    def needs_review(self, probs: np.ndarray, u: float | None = None) -> bool:
+        return len(self.predict_set(probs)) != 1
+
+
+def calibrate_class_conditional(probs: np.ndarray, labels: np.ndarray, classes: list[str],
+                                alpha: float = 0.10, stratum: str = "global"
+                                ) -> ClassConditionalCalibration:
+    probs = np.asarray(probs, float)
+    labels = np.asarray(labels, int)
+    qs, ns, under = [], [], []
+    need = min_calibration_n(alpha)
+    for k, c in enumerate(classes):
+        m = labels == k
+        ns.append(int(m.sum()))
+        if m.sum() < need:
+            qs.append(1.0)
+            under.append(c)
+            continue
+        s = 1.0 - probs[m, k]
+        qs.append(float(_conformal_quantile(s, alpha)))
+    return ClassConditionalCalibration(alpha, qs, ns, list(classes), stratum, under)
+
+
+@dataclass
+class ActionGate:
+    """Conformal gate on action groups (crop / weed / background).
+
+    ``predict`` returns the action set for one detection's fine-class softmax;
+    a singleton set is actionable (spray it, or leave it), anything else goes
+    to the review queue.
+    """
+    groups: dict[str, list[str]]
+    classes: list[str]
+    cal: ClassConditionalCalibration
+
+    def predict(self, probs: np.ndarray) -> list[str]:
+        g, _ = group_probs(probs, self.classes, self.groups)
+        return self.cal.predict_set(g[0])
+
+    def needs_review(self, probs: np.ndarray) -> bool:
+        return len(self.predict(probs)) != 1
+
+
+def calibrate_action_gate(probs: np.ndarray, labels: np.ndarray, classes: list[str],
+                          alpha: float = 0.10, groups: dict[str, list[str]] | None = None
+                          ) -> ActionGate:
+    groups = groups or action_grouping(classes)
+    gp, names = group_probs(probs, classes, groups)
+    gl = group_labels(labels, classes, groups)
+    return ActionGate(groups, list(classes), calibrate_class_conditional(gp, gl, names, alpha, "action"))
+
+
+@dataclass
+class RecalibrationReport:
+    used_field_labels: bool
+    n_field: int
+    reason: str
+
+
+def recalibrate_with_field_labels(current, probs: np.ndarray, labels: np.ndarray,
+                                  classes: list[str], alpha: float, min_n: int = 100,
+                                  class_conditional: bool = True):
+    """Refit the gate on labels collected in *this* field, when there are enough.
+
+    The detector was trained on German maize. Exchangeability between that and
+    an Indian potato field is not a reasonable assumption, so the guarantee is
+    only restored by calibrating on field data: in simulation, 100-200 field
+    labels brought coverage back from 0.63-0.80 to ~0.91. Below ``min_n`` the
+    current gate is kept and the report says why.
+    """
+    n = int(len(labels))
+    if n < min_n:
+        return current, RecalibrationReport(False, n, f"only {n} field labels (< {min_n}); "
+                                                      "keeping current calibration")
+    cal = (calibrate_class_conditional(probs, labels, classes, alpha, "field")
+           if class_conditional else
+           calibrate_classification(probs, labels, classes, alpha, score="lac",
+                                    randomized=False, stratum="field"))
+    return cal, RecalibrationReport(True, n, f"recalibrated on {n} field labels")

@@ -96,3 +96,90 @@ def test_stratified_falls_back_and_reports_it():
 def test_coverage_alarm_fires_only_on_real_degradation():
     assert coverage_alarm(0.70, 0.90, 1000)
     assert not coverage_alarm(0.899, 0.90, 1000)
+
+
+# --- class-conditional + action-level gate (real-run finding: quickweed coverage 0.52) ---
+
+from fa_core.uncertainty import (calibrate_action_gate, calibrate_class_conditional,  # noqa: E402
+                                 action_grouping, recalibrate_with_field_labels,
+                                 StratifiedCalibrator)
+
+WCLASSES = ["maize", "amaranth", "barnyard", "quickweed", "background"]
+
+
+def _weed_scores(n, rng):
+    """A detector that is good on maize and poor on a rare weed it confuses with amaranth."""
+    p_cls = np.array([0.45, 0.2, 0.15, 0.05, 0.15])
+    y = rng.choice(5, n, p=p_cls)
+    logits = rng.normal(0, 1.0, (n, 5))
+    strength = np.array([4.0, 2.0, 1.6, 0.4, 1.5])
+    logits[np.arange(n), y] += strength[y]
+    rare = y == 3
+    logits[rare, 1] += 1.5                       # quickweed looks like amaranth
+    p = np.exp(logits)
+    return p / p.sum(1, keepdims=True), y
+
+
+def _coverage(cal_fn, probs, y, classes):
+    sets = [cal_fn(p) for p in probs]
+    cov = np.array([classes[t] in s for t, s in zip(y, sets)])
+    size = np.array([len(s) for s in sets])
+    return cov, size
+
+
+def test_marginal_gate_hides_the_rare_class_class_conditional_does_not():
+    # ~1000 rare-class examples per split: per-class coverage sd ~0.013, so a
+    # 0.86 floor tests the method rather than one random draw.
+    rng = np.random.default_rng(0)
+    pc, yc = _weed_scores(20000, rng)
+    pt, yt = _weed_scores(20000, rng)
+    marg = calibrate_classification(pc, yc, WCLASSES, alpha=0.10, score="lac", randomized=False)
+    mond = calibrate_class_conditional(pc, yc, WCLASSES, alpha=0.10)
+    cov_m, _ = _coverage(marg.predict_set, pt, yt, WCLASSES)
+    cov_c, _ = _coverage(mond.predict_set, pt, yt, WCLASSES)
+    rare = yt == 3
+    assert cov_m.mean() >= 0.87                          # marginal target met...
+    assert cov_m[rare].mean() < 0.80                     # ...while the rare class fails
+    for k in range(5):                                   # every class meets it with Mondrian
+        assert cov_c[yt == k].mean() >= 0.86, (WCLASSES[k], cov_c[yt == k].mean())
+
+
+def test_action_gate_cuts_review_rate_at_equal_coverage():
+    rng = np.random.default_rng(1)
+    pc, yc = _weed_scores(4000, rng)
+    pt, yt = _weed_scores(4000, rng)
+    fine = calibrate_class_conditional(pc, yc, WCLASSES, alpha=0.10)
+    gate = calibrate_action_gate(pc, yc, WCLASSES, alpha=0.10)
+    _, size_f = _coverage(fine.predict_set, pt, yt, WCLASSES)
+    groups = action_grouping(WCLASSES)
+    names = list(groups)
+    truth_g = [next(g for g in names if WCLASSES[t] in groups[g]) for t in yt]
+    sets_g = [gate.predict(p) for p in pt]
+    cov_g = np.mean([t in s for t, s in zip(truth_g, sets_g)])
+    review_g = np.mean([len(s) != 1 for s in sets_g])
+    assert set(names) == {"crop", "weed", "background"}
+    assert cov_g >= 0.87
+    assert review_g < np.mean(size_f != 1)
+
+
+def test_undersampled_class_goes_to_review_not_to_a_fake_guarantee():
+    rng = np.random.default_rng(2)
+    pc, yc = _weed_scores(400, rng)
+    keep = ~((yc == 3) & (np.arange(len(yc)) % 10 != 0))    # leave ~2 quickweed
+    cal = calibrate_class_conditional(pc[keep], yc[keep], WCLASSES, alpha=0.05)
+    assert "quickweed" in cal.undercalibrated
+    assert all("quickweed" in cal.predict_set(p) for p in pc[:20])
+
+
+def test_field_recalibration_needs_enough_labels(tmp_path):
+    rng = np.random.default_rng(3)
+    pc, yc = _weed_scores(1000, rng)
+    cal = calibrate_class_conditional(pc, yc, WCLASSES, alpha=0.10)
+    kept, rep = recalibrate_with_field_labels(cal, pc[:50], yc[:50], WCLASSES, 0.10)
+    assert kept is cal and not rep.used_field_labels
+    new, rep = recalibrate_with_field_labels(cal, pc[:300], yc[:300], WCLASSES, 0.10)
+    assert rep.used_field_labels and new is not cal
+    sc = StratifiedCalibrator(alpha=0.10, global_cal=new)
+    sc.to_json(tmp_path / "g.json")
+    back = StratifiedCalibrator.from_json(tmp_path / "g.json")
+    assert back.global_cal.predict_set(pc[0]) == new.predict_set(pc[0])

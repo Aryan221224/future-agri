@@ -83,3 +83,53 @@ def test_infeasible_mission_raises_rather_than_returning_a_bad_plan():
     with pytest.raises(RuntimeError):
         plan_sorties(order_boustrophedon(p.swaths), (0.0, 0.0), tiny,
                      max_sorties=2, time_limit_s=3)
+
+
+# --- tank capacity and spot spraying (audit S5: repo planned 6 ha broadcast as 1 sortie) ---
+
+from fa_planner.routing import spray_drone  # noqa: E402
+
+SIX_HA = Polygon([(0, 0), (300, 0), (300, 200), (0, 200)])
+
+
+def _spray_swaths(field=SIX_HA):
+    return order_boustrophedon(plan_coverage(field, 4.0).swaths)
+
+
+def test_tank_forces_refill_sorties_for_broadcast():
+    sw = _spray_swaths()
+    d = spray_drone(tank_l=10.0, rate_l_ha=20.0)
+    plan = plan_sorties(sw, (0.0, 0.0), d, time_limit_s=10)
+    total = sum(s.liquid_l for s in plan.sorties)
+    assert total == pytest.approx(6.0 * 20.0, rel=0.05)        # ~120 L on 6 ha
+    assert plan.n_sorties >= math.ceil(total / 10.0)            # >= 12 tank loads
+    assert verify(plan) == []
+    assert all(s.liquid_l <= 10.0 + 1e-6 for s in plan.sorties)
+
+
+def test_bigger_tank_needs_fewer_sorties():
+    sw = _spray_swaths()
+    small = plan_sorties(sw, (0.0, 0.0), spray_drone(tank_l=10.0), time_limit_s=10)
+    big = plan_sorties(sw, (0.0, 0.0), spray_drone(tank_l=16.0), time_limit_s=10)
+    assert big.n_sorties < small.n_sorties
+
+
+def test_spot_spray_skips_clean_swaths_and_uses_less_liquid():
+    sw = _spray_swaths()
+    frac = {s.index: (0.3 if s.index % 4 == 0 else 0.0) for s in sw}
+    plan = plan_sorties(sw, (0.0, 0.0), spray_drone(tank_l=10.0), treat_fraction=frac,
+                        time_limit_s=10)
+    flown = {x.index for s in plan.sorties for x in s.swaths}
+    assert flown == {i for i, f in frac.items() if f > 0}
+    assert plan.summary()["mode"] == "spot"
+    assert sum(s.liquid_l for s in plan.sorties) < 0.1 * 120
+    assert verify(plan) == []
+
+
+def test_verifier_catches_an_overfilled_sortie():
+    sw = _spray_swaths()
+    d = spray_drone(tank_l=10.0)
+    plan = plan_sorties(sw, (0.0, 0.0), d, time_limit_s=5)
+    merged = plan.sorties[0]
+    merged.swaths = merged.swaths + plan.sorties[1].swaths
+    assert any("tank" in p for p in verify(plan))

@@ -1,0 +1,122 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Future Agri — twin advice</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  :root{--bg:#0f1613;--panel:#16211c;--line:#26362e;--ink:#e8f0ea;--muted:#8fa79a;
+        --ok:#5fb87f;--warn:#e0a33a;--bad:#d9613f;--accent:#7fc9a0;--water:#5aa9e6}
+  @media (prefers-color-scheme: light){:root{--bg:#f6f8f6;--panel:#fff;--line:#dde5df;--ink:#16211c;--muted:#5d7268}}
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+  h1{font-size:16px;margin:0} .sub{color:var(--muted);font-size:12px}
+  main{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px;padding:16px 20px}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+  h2{font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0 0 10px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  input,select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px}
+  button{cursor:pointer} button.primary{background:var(--accent);color:#0f1613;border-color:var(--accent);font-weight:600}
+  .kv{display:flex;justify-content:space-between;gap:12px;padding:3px 0;border-bottom:1px dashed var(--line)}
+  .kv b{font-variant-numeric:tabular-nums}
+  .tl{display:flex;gap:1px;height:46px;align-items:flex-end;margin:10px 0 4px;overflow:hidden}
+  .tl i{flex:1 1 0;min-width:0;background:var(--line);border-radius:2px 2px 0 0}
+  .tl i.irr{background:var(--water)} .tl i.spr{background:var(--warn)} .tl i.pass{background:var(--accent)}
+  .legend{font-size:11.5px;color:var(--muted)} .legend span{display:inline-block;width:9px;height:9px;border-radius:2px;margin:0 4px 0 10px}
+  .item{border:1px solid var(--line);border-radius:7px;padding:8px;margin-bottom:7px;font-size:12.5px}
+  .item .m{color:var(--muted);font-size:11.5px}
+  .pill{display:inline-block;padding:1px 7px;border-radius:99px;font-size:11px;font-weight:600}
+  .pill.ok{background:color-mix(in srgb,var(--ok) 22%,transparent);color:var(--ok)}
+  .pill.warn{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--warn)}
+  .log{max-height:420px;overflow:auto;font-size:12px}
+  .log div{padding:4px 0;border-bottom:1px solid var(--line)} .log b{color:var(--muted);font-weight:500;margin-right:6px}
+  .note{color:var(--muted);font-size:11.5px}
+  @media (max-width:420px){main{padding:12px 16px}}
+</style>
+<header>
+  <h1>Future Agri — twin advice</h1>
+  <span class="sub" id="status">connecting…</span>
+  <a class="sub" href="index.html">field dashboard →</a>
+</header>
+<main>
+  <section>
+    <h2>Simulated season</h2>
+    <div class="row">
+      <label>seed <input id="seed" type="number" value="4" min="0" style="width:70px"></label>
+      <select id="policy">
+        <option value="twin">twin</option><option value="farmer">farmer (calendar)</option>
+        <option value="twin_alert">twin + inoculum alert</option><option value="twin_cvar">twin, CVaR</option>
+        <option value="none">no sprays</option>
+      </select>
+      <button class="primary" id="run">Run season</button>
+    </div>
+    <div id="metrics" class="note">A full potato season at Bennett against a simulated truth (~15 s).</div>
+    <div class="tl" id="tl"></div>
+    <div class="legend"><span style="background:var(--water)"></span>irrigation<span style="background:var(--warn)"></span>fungicide<span style="background:var(--accent)"></span>camera pass</div>
+    <p class="note">Simulated. Blight, weed and price figures are stated assumptions, not calibrations.</p>
+  </section>
+  <section>
+    <h2>Decision log</h2>
+    <div class="log" id="log"><span class="note">Run a season to see every decision and its reason.</span></div>
+  </section>
+  <section>
+    <h2>Review queue</h2>
+    <div class="row"><label>field <input id="field" value="plot7" style="width:110px"></label><button id="loadq">Load</button></div>
+    <div id="queue" class="note">Detections the gate could not settle (crop or weed?) land here. Each label you give becomes a field calibration example; about 100 restore the coverage guarantee for this field.</div>
+  </section>
+</main>
+<script>
+const API = location.port === "8080" || location.pathname.startsWith("/web") ? "/api" : (window.FA_API || "/api");
+const $ = id => document.getElementById(id);
+async function api(path, opts){
+  const r = await fetch(API + path, opts);
+  if(!r.ok) throw new Error(r.status + " " + (await r.text()).slice(0,200));
+  return r.json();
+}
+api("/health").then(h => $("status").textContent = "API connected" + (h.database ? "" : " (no database: twin endpoints only)"))
+  .catch(() => $("status").textContent = "API not reachable — start it with make up");
+
+$("run").onclick = async () => {
+  $("run").disabled = true; $("metrics").textContent = "running season…";
+  try{
+    const r = await api(`/twin/simulate/season?seed=${+$("seed").value}&policy=${$("policy").value}`);
+    const kv = [["fresh yield (farm, t/ha)", r.fresh_t_ha_farm], ["water (cm)", r.water_cm],
+      ["irrigations", r.irrigations], ["fungicide sprays", r.sprays], ["scouting flights", r.flights],
+      ["herbicide", r.herbicide], ["blight", r.infected ? `infected, final severity ${r.final_severity}` : "no infection"],
+      ["net (Rs/ha)", r.net_rs_ha.toLocaleString("en-IN")]];
+    $("metrics").innerHTML = kv.map(([k,v]) => `<div class="kv"><span>${k}</span><b>${v}</b></div>`).join("");
+    const start = new Date("2025-10-25"), days = 109, marks = {};
+    for(const e of r.log){
+      const d = Math.round((new Date(e.day) - start) / 864e5);
+      if(e.kind === "irrigate" && e.action) marks[d] = "irr";
+      if(e.kind === "fungicide" && e.spray_day){ marks[Math.round((new Date(e.spray_day) - start)/864e5)] = "spr"; }
+      if(e.kind === "pass") marks[d] = "pass";
+    }
+    $("tl").innerHTML = Array.from({length: days}, (_, i) => `<i class="${marks[i]||""}" style="height:${marks[i] ? 100 : 18}%"></i>`).join("");
+    const shown = r.log.filter(e => e.kind !== "irrigate" || e.action);
+    $("log").innerHTML = shown.length ? shown.map(e =>
+      `<div><b>${e.day}</b><span class="pill ${e.action ? "warn" : "ok"}">${e.kind}</span> ${e.detail}</div>`).join("")
+      : `<span class="note">No twin decisions for policy "${r.policy}" (the calendar policy does not consult the twin).</span>`;
+  }catch(err){ $("metrics").textContent = "failed: " + err.message; }
+  $("run").disabled = false;
+};
+
+async function loadQueue(){
+  const f = $("field").value;
+  try{
+    const items = await api(`/twin/${encodeURIComponent(f)}/review`);
+    $("queue").innerHTML = items.length ? items.map(it => `
+      <div class="item" id="q${it.id}">
+        <div>${it.reason} <span class="pill warn">${it.label_set.join(" / ")}</span></div>
+        <div class="m">frame ${it.frame_id} · model's top class: ${it.top_class}</div>
+        ${it.thumbnail ? `<img src="${it.thumbnail}" alt="detection" style="max-width:100%;margin-top:6px;border-radius:5px">` : ""}
+        <div class="row" style="margin:6px 0 0">${["crop","weed","background"].map(l =>
+          `<button data-id="${it.id}" data-l="${l}">${l === "background" ? "not a plant" : l}</button>`).join("")}</div>
+      </div>`).join("") : `<span class="note">Nothing waiting for review on ${f}.</span>`;
+    for(const b of $("queue").querySelectorAll("button")) b.onclick = async () => {
+      const r = await api(`/twin/${encodeURIComponent(f)}/review/${b.dataset.id}?label=${b.dataset.l}`, {method: "POST"});
+      $("q" + b.dataset.id).outerHTML = `<div class="item m">labelled ${r.label} · ${r.field_labels} field labels · ${r.recalibration}</div>`;
+    };
+  }catch(err){ $("queue").textContent = "failed: " + err.message; }
+}
+$("loadq").onclick = loadQueue;
+</script>

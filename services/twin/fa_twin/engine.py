@@ -46,6 +46,36 @@ PARAM_BRANCH = {"Wofost72": "wofost72", "Wofost73": "wofost72",
 # in this subsystem.
 UNCALIBRATED = {"cotton", "sugarcane"}
 
+#: Regional variety sets: a shipped parameter set plus overrides, with the
+#: provenance carried into every summary. These are *named* so a user picks
+#: "wheat / IN_NW_timely" rather than silently getting a European cultivar.
+#:
+#: Indian wheat: every shipped wheat is European (IDSL=2, DLO 16.3-16.8 h) and
+#: cannot mature in India (0/20 seasons at Bennett, audit S1). Switching
+#: development to temperature only (IDSL=0) and fitting TSUM1/TSUM2 to a
+#: timely-sown north-west Indian calendar (sown ~15 Nov, anthesis ~95-100 DAS,
+#: maturity ~140-145 DAS) gave 4,577 kg/ha (p10-p90 4,278-4,941) and 20/20
+#: seasons reaching maturity. That fixes *phenology*; it is not a yield
+#: calibration, and the summary says so.
+REGIONAL_VARIETIES: dict[tuple[str, str], dict] = {
+    ("wheat", "IN_NW_timely"): {
+        "base_variety": "Winter_wheat_102",
+        "overrides": {"IDSL": 0, "TSUM1": 1400.0, "TSUM2": 1000.0},
+        "provenance": ("Winter_wheat_102 with photoperiod/vernalisation off (IDSL=0) and "
+                       "TSUM1=1400, TSUM2=1000 fitted to a mid-November sowing calendar near "
+                       "Delhi (audit S1, 30 Oct 2026). Phenology only -- NOT a yield "
+                       "calibration; absolute yield needs field data."),
+    },
+}
+
+
+def resolve_variety(crop: str, variety: str) -> tuple[str, dict, str]:
+    """(shipped variety, parameter overrides, provenance) for a requested variety."""
+    reg = REGIONAL_VARIETIES.get((crop, variety))
+    if reg is None:
+        return variety, {}, ""
+    return reg["base_variety"], dict(reg["overrides"]), reg["provenance"]
+
 
 @dataclass
 class SoilParams:
@@ -84,6 +114,8 @@ class ZoneConfig:
     NSOILBASE_FR: float = 0.025 # daily fraction released
     CO2: float = 425.0
     max_duration: int = 330
+    #: Extra crop-parameter overrides (applied after any regional-variety set).
+    param_overrides: dict = field(default_factory=dict)
 
 
 def crop_provider(engine: str = "Wofost72", fpath: str | Path | None = None):
@@ -134,7 +166,7 @@ def _agromanagement(cfg: ZoneConfig, events: list[dict] | None = None,
     """
     cal = {
         "crop_name": cfg.crop,
-        "variety_name": cfg.variety,
+        "variety_name": resolve_variety(cfg.crop, cfg.variety)[0],
         "crop_start_date": cfg.sowing_date,
         "crop_start_type": start_type,
         "crop_end_date": cfg.harvest_date,
@@ -203,9 +235,12 @@ class ZoneTwin:
         self.engine_name = engine
         model_cls = getattr(models, engine)
 
+        base_variety, overrides, self.provenance = resolve_variety(cfg.crop, cfg.variety)
+        overrides.update(cfg.param_overrides or {})
+        self.param_overrides = overrides
         cp = crop_provider(engine, crop_params_path)
-        cp.set_active_crop(cfg.crop, cfg.variety)
-        self.start_type = resolve_start_type(cfg, dict(cp))
+        cp.set_active_crop(cfg.crop, base_variety)
+        self.start_type = resolve_start_type(cfg, {**dict(cp), **overrides})
 
         if engine.startswith("Wofost81"):
             from pcse.input import WOFOST81SiteDataProvider_Classic as WOFOST81SiteDataProvider
@@ -220,6 +255,8 @@ class ZoneTwin:
             site = WOFOST72SiteDataProvider(WAV=cfg.WAV)
 
         params = ParameterProvider(cropdata=cp, soildata=cfg.soil.as_dict(), sitedata=site)
+        for k, v in overrides.items():
+            params.set_override(k, v, check=False)
         self.model = model_cls(
             params, weather, _agromanagement(cfg, self.events, self.start_type))
 
@@ -277,6 +314,10 @@ class ZoneTwin:
         d["variety"] = self.cfg.variety
         d["uncalibrated_parameters"] = self.uncalibrated
         d["crop_start_type"] = self.start_type
+        if self.param_overrides:
+            d["param_overrides"] = dict(self.param_overrides)
+        if self.provenance:
+            d["parameter_provenance"] = self.provenance
         if self.uncalibrated:
             d["warning"] = (
                 f"{self.cfg.crop} ships a single generic parameter set "
@@ -335,9 +376,11 @@ def check_photoperiod(cfg: ZoneConfig, engine: str = "Wofost72_WLP_CWB",
     emit a yield when this test fails.
     """
     reasons: list[str] = []
+    base_variety, overrides, _ = resolve_variety(cfg.crop, cfg.variety)
+    overrides.update(cfg.param_overrides or {})
     cp = crop_provider(engine, crop_params_path)
-    cp.set_active_crop(cfg.crop, cfg.variety)
-    p = dict(cp)
+    cp.set_active_crop(cfg.crop, base_variety)
+    p = {**dict(cp), **overrides}
     idsl = float(p.get("IDSL", 0) or 0)
     dlo = p.get("DLO")
     dlc = p.get("DLC")
@@ -387,3 +430,40 @@ def variety_support(crop: str, engine: str = "Wofost81_NWLP_CWB_CNB",
         if required.issubset(set(dict(cp))):
             out.append(variety)
     return out
+
+
+def check_nitrogen_response(cfg: ZoneConfig, weather, events: list[dict] | None = None,
+                            n_high: float = 200.0, min_gain: float = 0.10) -> Feasibility:
+    """Does this crop's WOFOST 8.1 parameter set respond to nitrogen at all?
+
+    Found 31 Oct 2026: with the shipped ``Potato_701`` 8.1 set at Bennett, a
+    crop given **no fertiliser** took up only 40 kg N/ha (soil supply ran out by
+    early December) and still yielded ~53 t/ha fresh -- more than the 7.2
+    water-limited ceiling and only ~5 % below 240 kg N. That implies tuber N of
+    ~0.2 % of dry matter against ~1.2-1.5 % in real potatoes. A model that
+    cannot be nitrogen-limited cannot advise on nitrogen, and would return a
+    confident "fertiliser is worthless" -- the same class of failure as the
+    wheat-photoperiod zero (ADR 0011).
+
+    Runs the season at 0 and ``n_high`` kg N/ha (split at sowing and +30 d) and
+    refuses N advice unless yield gains at least ``min_gain``.
+    """
+    import copy
+    base = [e for e in (events or []) if not e.get("N_amount")]
+    ys = []
+    for n in (0.0, n_high):
+        ev = list(base)
+        if n > 0:
+            ev += [{"date": cfg.sowing_date, "N_amount": n / 2},
+                   {"date": cfg.sowing_date + timedelta(days=30), "N_amount": n / 2}]
+        tw = ZoneTwin(copy.deepcopy(cfg), weather, events=ev, engine="Wofost81_NWLP_CWB_CNB")
+        tw.run_to_end()
+        ys.append(float(tw.summary().get("TWSO") or 0.0))
+    gain = (ys[1] - ys[0]) / max(ys[0], 1e-9)
+    if gain < min_gain:
+        return Feasibility(False, [
+            f"{cfg.crop}/{cfg.variety} (WOFOST 8.1) gains only {100 * gain:.1f} % yield from "
+            f"{n_high:g} kg N/ha (0 N: {ys[0]:.0f}, {n_high:g} N: {ys[1]:.0f} kg/ha dry). The "
+            "parameter set does not represent nitrogen limitation here; it cannot be used "
+            "for nitrogen advice without calibration."])
+    return Feasibility(True, [f"nitrogen response {100 * gain:.1f} % from {n_high:g} kg N/ha"])

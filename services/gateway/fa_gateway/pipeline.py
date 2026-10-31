@@ -53,6 +53,8 @@ class ZoneSummary:
     lai_lo: float | None = None
     lai_hi: float | None = None
     notes: str = ""
+    #: Action-level counts (crop / weed) when an ``ActionGate`` routes detections.
+    action_counts: dict[str, int] | None = None
 
     def to_json(self) -> str:
         return json.dumps(self.__dict__, separators=(",", ":"))
@@ -83,9 +85,15 @@ class EdgePipeline:
     """Detection -> conformal gate -> zone aggregation."""
 
     def __init__(self, detector, calibrator=None, classes: list[str] | None = None,
-                 crop: str = "unknown", stage: str = "unknown", site: str = "unknown"):
+                 crop: str = "unknown", stage: str = "unknown", site: str = "unknown",
+                 action_gate=None):
+        """``action_gate`` (``fa_core.uncertainty.ActionGate``), when given, decides
+        routing on crop / weed / background instead of species: a detection is
+        actionable when the gate is sure which of those it is, which is all a
+        spray decision needs. Species counts are still reported."""
         self.detector = detector
         self.calibrator = calibrator
+        self.action_gate = action_gate
         self.classes = classes or getattr(detector, "classes", [])
         self.crop, self.stage, self.site = crop, stage, site
         self.raw_bytes = 0
@@ -109,6 +117,7 @@ class EdgePipeline:
         n_frames = 0
         when = (observed_at or datetime.now(timezone.utc)).isoformat()
 
+        action_counts: dict[str, int] = {}
         for image in frames:
             n_frames += 1
             self.frames += 1
@@ -117,6 +126,22 @@ class EdgePipeline:
             self.total_latency_ms += res.latency_ms
             for det in res.detections:
                 top = self.classes[det.top_class] if self.classes else str(det.top_class)
+                if self.action_gate is not None:
+                    aset = self.action_gate.predict(det.probs)
+                    if aset == [BACKGROUND]:
+                        continue
+                    n_det += 1
+                    if top != BACKGROUND:
+                        counts[top] = counts.get(top, 0) + 1
+                    set_sizes.append(len(aset))
+                    if len(aset) == 1:
+                        action_counts[aset[0]] = action_counts.get(aset[0], 0) + 1
+                    else:
+                        reviews.append(ReviewItem(
+                            frame_id=res.frame_id, zone_id=zone_id, bbox=det.bbox,
+                            label_set=aset, top_class=top,
+                            reason="action unclear: " + " or ".join(aset), observed_at=when))
+                    continue
                 label_set = None
                 if cal is not None and hasattr(cal, "predict_set"):
                     label_set = cal.predict_set(det.probs)
@@ -168,7 +193,12 @@ class EdgePipeline:
             calibration_stratum=(f"{self.crop}|{self.stage}|{self.site}"
                                  if stratum_hit else "global"),
             calibrated=stratum_hit, lai=lai, lai_lo=lo, lai_hi=hi, notes=notes,
+            action_counts=action_counts if self.action_gate is not None else None,
         )
+        if self.action_gate is not None:
+            summary.coverage_target = 1 - self.action_gate.cal.alpha
+            summary.calibration_stratum = "action"
+            summary.calibrated = True
         return summary, reviews
 
     @property
