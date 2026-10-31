@@ -29,10 +29,16 @@ def choose_field(candidates: list[dict], lat: float, lon: float, min_ha: float, 
     from shapely.geometry import Point
     from fa_core.geo import area_ha
     pt = Point(lon, lat)
+    rated = [c for c in candidates if c.get("confidence") is not None]
+    # Some FTW partitions (e.g. the US) carry no confidence at all: fall back to
+    # unrated polygons only when no rated polygon exists, and flag it.
+    unknown = not rated
     best = None
     for c in candidates:
         conf = c.get("confidence")
-        if conf is None or conf < min_conf:
+        if conf is None and not unknown:
+            continue
+        if conf is not None and conf < min_conf:
             continue
         a = c["area_m2"] / 1e4
         if not (min_ha <= a <= max_ha):
@@ -49,8 +55,8 @@ def choose_field(candidates: list[dict], lat: float, lon: float, min_ha: float, 
         raise NoFieldFound(f"no FTW field {min_ha}-{max_ha} ha with confidence >= {min_conf} "
                            f"near ({lat:.4f}, {lon:.4f})")
     _, g, c = best
-    return g, {"id": c["id"], "confidence": c["confidence"], "area_ha": area_ha(g),
-               "distance_deg": float(best[0])}
+    return g, {"id": c["id"], "confidence": c["confidence"], "confidence_unknown": unknown,
+               "area_ha": area_ha(g), "distance_deg": float(best[0])}
 
 
 def country_files(country: str, cache: Cache) -> list[str]:
@@ -134,8 +140,10 @@ def field_near(lat: float, lon: float, country: str, cache: Cache, min_ha: float
             r *= 2
     prov = Provenance("Fields of The World global predictions (PRUE)", FTW_BASE, "CC-BY-4.0",
                       today(), FTW_ATTRIB, True,
-                      f"field id {attrs['id']}, confidence {attrs['confidence']:.0f}/100 "
-                      "(cell-level reliability, not polygon accuracy)")
+                      (f"field id {attrs['id']}, confidence {attrs['confidence']:.0f}/100 "
+                       "(cell-level reliability, not polygon accuracy)") if not attrs["confidence_unknown"]
+                      else f"field id {attrs['id']}; FTW confidence not published for this region -- "
+                           "check the polygon against imagery")
     return poly, attrs, prov
 
 

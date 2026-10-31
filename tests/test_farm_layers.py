@@ -107,3 +107,12 @@ def test_soilgrids_falls_back_to_nearest_valid_cell(tmp_path, monkeypatch):
     monkeypatch.setattr(SO, "_sample_vrt", fake)
     prof, sp, prov = SO.soilgrids_profile(37.88, 139.0, Cache(tmp_path))
     assert prof["clay"] == pytest.approx(0.30) and "nearest valid" in prov.note
+
+
+def test_choose_field_accepts_unknown_confidence_when_none_rated():
+    """FTW's US partition carries no confidence values: use the field, say so."""
+    cands = json.loads((FIX / "ftw_nl_flevoland.json").read_text())
+    for c in cands:
+        c["confidence"] = None
+    poly, attrs = B.choose_field(cands, lat=52.52, lon=5.62, min_ha=5, max_ha=20)
+    assert attrs["confidence"] is None and attrs["confidence_unknown"] is True
