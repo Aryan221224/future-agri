@@ -1,0 +1,45 @@
+# The user's spray drone, from "Agricultural Spraying Drone -- Specifications, dimensions and BOM
+# review" (T1 brochure + BOM). Inconsistent values are kept as ranges, never silently resolved.
+name: "T1-class 10 L quad sprayer (JIYI K3-A Pro)"
+tank_l: 10.0
+n_rotors: 4
+n_nozzles: 4
+wheelbase_mm: 1300
+unfolded_mm: [920, 920, 480]
+folded_mm: [582, 582, 480]
+empty_kg: 10.0                 # "weight without battery"
+standard_kg: 24.0              # standard / fully loaded take-off weight
+mtow_kg: 28.0
+hover_points: [[24.0, 12.0], [14.0, 28.0]]     # [mass kg, hover minutes]
+rotor_diameter_m: 0.8814       # 34.7 in folding propellers (BOM)
+motor_kv: 120
+battery:
+  cells: 12                    # PC1080 12S charger; inferred 2 x 6S 16 Ah in series (~4 kg)
+  capacity_ah: 16.0
+  nominal_wh: 710.4
+  mass_kg: 4.0                 # inferred: 24 kg - 10 kg empty - 10 L liquid
+  usable_frac: 0.85
+  inferred: true
+  note: "Cell count and arrangement are not stated in the BOM; 2 x 6S in series is the only configuration consistent with the 14 kg / 24 kg hover points."
+pump_lpm: [3.5, 5.5]           # brochure 3.5 L/min; BOM pump 24 V 0.8 MPa 5.5 L/min
+swath_m: [3.0, 5.0]            # narrative 3-5 m; spec table 4 m
+swath_table_m: 4.0
+max_work_speed_ms: 7.0
+max_speed_ms: 10.0
+link_range_m: 1000.0
+temp_range_c: [-10.0, 40.0]
+charge_min: 30.0
+pump_cutoff_ms: 0.5
+claimed_acres_per_hour: [10.0, 15.0]
+flight_controller:
+  model: "JIYI K3-A Pro"
+  hover_accuracy_h_m: 2.0      # +-2 m without RTK (vendor listings); K3-A v1.0.6 manual says 1.5
+  hover_accuracy_v_m: 0.8
+  max_tilt_deg: 30.0
+  max_vz_ms: 6.0
+  speed_gears_ms: [5.0, 8.0, 10.0]
+  max_waypoints_per_group: 400
+  wind_continuous_ms: 5.4      # "level 3 continuous" (Beaufort 3 upper bound)
+  wind_gust_ms: 7.9            # "level 4 gusts" (Beaufort 4 upper bound)
+  rtk_optional: true
+  sdk: false
