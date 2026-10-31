@@ -6,3 +6,4 @@ bench/results/
 *.egg-info/
 .DS_Store
 ml/runs/
+.superpowers/
