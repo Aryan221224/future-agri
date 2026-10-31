@@ -163,3 +163,17 @@ def test_anchor_ignores_post_senescence_regrowth():
            enumerate([0.0, 0.1, 0.5, 0.9, 0.9, 0.6, 0.2, 0.15, 0.7, 0.85])]
     kept = usable_cover(ser)
     assert [c for _, _, c in kept] == [0.0, 0.1, 0.5, 0.9, 0.9, 0.6, 0.2, 0.15]
+
+
+def test_herbicide_in_critical_period_controls_weed_loss():
+    """Weeds removed early in the critical period cost little yield; removed after
+    it, they have already done their damage."""
+    def loss_with_spray(das):
+        t = GroundTruthFarm(_spec(inoculum=False, seed=5), _weather(dt.date(2025, 1, 1), 365, NL_NORMALS))
+        if das is not None:
+            t.apply(AsApplied(t.sowing + dt.timedelta(days=das), "herbicide",
+                              np.ones(t.grid.n_cells), 0.0))
+        return t.harvest().weed_loss_mean
+    none, early, late = loss_with_spray(None), loss_with_spray(25), loss_with_spray(70)
+    assert early < 0.5 * none
+    assert late > 0.9 * none

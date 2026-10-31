@@ -45,6 +45,15 @@ class TwinFarm:
         """Assimilate a scan's DigitalFarm (area-weighted cover and stage) and
         decide herbicide from its per-cell weed map."""
         self.digital = digital
+        # A herbicide only saves the part of the critical period still ahead of it.
+        from dataclasses import replace
+        from fa_farm.truth import CPWC_DAYS, CPWC_DEFAULT
+        lo, hi = CPWC_DAYS.get(self.archetype.crop, CPWC_DEFAULT)
+        das_fly = (day - self.field.cfg.sowing_date).days + 2
+        remaining = float(np.clip((hi - max(das_fly, lo)) / (hi - lo), 0.0, 1.0))
+        base = getattr(self, "_base_weeds", None) or self.field.s.weeds
+        self._base_weeds = base
+        self.field.s.weeds = replace(base, herbicide_efficacy=base.herbicide_efficacy * remaining)
         a = np.array([z.area_ha for z in digital.zones])
         w = a / a.sum()
         cc = float(np.sum(w * [z.cc for z in digital.zones]))

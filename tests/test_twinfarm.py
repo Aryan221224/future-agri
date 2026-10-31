@@ -65,3 +65,18 @@ def test_twin_advises_herbicide_for_non_potato_crops():
                   truth.sowing, truth.harvest_date, expected_yield_kg_ha=6000.0)
     tw.ingest(df, day - dt.timedelta(days=1))
     assert tw.herbicide_option in ("blanket", "spot")
+
+
+def test_twin_skips_herbicide_after_critical_period():
+    a = load_archetypes()["A6"]
+    wx = _weather(dt.date(2025, 1, 1), 365, NL_NORMALS)
+    truth = GroundTruthFarm(_spec(arch="A6", w=60, h=60, cell=5.0, inoculum=False, seed=2), wx)
+    day = truth.sowing + dt.timedelta(days=80)          # maize CPWC ends ~day 63
+    truth.advance_to(day)
+    obs = simulate_scan(truth.state(), truth.grid, plan_scan(truth.grid, "p4rtk", 0.005),
+                        np.random.default_rng(0), crop="maize", days_after_sowing=80)
+    lat, lon = truth.spec.centroid
+    tw = TwinFarm(a, load_region("KE"), lat, lon, [r for r in wx if r["DAY"] < day], SoilParams(),
+                  truth.sowing, truth.harvest_date, expected_yield_kg_ha=6000.0)
+    tw.ingest(build_digital_farm(obs, truth.grid), day - dt.timedelta(days=1))
+    assert tw.herbicide_option == "none"

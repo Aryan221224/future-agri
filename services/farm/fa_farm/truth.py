@@ -12,8 +12,8 @@ Physics, per cell:
 * late blight -- the project's epidemic model per cell, onset spreading from
   foci, protectant efficacy set by the dose actually deposited there; the
   zone-mean leaf loss is fed back into that zone's WOFOST (as ``run_with_damage``);
-* weeds -- Cousens loss from the mean density over the critical period, after
-  whatever herbicide actually landed on the cell;
+* weeds -- Cousens loss from the mean density over the crop's critical period of
+  weed control, after whatever herbicide actually landed on the cell;
 * yield -- zone yield x (cell green-area duration / zone mean) x emergence x
   (1 - weed loss).
 """
@@ -34,6 +34,14 @@ from .grid import FarmGrid
 from .heterogeneity import emergence_field, foci_onset, soil_zones, weed_seedbank
 
 K_COVER = 0.6
+
+#: Critical period of weed control, days after sowing/transplanting (start, end):
+#: weeds present in this window cost yield; earlier they are too small to compete,
+#: later the crop has closed. Concept and data: Knezevic et al. (2002) Weed Science
+#: 50:773-786; crop windows here are typical published ranges (assumption per crop).
+CPWC_DAYS = {"potato": (14, 49), "maize": (21, 63), "rice": (14, 56), "soybean": (14, 49),
+             "wheat": (21, 56)}
+CPWC_DEFAULT = (14, 56)
 
 
 @dataclass
@@ -92,7 +100,8 @@ class HarvestResult:
 
 
 class GroundTruthFarm:
-    def __init__(self, spec: FarmSpec, weather_records: list[dict], crit_days: int = 45,
+    def __init__(self, spec: FarmSpec, weather_records: list[dict],
+                 cpwc_days: tuple[int, int] | None = None,
                  blight_params: BlightParams | None = None, weed_params: WeedParams | None = None):
         a = spec.archetype
         if not a.supported:
@@ -109,7 +118,7 @@ class GroundTruthFarm:
         self.weeds0 = (weed_seedbank(self.grid, rng, spec.weed_mean_m2) if a.weeds
                        else np.zeros(n))
         self.weeds = self.weeds0.copy()
-        self.crit_days = crit_days
+        self.cpwc = cpwc_days or CPWC_DAYS.get(a.crop, CPWC_DEFAULT)
         self._comp_sum = np.zeros(n)
         self._comp_days = 0
 
@@ -178,7 +187,7 @@ class GroundTruthFarm:
                 self._zone_lai[i] = lai
                 self._zone_dvs[i] = float(m.get_variable("DVS") or 0.0)
             self._gad += self._zone_lai[self.zone] * (1.0 - self.S)
-            if (d - self.sowing).days <= self.crit_days:
+            if self.cpwc[0] <= (d - self.sowing).days <= self.cpwc[1]:
                 self._comp_sum += self.weeds
                 self._comp_days += 1
             self.day = d
