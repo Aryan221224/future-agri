@@ -71,3 +71,13 @@ def test_import_job_records_json_with_mapping():
     recs, errors = import_job_records(js, mapping={"start_time": "Start", "sprayed_area_ha": "Area(ha)",
                                                    "total_l": "Litres", "flight_time_min": "Minutes"})
     assert not errors and recs[0].total_l == 10 and recs[0].area_ha == pytest.approx(0.67)
+
+
+def test_text_that_looks_like_a_path_is_never_read_as_a_file(tmp_path):
+    """Security: the API passes user text; a server path must not be opened."""
+    f = tmp_path / "secret.csv"
+    f.write_text("start_time,sprayed_area_ha,total_l\n2025-06-01 07:00,0.6,9\n")
+    recs, errors = import_job_records(str(f))          # a str is text, never a path
+    assert recs == []
+    recs2, _ = import_job_records(f)                    # an explicit Path is a file
+    assert len(recs2) == 1

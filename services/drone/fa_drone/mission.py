@@ -96,7 +96,8 @@ def check_conditions(spec: DroneSpec, settings: MissionSettings, weather: Weathe
 def _infeasible(n: int, reasons: list[str], settings) -> MissionResult:
     kp = {k: 0.0 for k in ("time_min", "flight_min", "energy_wh", "wh_per_ha", "litres", "sorties",
                            "battery_swaps", "refills", "cv_pct", "skipped_frac", "overdosed_frac",
-                           "off_target_frac", "area_ha", "ha_per_hour", "waypoints")}
+                           "off_target_frac", "area_ha", "ha_per_hour", "waypoints", "home_moves",
+                           "max_range_m")}
     return MissionResult(np.zeros(n), kp, [], False, reasons, None, settings)
 
 
@@ -129,7 +130,8 @@ def simulate_mission(grid, spec: DroneSpec, settings: MissionSettings, weather: 
     pack_ready = [0.0] * max(0, settings.n_battery_sets - 1)
     charger_free = [0.0] * max(1, settings.chargers)
     st = dict(t=0.0, flight=0.0, energy=0.0, liquid=spec.tank_l, sorties=1, refills=0, swaps=0,
-              sprayed=0.0)
+              sprayed=0.0, moves=0, max_range=0.0)
+    home_ref = [home]
     tel: list[dict] = []
     samples: dict[int, list] = {}
 
@@ -165,7 +167,7 @@ def simulate_mission(grid, spec: DroneSpec, settings: MissionSettings, weather: 
         fly(pm.hover_w(mass()) * 1.1, height / 2.0)
 
     def e_return(pos) -> float:
-        d = math.dist(pos, home)
+        d = math.dist(pos, home_ref[0])
         return (pm.forward_w(mass(), settings.ferry_speed_ms) * d / settings.ferry_speed_ms
                 + pm.hover_w(mass()) * 1.1 * (h / 2.0)) / 3600.0
 
@@ -204,18 +206,38 @@ def simulate_mission(grid, spec: DroneSpec, settings: MissionSettings, weather: 
     def rth_and_return(pos, reason):
         tel.append({"t_s": round(st["t"], 1), "event": "rth", "reason": reason,
                     "soc": round(batt.soc, 3), "liquid_l": round(st["liquid"], 2)})
-        ferry(pos, home)
+        ferry(pos, home_ref[0])
         vertical(h)
         ground_ops(reason)
         st["sorties"] += 1
         vertical(h)
-        ferry(home, pos)
+        ferry(home_ref[0], pos)
         tel.append({"t_s": round(st["t"], 1), "event": "resume"})
 
     # ---- fly the job
+    link = 0.9 * spec.link_range_m
+    relocate_s = 600.0                  # crew moves the take-off point (assumption: 10 min)
     vertical(h)
     pos = home
     for pi, ps in enumerate(route.passes):
+        far = max(math.dist(home_ref[0], ps.start), math.dist(home_ref[0], ps.end))
+        if far > link:
+            # beyond the K3-A Pro radio range: land, move the crew to this pass, take off again
+            ferry(pos, home_ref[0])
+            vertical(h)
+            ux0, uy0 = ps.unit
+            nx0, ny0 = ps.normal
+            mx, my = (ps.start[0] + ps.end[0]) / 2, (ps.start[1] + ps.end[1]) / 2
+            home_ref[0] = (mx - 5.0 * nx0, my - 5.0 * ny0)     # beside the middle of the pass
+            st["t"] += relocate_s
+            st["moves"] += 1
+            tel.append({"t_s": round(st["t"], 1), "event": "relocate_home",
+                        "reason": f"route beyond {spec.link_range_m:.0f} m link range"})
+            vertical(h)
+            pos = home_ref[0]
+            st["sorties"] += 1
+        st["max_range"] = max(st["max_range"], math.dist(home_ref[0], ps.start),
+                              math.dist(home_ref[0], ps.end))
         ferry(pos, ps.start)
         pos = ps.start
         ux, uy = ps.unit
@@ -243,7 +265,7 @@ def simulate_mission(grid, spec: DroneSpec, settings: MissionSettings, weather: 
         # turn: decelerate, shift, accelerate (no yaw: nozzles are symmetric)
         a = 9.80665 * math.tan(math.radians(spec.fc.max_tilt_deg))
         fly(pm.hover_w(mass()) * 1.05, 2 * v / a + W / 2.0)
-    ferry(pos, home)
+    ferry(pos, home_ref[0])
     vertical(h)
     tel.append({"t_s": round(st["t"], 1), "event": "landed", "soc": round(batt.soc, 3)})
 
@@ -289,6 +311,7 @@ def simulate_mission(grid, spec: DroneSpec, settings: MissionSettings, weather: 
         "off_target_frac": round(max(0.0, 1 - deposited / litres) if litres > 0 else 0.0, 4),
         "area_ha": round(area, 3), "ha_per_hour": round(area / max(st["t"] / 3600, 1e-9), 2),
         "waypoints": route.n_waypoints, "route_groups": len(route.groups),
+        "home_moves": int(st["moves"]), "max_range_m": round(st["max_range"], 1),
         "achieved_rate_l_ha": round(rate_eff, 2), "mean_dose_l_ha": round(float(dt_.mean()), 2),
     }
     return MissionResult(dose, kpis, tel, True, [], route, settings, warn)

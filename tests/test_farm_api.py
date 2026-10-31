@@ -47,3 +47,10 @@ def test_job_records_endpoint():
 
 def test_unknown_archetype_404():
     assert client.post("/farm/build", json={"archetype": "Z9", "year": 2025}).status_code == 404
+
+
+def test_job_records_endpoint_does_not_read_server_files(tmp_path):
+    f = tmp_path / "server_side.csv"
+    f.write_text("start_time,sprayed_area_ha,total_l\n2025-06-01 07:00,0.6,9\n")
+    r = client.post("/drone/job-records", json={"text": str(f)}).json()
+    assert r.get("records", []) == []

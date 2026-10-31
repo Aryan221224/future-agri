@@ -118,3 +118,10 @@ def test_kpis_complete():
               "ha_per_hour", "waypoints"):
         assert k in r.kpis
     assert 0 <= r.kpis["off_target_frac"] < 0.5
+
+
+def test_long_field_relocates_home_within_link_range():
+    g = _field(1600, 60, cell=10.0)
+    r = simulate_mission(g, SPEC, MissionSettings(swath_m=5.0), CALM, seed=0)
+    assert r.feasible and r.kpis["home_moves"] >= 1
+    assert r.kpis["max_range_m"] <= SPEC.link_range_m

@@ -145,9 +145,11 @@ def _num(v):
 
 
 def import_job_records(source, mapping: dict | None = None) -> tuple[list[JobRecord], list[str]]:
-    """Parse JIYI job records (CSV or JSON text, or a path). -> (records, errors)."""
-    text = Path(source).read_text() if isinstance(source, Path) or (
-        isinstance(source, str) and len(source) < 400 and Path(source).exists()) else str(source)
+    """Parse JIYI job records. ``source`` is CSV/JSON *text*, or a ``pathlib.Path``
+    to a file. A ``str`` is never interpreted as a path: this function sits behind
+    an API, and user text must not be able to name a server file.
+    -> (records, errors)."""
+    text = source.read_text() if isinstance(source, Path) else str(source)
     text = text.strip()
     rows = json.loads(text) if text.startswith("[") or text.startswith("{") else list(
         csv.DictReader(io.StringIO(text)))
