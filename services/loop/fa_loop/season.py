@@ -12,10 +12,10 @@ Policies
 ``farmer``      fixed 4 cm every 10 days; fungicide every 10 days from day 30 on
                 the first sprayable day; blanket herbicide.
 ``twin``        daily soil-water irrigation trigger; weekly fungicide plan
-                (CVaR-80, the default objective) with event-triggered scouting;
-                herbicide from the one-pass weed map; the pass assimilated with
-                the EnKF.
-``twin_mean``   as ``twin`` with the risk-neutral (mean) objective.
+                (risk-neutral, the default objective) with event-triggered
+                scouting; herbicide from the one-pass weed map; the pass
+                assimilated with the EnKF.
+``twin_cvar``   as ``twin`` with the CVaR-80 objective.
 ``twin_alert``  as ``twin`` but with a regional inoculum alert (truth of whether
                 the pathogen arrived) -- the input the audit identified as missing.
 ``none``        no irrigation beyond the farmer schedule, no sprays (baseline for
@@ -46,7 +46,7 @@ LAT, LON = 28.45, 77.58
 PLANT, HARVEST = dt.date(2025, 10, 25), dt.date(2026, 2, 10)
 WSTART = dt.date(2025, 10, 1)
 PASS_DAY = 35
-POLICIES = ("none", "farmer", "twin", "twin_mean", "twin_alert")
+POLICIES = ("none", "farmer", "twin", "twin_cvar", "twin_alert")
 
 
 def potato_cfg(soil: SoilParams | None = None) -> ZoneConfig:
@@ -89,8 +89,8 @@ def simulate_season(seed: int, policy: str, settings: TwinSettings | None = None
     by_day = {r["DAY"]: r for r in truth}
     s = copy.deepcopy(settings) if settings else TwinSettings()
     s.plan_members = plan_members
-    if policy == "twin_mean":
-        s.objective = "mean"
+    if policy == "twin_cvar":
+        s.objective = "cvar"
     econ = s.econ
 
     # truth field

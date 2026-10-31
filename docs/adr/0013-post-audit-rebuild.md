@@ -42,16 +42,27 @@ random numbers. Pinned by `tests/test_weather.py`.
 * Parameters are log factors in the state; observation operators for **LAI,
   canopy cover (1 − e^(−0.6·LAI)) and growth stage (DVS)**, assimilated jointly;
   per-member weather supported.
+* After the analysis each member is **re-run from sowing with its analysed
+  parameters** (the audit prototype's approach), so a growth-stage observation
+  corrects the current stage and history, not only future rates; writing SPAN in
+  place would also kill leaf classes older than the new SPAN
+  (`test_growth_stage_observation_corrects_the_current_stage`).
 
 ### 3. One pass: what it buys (`bench/one_pass_osse.py`, 60 trials, 24 members)
 
 | pass | 30-day canopy RMSE vs open loop (cover + stage) | better in | yield error |
 |---|---|---|---|
-| day 30 | **−13 %** | 33/60 | no improvement (24–40/60) |
-| day 45 | **−48 %** | 42/60 | no improvement (26–34/60) |
+| day 30 | **−18 %** | 33/60 | no improvement (26/60 better) |
+| day 45 | **−51 %** | 43/60 | no improvement (25/60 better) |
 
-The day-45 figure reproduces the audit (−49 %); the day-30 figure is much
-smaller than the audit's −33 %. **Schedule the pass around day 45** for canopy.
+(Final run, members re-run from sowing after the analysis. Before that fix the
+same benchmark gave −13 % and −48 %.) The day-45 figure reproduces the audit
+(−49 %); the day-30 figure stays well below the audit's −33 %. **Schedule the
+pass around day 45** for canopy.
+
+The yield limit is the weather, not the filter: with the true weather and 16
+weekly observations the same filter cuts yield error 82 % and canopy error 75 %
+(16/16 trials, `bench/osse_assimilation.py`).
 Weed control in potato has to happen before earthing-up (~day 30), so one pass
 cannot be optimal for both: either walk the weed stations earlier, or accept a
 later herbicide call. The season simulator uses day 35 as the compromise.
@@ -60,10 +71,12 @@ No yield claim is made from one pass.
 ### 4. "Overconfident ensemble" was mostly a finite-ensemble artefact
 Open-loop 80 % intervals covered **0.70 ± 0.06** with no assimilation at all.
 `np.percentile(v, [10, 90])` on 24 exchangeable members is expected to cover
-only ~0.74. Inflation (1.3, 1.6) changed nothing measurable.
-`EnsembleTwin.interval()` chooses order statistics so (m − k)/(n + 1) ≥ level
-(`test_finite_ensemble_interval_holds_its_level`: ≥ 0.79 vs < 0.77 for the
-percentile interval). Default inflation stays 1.0.
+only ~0.74. Inflation 1.3 changed nothing measurable (an exploratory run also
+tried 1.6, with the same result). `EnsembleTwin.interval()` chooses order
+statistics so (m − k)/(n + 1) ≥ level: on the twin itself (final one-pass run)
+it covered **0.77–0.85** against 0.68–0.77 for the percentile interval
+(SE ≈ 0.06), and in `test_finite_ensemble_interval_holds_its_level` ≥ 0.79 vs
+< 0.77. Default inflation stays 1.0.
 
 ### 5. Crop twin and damage layer
 * Regional variety **wheat / IN_NW_timely**: Winter_wheat_102 with IDSL=0,
@@ -98,7 +111,7 @@ represented by the farm factor (0.5 × ceiling) until a field calibration exists
 * `fa_planner.irrigation` — soil-water trigger (55 % of available water), ≥ 5 d
   apart, skip if > 10 mm forecast in 2 days.
 * `fa_planner.weekly` — fungicide spray-or-wait on a forecast ensemble with CRN,
-  risk-neutral default, CVaR option, SOP spray windows (`fa_planner.sop`);
+  risk-neutral default (CVaR-80 option), SOP spray windows (`fa_planner.sop`);
   herbicide none/blanket/spot from the weed map; inoculum-alert input.
 * **Scouting flies only when it could change the decision** (planner undecided:
   spraying wins in 25–75 % of members) — routine weekly scouting lost money in
@@ -106,8 +119,27 @@ represented by the farm factor (0.5 × ceiling) until a field calibration exists
   in an uninfected season.
 * **At least 10 forecast members.** With 4, an infected season got 4 sprays
   instead of 8 and lost 6.6 % yield.
+* **The planner starts from what has already happened** (`member_blight_state`):
+  dated scouting results (negatives included) and recorded sprays are replayed
+  through the observed weather; an unseen past infection is inferred from the
+  observed favourable spells; an infection a negative flight would have seen is
+  rejected. Before this fix a detected epidemic restarted from the first scouted
+  severity every week and the twin waited while severity reached 0.75 in one
+  season; after it, the same season ended at 0.14.
+* **The default objective stays risk-neutral.** An earlier run the same day put
+  CVaR-80 ahead (+₹2,379/ha); that run used the planner bug above, and with
+  blight state propagated risk-neutral beat CVaR by ₹759/ha (95 % CI 390–1,112),
+  with fewer sprays and equal yield. Recorded because the reversal is the kind
+  of thing this log exists for.
+* Spray advice is refused for crops without a damage model (only potato has one).
 * `fa_loop.orchestrator.FieldTwin` runs the same code operationally (API) and
-  against a simulated truth (`fa_loop.season`).
+  against a simulated truth (`fa_loop.season`). The twin receives observed weather
+  one day at a time (`POST /twin/{field}/weather`) and plans over members composed
+  of observed past + a supplied 15-day forecast + climatology to harvest; a
+  request for a day it has no weather to reach is refused (422). The season
+  simulator feeds the twin the same way. The one camera pass goes through the
+  EnKF (16 members, cover + stage) and the irrigation twin is rebuilt with the
+  posterior parameters.
 
 ### 7. Router: tank capacity and spot spraying
 Liquid is a node demand capped by the tank per sortie; spot mode scales liquid

@@ -29,9 +29,10 @@ from today's state, and the loss is ``sum(daily tuber growth x severity)``.
 That is the audit's planning model; the truth simulation couples blight to the
 crop day by day.
 
-Objective: risk-neutral (mean net) by default; ``objective="cvar"`` scores the
-mean of the worst 20 % of members instead. The audit found risk-neutral used
-fewer sprays for the same net with this blight model.
+Objective: risk-neutral ("mean") by default; ``objective="cvar"`` scores the
+mean of the worst 20 % of members. In the full closed loop (40 paired seasons,
+propagated blight state) risk-neutral beat CVaR by Rs 759/ha (95 % CI 390-1,112)
+with fewer sprays and equal yield.
 """
 from __future__ import annotations
 

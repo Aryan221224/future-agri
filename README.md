@@ -10,7 +10,7 @@ routed within battery and tank limits. Runs end to end with no hardware.
 ```bash
 pip install -r requirements.txt
 make demo          # the whole loop, ~45 s, no drone, no GPU, no network
-make test          # 110 tests
+make test          # 122 tests
 make bench         # reproduces every number quoted below
 make twin-ui       # then open http://localhost:8099/twin.html
 ```
@@ -51,7 +51,27 @@ has the full record. What the system measures now, all in simulation:
 
 ### A. The closed loop, season by season
 
-{{POLICY_TABLE}}
+40 paired seasons (same weather, blight arrival and weed field under every
+policy; 28 of 40 seasons get blight):
+
+| policy | water (cm) | fungicide sprays | scouting flights | yield (t/ha, farm) | net vs farmer, ₹/ha (95 % CI) |
+|---|---:|---:|---:|---:|---|
+| farmer: 4 cm every 10 d, spray every 10 d | 40.0 | 8.0 | 0 | 23.65 | — |
+| **twin** (risk-neutral, default) | **23.3** | 7.65 | 5.3 | 23.65 | **+3,967** (3,337 – 4,621), better in 40/40 |
+| twin, CVaR-80 | 23.3 | 8.57 | 4.9 | 23.70 | +3,208 (2,656 – 3,790), 38/40 |
+| **twin + regional inoculum alert** | **23.3** | **5.80** | 0.8 | 23.69 | **+8,461** (6,761 – 10,262), 40/40 |
+| no sprays (value of protection) | 40.0 | 0 | 0 | 14.61 | −76,376 |
+
+- **Water: −42 % (16.7 cm) in 40/40 seasons at the farmer's yield.** In the 12
+  blight-free seasons yield was 23.92 vs 23.94 t/ha. This is the twin's main value.
+- **Fungicide: without an inoculum signal the twin saves almost nothing** (−0.35
+  sprays, −4 %) — it matches the calendar's protection instead. The audit's
+  −26 % sprays came from a planner that ignored the epidemic it had already
+  seen; with blight state propagated it does not hold.
+- **With a regional inoculum alert: −2.2 sprays (−28 %) and +₹8,461/ha.** The
+  alert is what lets the twin skip spraying in seasons the pathogen never reaches.
+- Scouting still costs ~5 flights a season without the alert (~₹1,600/ha); the
+  alert cuts it to 0.8.
 
 `bench/policy_comparison.py` — potato at Bennett, 25 Oct – 10 Feb; the twin's
 soil parameters wrong by up to ±10 %; economics are stated assumptions (potato
@@ -60,43 +80,50 @@ soil parameters wrong by up to ±10 %; economics are stated assumptions (potato
 ### B. One camera pass: canopy yes, yield no — and the day matters
 
 ```
-60 trials · 24 members · cover (sd 0.04) + growth stage (sd 0.05) · fixed EnKF
-pass day 30   30-day canopy RMSE  -13 %   better in 33/60   yield: no gain
-pass day 45   30-day canopy RMSE  -48 %   better in 42/60   yield: no gain
+60 trials · 24 members · cover (sd 0.04) + growth stage (sd 0.05) · fixed EnKF,
+members re-run from sowing with analysed parameters · 15-day forecast + climatology
+pass day 30   30-day canopy RMSE  -18 %   better in 33/60   yield: no gain
+pass day 45   30-day canopy RMSE  -51 %   better in 43/60   yield: no gain
+80 % yield interval coverage: order-statistic 0.77-0.85 · naive percentile 0.68-0.77
 ```
 
 `bench/one_pass_osse.py`. Schedule the pass near day 45 for the canopy
 forecast; make no yield claim from it.
 
-### C. Earlier findings that still stand
+The filter itself is not the limit. Given the *true* weather and 16 weekly
+observations, the same filter cuts yield error by 82 % and canopy error by 75 %,
+better in 16/16 trials (`bench/osse_assimilation.py`). With one pass and an
+unknown future, the weather after the pass dominates the yield.
 
-#### Search width buys nothing; the naive heuristic is worse than nothing
+### C. Earlier findings, rerun on realistic weather
 
-All methods on the real crop model, N-limited paddy, 5 weather scenarios,
-CVaR-80 objective:
+#### Search width still buys nothing; two September findings reversed
+
+N scheduling on the real crop model (the older paddy N planner), 5 weather
+scenarios, CVaR-80, now on normals-calibrated weather:
 
 | method | CVaR (₹/ha) | rollouts | plan |
 |---|---:|---:|---|
-| do nothing | 7 265 | 5 | — |
-| **uniform split** (naive heuristic) | **3 484** | 5 | 4 × 30 kg N |
-| **greedy** | **9 034** | **65** | 1 × 30 kg N, Jul 5 |
-| beam-5 | 9 034 | 230 | same |
-| MPPI | 9 034 | 155 | same |
+| do nothing | 4 744 | 5 | — |
+| uniform split (naive heuristic) | 10 419 | 5 | 4 × 30 kg N |
+| **greedy** | **15 969** | **65** | 1 × 30 kg N, Jul 5 |
+| beam-5 | 15 969 | 230 | same |
+| MPPI | 14 119 | 205 | 2 × 30 kg N |
 
-Three findings, one of which contradicts what the design predicted:
-
-- **MPPI did not lose** — it tied. The structural objections stand; at this
-  problem size they did not bite. Recorded because the tempting move was to
-  claim a win.
-- **Greedy matched beam-5 with 3.5× fewer rollouts.** Ship greedy.
-- **The naive heuristic scored worse than doing nothing** despite a *higher mean
-  margin* (17 752 vs 7 780). Four fixed-cost passes paid in every scenario
-  against a yield gain that fails in the bad ones. This is the argument for
-  optimising CVaR rather than the mean, and it is why CVaR is the default.
+- **Greedy matched beam-5 with 3.5× fewer rollouts** — unchanged. Ship greedy.
+- **MPPI now loses by 13 %** (on 102 mm/yr weather it had tied).
+- **The naive split is now better than doing nothing** (on the old weather it
+  was worse). With realistic rain the crop responds to N in most scenarios, so
+  the "worse than nothing" argument for CVaR does not hold here.
+- This planner advises paddy nitrogen; the shipped potato 8.1 set cannot be
+  N-limited at all (ADR 0013), so it is not offered for potato.
 
 `bench/planner_comparison.py`
 
 #### Conformal coverage holds — and the monitor catches it when it stops
+
+On a **synthetic 6-class classifier** (not the detector — real-detector numbers
+are under *Honest limitations* and in ADR 0014):
 
 | score | mode | α | coverage | mean set | review rate |
 |---|---|---:|---:|---:|---:|
@@ -128,9 +155,12 @@ A 25 ha sortie at 3 cm GSD, measured with real JPEG compression:
 ```
 raw imagery              9 524.8 MB
 JPEG imagery             2 048.4 MB
-derived products only        4.9 kB     415,909x  less than JPEG
+derived products only        5.1 kB     402,189x  less than JPEG
 + review thumbnails         16.3 MB         125x  less than JPEG
 ```
+
+(The review share here is the synthetic classifier's 77.4 %; the real detector's
+marginal gate reviewed 59.7 %, and the crop/weed action gate is built to cut it.)
 
 Edge inference alone is a ~10⁵× reduction. But once uncertain findings must
 reach a human, **the review queue dominates the uplink by three orders of
@@ -155,7 +185,10 @@ not on visiting a node) and one virtual vehicle per sortie.
 ```
 
 Every plan is re-verified independently of the solver — never trust a solver's
-own accounting for a safety constraint.
+own accounting for a safety constraint. Those are **survey** sorties. A spray
+drone is limited by its tank as well: a 6 ha broadcast job with a 10 L tank at
+20 L/ha needs at least 12 sorties (liquid is a per-sortie capacity in the router
+and in the verifier); spot-spraying skips clean swaths.
 
 ---
 
@@ -303,8 +336,12 @@ agriculture, which forbids commercial use and requires deletion within 90 days.
 - **Perception is measured on German maize, not on an Indian field.**
   RF-DETR-Medium on WeedsGalore (H200, 30 Oct 2026): test mAP50:95 0.281, AP50
   0.487; maize 0.91 AP50, quickweed 0.25, other weeds 0.11. It has no potato,
-  wheat or disease classes. The gate must be recalibrated on 100–200 field
-  labels before its coverage means anything here ([ADR 0014](docs/adr/0014-action-level-class-conditional-gate.md)).
+  wheat or disease classes. On its real scores the marginal gate hides a weed it
+  covers only 37 % of the time; the class-conditional gate lifts that to 81 % (at
+  70.7 % review), and the crop/weed action gate cuts review to 38.5 % but
+  under-covers the weed group on later dates (0.82 vs 0.90). The gate must be
+  recalibrated on 100–200 field labels, by date, before its coverage means
+  anything here ([ADR 0014](docs/adr/0014-action-level-class-conditional-gate.md)).
   The ONNX export runs, but **parity with PyTorch is unproven**: only 11/20
   images (and 7/20 for PyTorch fp16) gave identical decisions under a strict
   per-query check that query reordering in RF-DETR's two-stage selection can
@@ -332,7 +369,7 @@ agriculture, which forbids commercial use and requires deletion within 90 days.
 ## Reproducing
 
 ```bash
-make test                       # 110 tests, ~2.5 min
+make test                       # 122 tests, ~2.5 min
 make demo                       # end-to-end closed loop, ~45 s
 make bench-quick                # small versions of the headline benchmarks, ~5 min
 make bench                      # every number in this README, ~60 min on 2 cores

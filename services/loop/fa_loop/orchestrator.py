@@ -60,11 +60,12 @@ class TwinSettings:
     blight: BlightParams = field(default_factory=BlightParams)
     weeds: WeedParams = field(default_factory=WeedParams)
     irrigation: IrrigationScheduler = field(default_factory=IrrigationScheduler)
-    #: "cvar" (mean of the worst 20 % of members) is the default: over 40 paired
-    #: simulated seasons it beat risk-neutral by Rs 2,379/ha (95 % CI 486-4,947)
-    #: and lost less yield to blight (31 Oct 2026). The audit's blight-only run had
-    #: favoured risk-neutral; the full loop with propagated blight state did not.
-    objective: str = "cvar"          # "cvar" | "mean" (risk-neutral)
+    #: Risk-neutral ("mean") is the default. With the planner propagating blight
+    #: state (31 Oct 2026, 40 paired seasons) it beat CVaR-80 by Rs 759/ha (95 % CI
+    #: 390-1,112) with fewer sprays and equal yield. (A CVaR advantage measured
+    #: earlier that day came from the planner bug that restarted the epidemic each
+    #: week, and did not survive the fix.)
+    objective: str = "mean"          # "mean" (risk-neutral) | "cvar"
     scouting: bool = True            # event-triggered scouting allowed
     #: Forecast members per weekly plan. Do not go below 10: with 4 members a
     #: simulated infected season got 4 sprays instead of 8 and lost 6.6 % yield
