@@ -94,3 +94,16 @@ def test_s2_series_network(tmp_path):
     poly, _ = B.choose_field(cands, 52.52, 5.62, 5, 20)
     ser, prov = S.s2_cover_series(poly, dt.date(2025, 5, 1), dt.date(2025, 6, 15), Cache(tmp_path))
     assert len(ser) >= 2 and all(0 <= f <= 1 for _, _, f in ser)
+
+
+def test_soilgrids_falls_back_to_nearest_valid_cell(tmp_path, monkeypatch):
+    """Paddy and water-masked cells have no SoilGrids value: search outward."""
+    from fa_farm.sources.base import DataUnavailable
+
+    def fake(url, lat, lon):
+        if abs(lat - 37.88) < 1e-6 and abs(lon - 139.0) < 1e-6:
+            raise DataUnavailable("soil", "no SoilGrids value")
+        return {"sand": 300.0, "clay": 300.0, "soc": 150.0, "bdod": 130.0}[url.split("/")[-2]]
+    monkeypatch.setattr(SO, "_sample_vrt", fake)
+    prof, sp, prov = SO.soilgrids_profile(37.88, 139.0, Cache(tmp_path))
+    assert prof["clay"] == pytest.approx(0.30) and "nearest valid" in prov.note

@@ -70,30 +70,58 @@ def _sample_vrt(url: str, lat: float, lon: float) -> float:
     return v
 
 
+def _search_points(lat: float, lon: float, step_m: float = 250.0, rings: int = 4):
+    """The point itself, then rings of 8 points every ``step_m`` out to ~1 km."""
+    yield lat, lon, 0.0
+    dlat = step_m / 111_320.0
+    dlon = step_m / (111_320.0 * max(0.1, math.cos(math.radians(lat))))
+    for r in range(1, rings + 1):
+        for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)):
+            yield lat + r * dy * dlat, lon + r * dx * dlon, r * step_m * math.hypot(dy, dx)
+
+
+def _profile_at(lat: float, lon: float) -> dict:
+    from concurrent.futures import ThreadPoolExecutor
+    jobs = [(prop, depth, w) for prop in PROPS for depth, w in DEPTHS]
+    try:
+        with ThreadPoolExecutor(max_workers=8) as ex:
+            got = list(ex.map(lambda j: _sample_vrt(
+                f"{SG_URL}/{j[0]}/{j[0]}_{j[1]}_mean.vrt", lat, lon), jobs))
+    except DataUnavailable:
+        raise
+    except Exception as e:  # noqa: BLE001
+        raise DataUnavailable("soil", str(e)) from e
+    vals = {}
+    for prop, scale in PROPS.items():
+        pairs = [(v, w) for (p, _, w), v in zip(jobs, got) if p == prop]
+        vals[prop] = sum(v * scale * w for v, w in pairs) / sum(w for _, w in pairs)
+    return {"sand": vals["sand"], "clay": vals["clay"], "soc_pct": vals["soc"], "bdod": vals["bdod"]}
+
+
 def soilgrids_profile(lat: float, lon: float, cache: Cache, rdmsol_cm: float = 120.0):
     """Depth-weighted 0-60 cm sand, clay, SOC and bulk density -> (profile, SoilParams, Provenance)."""
     key = cache.key("soilgrids", round(lat, 4), round(lon, 4))
     hit = cache.get_json(key)
     if hit is None:
-        from concurrent.futures import ThreadPoolExecutor
-        jobs = [(prop, depth, w) for prop in PROPS for depth, w in DEPTHS]
-        try:
-            with ThreadPoolExecutor(max_workers=8) as ex:
-                got = list(ex.map(lambda j: _sample_vrt(
-                    f"{SG_URL}/{j[0]}/{j[0]}_{j[1]}_mean.vrt", lat, lon), jobs))
-        except DataUnavailable:
-            raise
-        except Exception as e:  # noqa: BLE001
-            raise DataUnavailable("soil", str(e)) from e
-        vals = {}
-        for prop, scale in PROPS.items():
-            pairs = [(v, w) for (p, _, w), v in zip(jobs, got) if p == prop]
-            vals[prop] = sum(v * scale * w for v, w in pairs) / sum(w for _, w in pairs)
-        hit = {"sand": vals["sand"], "clay": vals["clay"], "soc_pct": vals["soc"],
-               "bdod": vals["bdod"]}
+        hit = None
+        tried = []
+        for plat, plon, dist in _search_points(lat, lon):
+            try:
+                hit = _profile_at(plat, plon)
+                hit["sampled_at"] = [plat, plon, dist]
+                break
+            except DataUnavailable as e:
+                tried.append(str(e))
+                if "no SoilGrids value" not in str(e):
+                    raise
+        if hit is None:
+            raise DataUnavailable("soil", f"no SoilGrids value within 1 km of ({lat}, {lon})")
         cache.put_json(key, hit)
     sp = to_soil_params(hit, rdmsol_cm)
+    note = "prior at 250 m; not a measurement of this field"
+    at = hit.get("sampled_at")
+    if at and at[2] > 0:
+        note += f"; field centre masked (paddy/water/urban): nearest valid cell {at[2]:.0f} m away"
     prov = Provenance("SoilGrids 2.0 (250 m), depth-weighted 0-60 cm; Saxton & Rawls 2006 PTF",
-                      SG_URL, "CC-BY-4.0", today(), SG_ATTRIB, True,
-                      "prior at 250 m; not a measurement of this field")
+                      SG_URL, "CC-BY-4.0", today(), SG_ATTRIB, True, note)
     return hit, sp, prov
