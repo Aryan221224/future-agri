@@ -38,6 +38,16 @@ def _offset(item) -> float:
         return 0.0
 
 
+def scl_on_grid(scl_ds, red_ds, win):
+    """The 20 m scene classification resampled (nearest) onto the 10 m red window:
+    same bounds, same shape, whatever the rounding of the windows."""
+    from rasterio.enums import Resampling
+    bounds = red_ds.window_bounds(win)
+    sw = scl_ds.window(*bounds)
+    return scl_ds.read(1, window=sw, out_shape=(int(win.height), int(win.width)),
+                       resampling=Resampling.nearest, boundless=True, fill_value=0)
+
+
 def _field_ndvi(item, polygon_wgs84) -> float | None:
     import rasterio
     from rasterio.features import geometry_mask
@@ -51,21 +61,17 @@ def _field_ndvi(item, polygon_wgs84) -> float | None:
             win = from_bounds(*b, red.transform).round_offsets().round_lengths()
             r = red.read(1, window=win).astype(float)
             tr = red.window_transform(win)
-        with rasterio.open(item.assets["nir"].href) as nir:
-            n = nir.read(1, window=from_bounds(*b, nir.transform).round_offsets().round_lengths()
-                         ).astype(float)
-        with rasterio.open(item.assets["scl"].href) as scl:      # 20 m -> upsample by index
-            s = scl.read(1, window=from_bounds(*b, scl.transform).round_offsets().round_lengths())
-    if r.size == 0 or n.shape != r.shape:
-        return None
-    s_up = np.kron(s, np.ones((2, 2), dtype=s.dtype))[: r.shape[0], : r.shape[1]]
-    if s_up.shape != r.shape:
+            with rasterio.open(item.assets["nir"].href) as nir:     # same 10 m grid as red
+                n = nir.read(1, window=win).astype(float)
+            with rasterio.open(item.assets["scl"].href) as scl:
+                s_up = scl_on_grid(scl, red, win)
+    if r.size == 0 or n.shape != r.shape or s_up.shape != r.shape:
         return None
     inside = ~geometry_mask([g], out_shape=r.shape, transform=tr)
     off = _offset(item)
     r, n = (r + off) / 1e4, (n + off) / 1e4
     good = inside & np.isin(s_up, list(GOOD_SCL)) & (r > 0) & (n > 0)
-    if good.sum() < max(10, 0.6 * inside.sum()):
+    if good.sum() < max(4, 0.6 * inside.sum()):
         return None                               # too cloudy over the field
     nd = (n[good] - r[good]) / (n[good] + r[good])
     return float(np.median(nd))

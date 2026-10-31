@@ -116,3 +116,63 @@ def test_choose_field_accepts_unknown_confidence_when_none_rated():
         c["confidence"] = None
     poly, attrs = B.choose_field(cands, lat=52.52, lon=5.62, min_ha=5, max_ha=20)
     assert attrs["confidence"] is None and attrs["confidence_unknown"] is True
+
+
+def test_field_ndvi_aligns_20m_scl_with_10m_bands(tmp_path):
+    """The 20 m scene-classification band must be resampled onto the 10 m grid,
+    whatever the rounding of the windows (it used to drop every scene)."""
+    import numpy as np
+    import rasterio
+    from rasterio.transform import from_origin
+    from shapely.geometry import box as sbox
+    crs = "EPSG:32615"
+    x0, y0 = 500000.0, 4650000.0
+    prof = dict(driver="GTiff", count=1, crs=crs, dtype="uint16")
+    with rasterio.open(tmp_path / "red.tif", "w", width=200, height=200,
+                       transform=from_origin(x0, y0, 10, 10), **prof) as d:
+        d.write(np.full((1, 200, 200), 500, np.uint16))
+    with rasterio.open(tmp_path / "nir.tif", "w", width=200, height=200,
+                       transform=from_origin(x0, y0, 10, 10), **prof) as d:
+        d.write(np.full((1, 200, 200), 3500, np.uint16))
+    with rasterio.open(tmp_path / "scl.tif", "w", width=100, height=100,
+                       transform=from_origin(x0, y0, 20, 20), **{**prof, "dtype": "uint8"}) as d:
+        d.write(np.full((1, 100, 100), 4, np.uint8))
+
+    class Asset:
+        def __init__(self, h): self.href = str(h)
+
+    class Item:
+        properties = {"earthsearch:boa_offset_applied": True}
+        assets = {"red": Asset(tmp_path / "red.tif"), "nir": Asset(tmp_path / "nir.tif"),
+                  "scl": Asset(tmp_path / "scl.tif")}
+    from pyproj import Transformer
+    tr = Transformer.from_crs(crs, "EPSG:4326", always_xy=True)
+    # 41 rows at 10 m starting half a 20 m pixel down: the 20 m window rounds to
+    # 20 rows (40 after doubling) -- the Iowa case that dropped every scene
+    lo1, la1 = tr.transform(x0 + 105, y0 - 1015 - 410)
+    lo2, la2 = tr.transform(x0 + 105 + 1610, y0 - 1015)
+    nd = S._field_ndvi(Item(), sbox(min(lo1, lo2), min(la1, la2), max(lo1, lo2), max(la1, la2)))
+    assert nd == pytest.approx((3500 - 500) / (3500 + 500), abs=1e-3)
+
+
+def test_scl_read_onto_red_grid_odd_window(tmp_path):
+    """Iowa case: 41 x 161 red window at an odd row offset; SCL must come back 41 x 161."""
+    import numpy as np
+    import rasterio
+    from rasterio.transform import from_origin
+    from rasterio.windows import Window
+    x0, y0, crs = 500000.0, 4650000.0, "EPSG:32615"
+    prof = dict(driver="GTiff", count=1, crs=crs)
+    with rasterio.open(tmp_path / "red.tif", "w", width=400, height=400, dtype="uint16",
+                       transform=from_origin(x0, y0, 10, 10), **prof) as d:
+        d.write(np.full((1, 400, 400), 500, np.uint16))
+    scl = np.full((1, 200, 200), 4, np.uint8)
+    scl[0, 50, :] = 9                                   # one cloudy 20 m row
+    with rasterio.open(tmp_path / "scl.tif", "w", width=200, height=200, dtype="uint8",
+                       transform=from_origin(x0, y0, 20, 20), **prof) as d:
+        d.write(scl)
+    with rasterio.open(tmp_path / "red.tif") as red, rasterio.open(tmp_path / "scl.tif") as sd:
+        win = Window(col_off=11, row_off=101, width=161, height=41)
+        out = S.scl_on_grid(sd, red, win)
+    assert out.shape == (41, 161)
+    assert (out == 9).sum() == 161 * 1 and out[0, 0] == 9     # row 101 at 10 m = row 50 at 20 m
