@@ -1,0 +1,38 @@
+id: VN
+prices_assumed: true
+prices_note: Illustrative farm-gate prices per kg and input costs in local currency; set from local market
+  data before trusting money figures.
+name: Vietnam
+currency: VND
+area_unit: ha
+prices:
+  rice: 7000.0
+costs:
+  fungicide_product_ha: 900000.0
+  herbicide_product_ha: 700000.0
+  drone_service_ha: 750000.0
+  scan_ha: 200000.0
+  irrigation_cm_ha: 250000.0
+cost_sources: []
+rules:
+  verified: false
+  aerial_default_allowed: true
+  wind_max_ms: 3.0
+  wind_min_ms: 0.5
+  buffer_m: 10.0
+  max_speed_ms: 8.0
+  max_height_m: 120.0
+  weight_threshold_kg: 25.0
+  records:
+  - date
+  - start_time
+  - product
+  - rate_l_ha
+  - area_ha
+  - aircraft_id
+  - operator
+  - wind_speed_ms
+  - wind_direction_deg
+  - temperature_c
+  notes: Not verified. Implemented as a configurable pack; obtain the official text before launch.
+  sources: []

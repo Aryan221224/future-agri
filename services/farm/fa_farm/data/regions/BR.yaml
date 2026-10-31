@@ -1,0 +1,47 @@
+id: BR
+prices_assumed: true
+prices_note: Illustrative farm-gate prices per kg and input costs in local currency; set from local market
+  data before trusting money figures.
+name: Brazil
+currency: BRL
+area_unit: ha
+prices:
+  soybean: 2.2
+  maize: 1.1
+  sugarcane: 0.15
+costs:
+  fungicide_product_ha: 180.0
+  herbicide_product_ha: 120.0
+  drone_service_ha: 90.0
+  scan_ha: 30.0
+  irrigation_cm_ha: 40.0
+cost_sources: []
+rules:
+  verified: true
+  aerial_default_allowed: true
+  wind_max_ms: 3.0
+  wind_min_ms: 0.5
+  buffer_m: 20.0
+  max_speed_ms: 10.0
+  max_height_m: 120.0
+  weight_threshold_kg: 25.0
+  records:
+  - date
+  - start_time
+  - product
+  - rate_l_ha
+  - area_ha
+  - aircraft_id
+  - operator
+  - wind_speed_ms
+  - wind_direction_deg
+  - temperature_c
+  - relative_humidity_pct
+  - sipeagro_id
+  - applicator_caar_id
+  notes: 'MAPA Portaria 298/2021: SIPEAGRO-registered operator, CAAR-trained remote applicator (>=28 h);
+    20 m minimum distance from settlements, dwellings, animals, water sources and protected areas (biologicals
+    excepted); every application recorded with temperature, RH, wind direction and speed; monthly report
+    to MAPA by the 15th. Art. 25: drone use equivalent to manned aerial for labels.'
+  sources:
+  - MAPA Portaria 298/2021 (gov.br)

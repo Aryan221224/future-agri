@@ -1,0 +1,48 @@
+id: US
+prices_assumed: true
+prices_note: Illustrative farm-gate prices per kg and input costs in local currency; set from local market
+  data before trusting money figures.
+name: United States
+currency: USD
+area_unit: acre
+prices:
+  maize: 0.17
+  soybean: 0.38
+  potato: 0.2
+  rice: 0.3
+  wheat: 0.2
+costs:
+  fungicide_product_ha: 35.0
+  herbicide_product_ha: 30.0
+  drone_service_ha: 32.1
+  scan_ha: 8.0
+  irrigation_cm_ha: 12.0
+cost_sources:
+- 'drone_service_ha: ASDC 2025 Impact Survey, US$13/acre average (Jan 2026)'
+rules:
+  verified: true
+  aerial_default_allowed: true
+  wind_max_ms: 4.5
+  wind_min_ms: 0.9
+  buffer_m: 0.0
+  max_speed_ms: 13.4
+  max_height_m: 122.0
+  weight_threshold_kg: 24.9
+  records:
+  - date
+  - start_time
+  - product
+  - rate_l_ha
+  - area_ha
+  - aircraft_id
+  - operator
+  - wind_speed_ms
+  - wind_direction_deg
+  - temperature_c
+  notes: Part 107 + Part 137 Agricultural Aircraft Operator Certificate; Section 44807 exemption when
+    >= 55 lb (24.9 kg) incl. load -- this drone is 24 kg standard but 28 kg MTOW, so the heavy path applies
+    at full load. Exemptions cap ground speed at 30 mph (13.4 m/s). Wind limits and buffers come from
+    the product label (defaults here are typical label values).
+  sources:
+  - FAA exemption text FAA-2025-1370 (2025)
+  - ASDC regulations summary (2026)

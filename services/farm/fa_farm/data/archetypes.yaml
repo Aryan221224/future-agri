@@ -1,0 +1,169 @@
+# Archetype farms for virtual testing -- from the research brief "Future Agri 2.0: Research
+# Brief for a Global Crop + Spray-Drone Digital Twin" (31 Oct 2026). Values are design
+# PRIORS: the farm builder overwrites them with real data for each sampled site (FTW
+# boundary, SoilGrids, Copernicus DEM, NASA POWER weather, Sentinel-2 cover).
+# Varieties are shipped WOFOST parameter sets; phenology is anchored to Sentinel-2.
+
+A1:
+  name: East-Asian smallholder paddy
+  locations:
+    - {name: "Niigata, Japan", lat: 37.90, lon: 139.00, country: JP}
+    - {name: "Jiangsu, China", lat: 32.00, lon: 119.50, country: CN}
+  field_ha: [0.1, 1.0]
+  crop: rice
+  variety: Rice_501
+  sowing: "05-10"          # transplanting
+  harvest: "09-25"
+  irrigated: true
+  diseases: [rice_blast, sheath_blight]
+  pests: [planthoppers]
+  weeds: true
+  region: JP
+  drone_use: "Contractor or cooperative; registered drone formulations; ~2 preventive sprays/season (Japan case farms 19-39 ha)."
+  fidelity_note: "WOFOST has no paddy water layer; run as irrigated, flagged limited fidelity (ORYZA recommended)."
+  sources:
+    - "Sustainability 13:2618 (2021): Japan UAV-sprayed area 684 ha (2016) -> 31,020 ha (2018)"
+    - "MAFF via Int. J. Agric. Sustain. (2023): cultivated area per worker 2.2 -> 3.1 ha (2010-2020)"
+
+A2:
+  name: Southeast-Asian rice
+  locations:
+    - {name: "Mekong Delta, Vietnam", lat: 10.00, lon: 105.80, country: VN}
+    - {name: "Central Plains, Thailand", lat: 15.00, lon: 100.20, country: TH}
+  field_ha: [0.2, 3.0]
+  crop: rice
+  variety: Rice_IR64
+  sowing: "04-20"          # summer-autumn crop
+  harvest: "07-31"
+  irrigated: true
+  diseases: [rice_blast]
+  pests: [brown_planthopper]
+  weeds: true
+  region: VN
+  drone_use: "Service providers; high sortie counts per day; foliar fertiliser."
+  fidelity_note: "WOFOST has no paddy water layer; run as irrigated, flagged limited fidelity."
+  sources:
+    - "DJI newsroom (May 2025): 50-fold sales growth in Thailand over 7 years (manufacturer claim)"
+    - "FTW benchmark includes AI4SmallFarms Mekong labels"
+
+A3:
+  name: Brazilian soybean
+  locations:
+    - {name: "Sorriso, Mato Grosso, Brazil", lat: -12.50, lon: -55.70, country: BR}
+    - {name: "Ribeirao Preto, Sao Paulo, Brazil", lat: -21.20, lon: -47.80, country: BR}
+  field_ha: [20.0, 150.0]
+  crop: soybean
+  variety: Soybean_VanHeemst_1988
+  sowing: "10-01"
+  harvest: "02-01"
+  irrigated: false
+  diseases: [soybean_rust]
+  pests: [stink_bugs]
+  weeds: true
+  region: BR
+  drone_use: "Contractors under Portaria 298 on edges, wet patches and spot work; 20 m buffers; monthly MAPA reports."
+  fidelity_note: "Generic Van Heemst soybean parameters; phenology anchored to Sentinel-2."
+  sources:
+    - "MAPA Portaria 298/2021 (gov.br)"
+    - "DJI Agricultural Drone Industry Insight Report 2023/24"
+
+A4:
+  name: US corn
+  locations:
+    - {name: "Story County, Iowa, USA", lat: 42.00, lon: -93.50, country: US}
+  field_ha: [30.0, 65.0]
+  crop: maize
+  variety: Grain_maize_204
+  sowing: "05-01"
+  harvest: "10-15"
+  irrigated: false
+  diseases: [tar_spot, gray_leaf_spot]
+  pests: [soybean_aphid]
+  weeds: true
+  region: US
+  drone_use: "Part 137 contractors at ~US$13/acre (ASDC 2025); VT/R1 fungicide, wet-soil and late-season work; 69% of operators fly <=2 drones."
+  fidelity_note: "European grain-maize parameters; phenology anchored to Sentinel-2."
+  sources:
+    - "ASDC 2025 Impact Survey (Jan 2026): 16.4 M acres, 1,710 Part 137 UAS operators, US$13/acre"
+    - "Iowa State 2026 custom rate survey: US$12.50/acre mean"
+
+A5:
+  name: European potato
+  locations:
+    - {name: "Flevoland, Netherlands", lat: 52.52, lon: 5.62, country: NL}
+  field_ha: [5.0, 20.0]
+  crop: potato
+  variety: Fontane
+  sowing: "04-20"
+  harvest: "09-15"
+  irrigated: false
+  diseases: [late_blight]
+  pests: []
+  weeds: true
+  region: EU
+  drone_use: "Only under national derogation in the EU (default aerial-spraying ban, Directive 2009/128/EC Art. 9); Omnibus Art. 9a proposed (COM(2025)1021), Council position 27 May 2026."
+  fidelity_note: "Dutch ware-potato variety shipped with WOFOST; late-blight model is the project's epidemic layer."
+  sources:
+    - "EU Council press release 27 May 2026; COM(2025) 1021"
+    - "FTW global predictions: Flevoland fields median 18.5 ha (sampled 31 Oct 2026)"
+
+A6:
+  name: Sub-Saharan smallholder maize
+  locations:
+    - {name: "Kakamega, Kenya", lat: 0.28, lon: 34.75, country: KE}
+  field_ha: [0.05, 0.5]
+  crop: maize
+  variety: Maize_VanHeemst_1988
+  sowing: "03-20"          # long rains
+  harvest: "08-31"
+  irrigated: false
+  diseases: [maize_lethal_necrosis]
+  pests: [fall_armyworm]
+  weeds: true
+  region: KE
+  drone_use: "Cooperative / service model; aggregation of many tiny fields per sortie."
+  fidelity_note: "Generic Van Heemst maize; fall armyworm is not modelled."
+  sources:
+    - "FTW field guide (arXiv 2602.08131): median predicted field 0.06 ha in Rwanda"
+    - "IITA-led review, Smart Agricultural Technology (1 Sep 2026)"
+
+A7:
+  name: Tropical tree crops
+  locations:
+    - {name: "Chanthaburi, Thailand (durian)", lat: 12.60, lon: 102.10, country: TH}
+    - {name: "Riau, Indonesia (oil palm)", lat: 0.50, lon: 101.40, country: ID}
+  field_ha: [1.0, 20.0]
+  crop: durian
+  variety: none
+  sowing: "01-01"
+  harvest: "12-31"
+  irrigated: false
+  diseases: [phytophthora]
+  pests: [borers]
+  weeds: false
+  region: TH
+  drone_use: "Low and slow single-tree routes; canopy penetration critical."
+  supported: false
+  unsupported_reason: "Perennial tree crops are not representable in WOFOST; a tree-crop model is required before twin runs."
+  sources:
+    - "DJI Agricultural Drone Industry Insight Report 2023/24 (1,500-tree durian orchard case)"
+
+A8:
+  name: Large-scale cotton (defoliation)
+  locations:
+    - {name: "Xinjiang, China", lat: 44.30, lon: 86.00, country: CN}
+  field_ha: [5.0, 50.0]
+  crop: cotton
+  variety: Cotton_VanHeemst_1988
+  sowing: "04-20"
+  harvest: "09-30"
+  irrigated: true
+  diseases: []
+  pests: [aphids, mites]
+  weeds: true
+  region: CN
+  drone_use: "Mass contractor defoliation campaigns (140,000 ha in one day, XAG 2020)."
+  supported: false
+  unsupported_reason: "Defoliant timing is the drone task here and no defoliation model exists; WOFOST cotton parameters are uncalibrated (engine.UNCALIBRATED)."
+  sources:
+    - "XAG press (2020): 140,000 ha single-day record, ~4.8 M ha cumulative Xinjiang cotton defoliation"
