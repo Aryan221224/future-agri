@@ -133,3 +133,70 @@ def test_verifier_catches_an_overfilled_sortie():
     merged = plan.sorties[0]
     merged.swaths = merged.swaths + plan.sorties[1].swaths
     assert any("tank" in p for p in verify(plan))
+
+
+def test_scouting_never_flies_when_there_is_no_spray_decision_to_change():
+    """Review minor: with no sprayable day / active protectant, a flight cannot change anything."""
+    import datetime as dt
+    from fa_planner.weekly import FieldStatus, scouting_trigger
+    from fa_twin.weather import generate_records
+    plant = dt.date(2025, 10, 25)
+    members = [generate_records(dt.date(2025, 10, 1), 200, s) for s in range(10)]
+    st = FieldStatus(day=dt.date(2025, 12, 20), plant=plant, harvest=dt.date(2026, 2, 10))
+    fly, why = scouting_trigger(members, st, threshold=0.0, p_spray_better=None)
+    assert not fly and "no spray decision" in why
+
+
+# --- review #4: the planner must use the blight information it holds ---
+
+def _blight_weather(fav_from, fav_to, seed=3):
+    """Dry winter weather with a forced blight-favourable spell."""
+    import datetime as dt
+    from fa_twin.weather import generate_records
+    recs = generate_records(dt.date(2025, 10, 1), 200, seed)
+    out = []
+    for r in recs:
+        if fav_from <= r["DAY"] <= fav_to:
+            r = dict(r, TMAX=20.0, TMIN=10.0, RAIN=5.0, VAP=12.0)
+        else:
+            r = dict(r, RAIN=0.0, VAP=min(r["VAP"], 6.0), TMIN=max(r["TMIN"], 7.0))
+        out.append(r)
+    return out
+
+
+def test_scouted_severity_is_carried_forward_not_restarted():
+    import datetime as dt
+    import numpy as np
+    from fa_planner.weekly import FieldStatus, member_blight_state
+    plant = dt.date(2025, 10, 25)
+    recs = _blight_weather(dt.date(2025, 12, 1), dt.date(2025, 12, 20))
+    st = FieldStatus(day=dt.date(2025, 12, 15), plant=plant, harvest=dt.date(2026, 2, 10),
+                     scouting=[(dt.date(2025, 12, 3), 0.02)])
+    S = [member_blight_state(recs, st, np.random.default_rng(k)).S for k in range(20)]
+    assert np.median(S) > 0.1          # 12 favourable days at r=0.3 grow 0.02 well past 0.1
+
+
+def test_unseen_past_infection_is_inferred_from_observed_weather():
+    import datetime as dt
+    import numpy as np
+    from fa_planner.weekly import FieldStatus, member_blight_state
+    plant = dt.date(2025, 10, 25)
+    recs = _blight_weather(dt.date(2025, 12, 1), dt.date(2025, 12, 12))
+    st = FieldStatus(day=dt.date(2025, 12, 15), plant=plant, harvest=dt.date(2026, 2, 10),
+                     inoculum=True)
+    b = member_blight_state(recs, st, np.random.default_rng(0))
+    assert b.inf_day is not None and b.inf_day < st.day and b.S > 0.001
+
+
+def test_negative_scouting_rules_out_visible_infections():
+    import datetime as dt
+    import numpy as np
+    from fa_planner.weekly import DETECTION_LIMIT, FieldStatus, member_blight_state
+    plant = dt.date(2025, 10, 25)
+    recs = _blight_weather(dt.date(2025, 12, 1), dt.date(2025, 12, 25))
+    neg = dt.date(2025, 12, 14)
+    st = FieldStatus(day=dt.date(2025, 12, 15), plant=plant, harvest=dt.date(2026, 2, 10),
+                     inoculum=True, scouting=[(neg, None)])
+    for k in range(10):
+        b = member_blight_state(recs, st, np.random.default_rng(k), trace=True)
+        assert b.trace.get(neg, 0.0) < DETECTION_LIMIT

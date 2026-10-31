@@ -42,7 +42,8 @@ from typing import Callable
 
 import numpy as np
 
-from fa_twin.damage import Blight, BlightParams, WeedParams, favourable, weed_loss_frac
+from fa_twin.damage import (Blight, BlightParams, WeedParams, economic_threshold, favourable,
+                            weed_loss_frac)
 
 from .sop import DEFAULT_WINDOW, SprayWindow, consensus_window
 
@@ -68,15 +69,23 @@ class PotatoEconomics:
         return self.price_per_kg_fresh * self.farm_factor * dry_kg_ha / self.dry_matter
 
 
+#: Blight severity (fraction of leaf area destroyed) a scouting flight can see.
+DETECTION_LIMIT = 0.005
+
+
 @dataclass
 class FieldStatus:
     """What the twin knows on the planning day."""
     day: dt.date
     plant: dt.date
     harvest: dt.date
-    observed_severity: float | None = None    # from scouting, if any
+    observed_severity: float | None = None    # legacy: a scouted severity *today*
     protected_until: dt.date | None = None    # protectant still active until
     inoculum: bool | None = None              # regional alert: True / False / unknown
+    #: every scouting flight so far: (day, severity) or (day, None) = not seen
+    scouting: list = field(default_factory=list)
+    #: every fungicide spray so far
+    sprays: list = field(default_factory=list)
 
 
 @dataclass
@@ -94,12 +103,87 @@ def cvar_low(v, q: float = 0.2) -> float:
     return float(v[:k].mean())
 
 
-def _plan_loss(recs: list[dict], growth: dict, d0: dt.date, harvest: dt.date, S0: float,
-               infect: dt.date | None, spray_day: dt.date | None,
-               protected_until: dt.date | None, p: BlightParams) -> float:
+def member_blight_state(recs: list[dict], status: FieldStatus, rng: np.random.Generator,
+                        p: BlightParams | None = None, trace: bool = False,
+                        obs_logsd: float = 0.3) -> Blight:
+    """The epidemic as this member believes it stands at the start of ``status.day``.
+
+    Replays the *observed* days from planting with the recorded sprays (and rain
+    wash-off), so the planner starts from what has already happened instead of
+    from nothing:
+
+    * the latest positive scouting result sets the severity on its day (with
+      retrieval noise) and the epidemic is propagated forward from there;
+    * with no detection, an infection may already have happened unseen: its date
+      is drawn from the observed weather by the same favourable-spell rule
+      (if inoculum is present -- alert, or ``p_inoculum``);
+    * a negative scouting result (``(day, None)``) is information: an infection
+      that would have been visible that day is rejected and the search restarts
+      after it.
+    """
+    p = p or BlightParams()
+    today = status.day
+    by_day = {r["DAY"]: r for r in recs}
+    sprays = set(status.sprays or [])
+    scouts = sorted(status.scouting or [], key=lambda x: x[0])
+    if status.observed_severity:
+        scouts = scouts + [(today, float(status.observed_severity))]
+    positives = [(d, sv) for d, sv in scouts if sv is not None and sv >= DETECTION_LIMIT]
+    negatives = [d for d, sv in scouts if sv is None or sv < DETECTION_LIMIT]
+
+    def replay(inf_day, anchor=None):
+        b = Blight(inf_day, p)
+        tr = {}
+        d = status.plant
+        while d < today:
+            r = by_day.get(d)
+            if r is None:
+                break
+            if d in sprays:
+                b.spray(d)
+            if anchor is not None and d == anchor[0]:
+                b.inf_day = b.inf_day or d
+                b.S = anchor[1]
+            b.step(r)
+            tr[d] = b.S
+            d += dt.timedelta(days=1)
+        return b, tr
+
+    if positives:
+        d_obs, s_obs = positives[-1]
+        s0 = float(min(0.99, s_obs * math.exp(rng.normal(0, obs_logsd))))
+        b, tr = replay(d_obs, anchor=(d_obs, s0))
+    else:
+        inoc = status.inoculum
+        if inoc is None:
+            inoc = bool(rng.random() < p.p_inoculum)
+        b, tr = replay(None)
+        if inoc:
+            search_from = status.plant + dt.timedelta(days=p.earliest_day)
+            for _ in range(50):
+                inf = None
+                for i in range(1, len(recs)):
+                    if recs[i]["DAY"] >= search_from and favourable(recs[i]) and favourable(recs[i - 1]):
+                        inf = recs[i]["DAY"]
+                        break
+                if inf is None or inf >= today:
+                    b, tr = replay(None)
+                    b.inf_day = inf          # future infection, to be simulated by the planner
+                    break
+                b, tr = replay(inf)
+                seen = [dn for dn in negatives if dn >= inf and tr.get(dn, 0.0) >= DETECTION_LIMIT]
+                if not seen:
+                    break
+                search_from = seen[0] + dt.timedelta(days=1)
+    if trace:
+        b.trace = tr
+    return b
+
+
+def _plan_loss(recs: list[dict], growth: dict, start: Blight, d0: dt.date, harvest: dt.date,
+               spray_day: dt.date | None) -> float:
     """Tuber dry-matter loss (kg/ha) from ``d0`` to harvest for one member/candidate."""
-    b = Blight(d0 if S0 > 0 else infect, p, severity=S0)
-    b.protected_until = protected_until
+    b = start.copy()
     loss = 0.0
     for r in recs:
         d = r["DAY"]
@@ -110,19 +194,6 @@ def _plan_loss(recs: list[dict], growth: dict, d0: dt.date, harvest: dt.date, S0
         b.step(r)
         loss += growth.get(d, 0.0) * b.S
     return loss
-
-
-def _member_infection(recs, status: FieldStatus, rng, p: BlightParams) -> dt.date | None:
-    inoc = status.inoculum
-    if inoc is None:
-        inoc = bool(rng.random() < p.p_inoculum)
-    if not inoc:
-        return None
-    first = max(status.day, status.plant + dt.timedelta(days=p.earliest_day))
-    for i in range(1, len(recs)):
-        if recs[i]["DAY"] >= first and favourable(recs[i]) and favourable(recs[i - 1]):
-            return recs[i]["DAY"]
-    return None
 
 
 def fungicide_decision(members: list[list[dict]], status: FieldStatus,
@@ -143,14 +214,12 @@ def fungicide_decision(members: list[list[dict]], status: FieldStatus,
     nets = {"wait": [], "spray": []}
     for recs in members:
         growth = growth_fn(recs)
-        if status.observed_severity:
-            S0 = float(status.observed_severity * math.exp(rng.normal(0, severity_obs_logsd)))
-            infect = None
-        else:
-            S0, infect = 0.0, _member_infection(recs, status, rng, p)
+        start = member_blight_state(recs, status, rng, p, obs_logsd=severity_obs_logsd)
+        if status.protected_until and (start.protected_until is None
+                                       or status.protected_until > start.protected_until):
+            start.protected_until = status.protected_until
         for cand, sd in (("wait", None), ("spray", day)):
-            loss = _plan_loss(recs, growth, status.day, status.harvest, S0, infect, sd,
-                              status.protected_until, p)
+            loss = _plan_loss(recs, growth, start, status.day, status.harvest, sd)
             nets[cand].append(-econ.revenue(loss) - (econ.fungicide_per_spray if sd else 0.0))
     agg = cvar_low if objective == "cvar" else (lambda v: float(np.mean(v)))
     gain = agg(nets["spray"]) - agg(nets["wait"])
@@ -165,7 +234,8 @@ def fungicide_decision(members: list[list[dict]], status: FieldStatus,
 def scouting_trigger(members: list[list[dict]], status: FieldStatus,
                      blight: BlightParams | None = None, horizon_days: int = 7,
                      threshold: float = 0.5, already_detected: bool = False,
-                     p_spray_better: float | None = None,
+                     p_spray_better: float | None = None, last_scouted: dt.date | None = None,
+                     min_interval_days: int = 7,
                      undecided: tuple[float, float] = (0.25, 0.75)) -> tuple[bool, str]:
     """Fly a scouting mission only when what it could see would change the decision.
 
@@ -175,11 +245,18 @@ def scouting_trigger(members: list[list[dict]], status: FieldStatus,
     enough, at least ``threshold`` of members show a two-day favourable spell),
     (b) blight has not already been confirmed, and (c) the planner is
     *undecided*: spraying wins in between ``undecided`` of members. When the
-    planner is already confident either way, a flight buys nothing.
+    planner is already confident either way, a flight buys nothing. After a
+    detection, re-scouting is allowed (at most every ``min_interval_days``) so
+    the severity the planner propagates is refreshed rather than going stale.
     """
     p = blight or BlightParams()
+    if p_spray_better is None:
+        return False, ("no spray decision this week to change (no sprayable day, or the "
+                       "protectant is still active)")
     if already_detected:
         return False, "blight already confirmed; no new information from scouting"
+    if last_scouted is not None and (status.day - last_scouted).days < min_interval_days:
+        return False, f"scouted {(status.day - last_scouted).days} d ago"
     if status.inoculum is False:
         return False, "regional alert: no inoculum"
     if (status.day - status.plant).days < p.earliest_day:
@@ -221,7 +298,9 @@ def herbicide_decision(density_cells: np.ndarray, expected_dry_yield: float,
     w = weeds or WeedParams()
     dens = np.asarray(density_cells, float)
     base_rev = econ.revenue(expected_dry_yield)
-    thr = econ.herbicide_blanket / max(1e-9, base_rev * w.I / 100 * w.herbicide_efficacy)
+    # Density at which treating one cell pays for itself, on the full Cousens
+    # curve (not its low-density slope): revenue per kg dry x expected yield.
+    thr = economic_threshold(econ.revenue(1.0), expected_dry_yield, econ.herbicide_blanket, w)
 
     def net(mask, cost):
         d = np.where(mask, dens * (1 - w.herbicide_efficacy), dens)

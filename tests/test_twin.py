@@ -232,3 +232,17 @@ def test_finite_ensemble_interval_holds_its_level():
     assert lvl >= 0.8
     assert hits_os / trials >= 0.79
     assert hits_pct / trials < 0.77            # the naive interval undercovers
+
+
+def test_growth_stage_observation_corrects_the_current_stage(bennett_weather):
+    """Review #3: a DVS observation must move the ensemble's DVS now, not only future rates."""
+    ens = EnsembleTwin(_potato_cfg(), bennett_weather, n_members=16, seed=9,
+                       perturbation=_pert(), engine="Wofost72_WLP_CWB")
+    day = dt.date(2025, 12, 9)
+    ens.run_till(day)
+    dvs = ens._augmented()[1]
+    target = float(dvs.mean() + 1.5 * dvs.std())
+    ens.assimilate(Observation(day, "DVS", target, 0.03))
+    post = ens._augmented()[1]
+    assert abs(post.mean() - target) < 0.6 * abs(dvs.mean() - target)
+    assert all(m.day == day for m in ens.members)          # members are back at the obs day

@@ -436,3 +436,29 @@ def recalibrate_with_field_labels(current, probs: np.ndarray, labels: np.ndarray
            calibrate_classification(probs, labels, classes, alpha, score="lac",
                                     randomized=False, stratum="field"))
     return cal, RecalibrationReport(True, n, f"recalibrated on {n} field labels")
+
+
+def recalibrate_action_gate(gate: ActionGate, fine_probs: np.ndarray, action_labels: list[str],
+                            alpha: float | None = None, min_n: int = 100
+                            ) -> tuple[ActionGate, RecalibrationReport]:
+    """Refit an ``ActionGate`` on field labels from the review queue.
+
+    Review labels are *action* labels (crop / weed / background) attached to the
+    detector's fine-class softmax, so the fine probabilities are grouped with the
+    gate's own grouping and a class-conditional quantile is fitted per action.
+    Returns the gate the pipeline actually uses -- not a bare calibration.
+    """
+    n = len(action_labels)
+    if n < min_n:
+        return gate, RecalibrationReport(False, n, f"only {n} field labels (< {min_n}); "
+                                                   "keeping current gate")
+    names = list(gate.groups)
+    bad = sorted({a for a in action_labels if a not in names})
+    if bad:
+        raise ValueError(f"labels {bad} are not action groups {names}")
+    gp, _ = group_probs(np.asarray(fine_probs, float), gate.classes, gate.groups)
+    y = np.array([names.index(a) for a in action_labels])
+    cal = calibrate_class_conditional(gp, y, names, alpha if alpha is not None else gate.cal.alpha, "field")
+    return ActionGate(gate.groups, gate.classes, cal), RecalibrationReport(
+        True, n, f"recalibrated on {n} field labels" +
+        (f"; still under-calibrated: {', '.join(cal.undercalibrated)}" if cal.undercalibrated else ""))

@@ -54,8 +54,52 @@ def _time(fn, iters: int, warmup: int, cuda_sync) -> dict:
             "fps": round(1000 / statistics.median(ts), 1), "iters": iters}
 
 
+def _matched_agreement(ref, other, thr: float, iou_thr: float = 0.5) -> dict:
+    """Detection-level parity that survives query reordering.
+
+    RF-DETR selects its top-k proposals in a two-stage step, so tiny numeric
+    differences (fp16, ONNX) can permute the query order. Comparing queries by
+    index then reports nonsense (box errors of ~600 px on a 608 px image), and
+    requiring every one of ~70 kept detections per image to match fails on one
+    borderline score. Here kept detections are matched one-to-one by IoU
+    (greedy, highest IoU first); we report recall/precision of the matching
+    and class agreement among matched pairs.
+    """
+    tp = fn = fp = same_cls = 0
+    for a, b in zip(ref, other):
+        ka, kb = np.flatnonzero(a.score >= thr), np.flatnonzero(b.score >= thr)
+        if len(ka) == 0 or len(kb) == 0:
+            fn += len(ka)
+            fp += len(kb)
+            continue
+        iou = iou_matrix(a.boxes_xyxy[ka], b.boxes_xyxy[kb])
+        used_a, used_b = set(), set()
+        for flat in np.argsort(-iou, axis=None):
+            i, j = np.unravel_index(flat, iou.shape)
+            if iou[i, j] < iou_thr:
+                break
+            if i in used_a or j in used_b:
+                continue
+            used_a.add(i)
+            used_b.add(j)
+            same_cls += int(a.probs[ka[i]].argmax() == b.probs[kb[j]].argmax())
+        tp += len(used_a)
+        fn += len(ka) - len(used_a)
+        fp += len(kb) - len(used_b)
+    rec = tp / max(tp + fn, 1)
+    prec = tp / max(tp + fp, 1)
+    return {"matched_recall": round(rec, 4), "matched_precision": round(prec, 4),
+            "matched_f1": round(2 * rec * prec / max(rec + prec, 1e-9), 4),
+            "class_agreement_matched": round(same_cls / max(tp, 1), 4)}
+
+
 def _parity(ref, other, thr: float) -> dict:
-    """ref/other: lists of DecodedQueries for the same images."""
+    """ref/other: lists of DecodedQueries for the same images.
+
+    ``max_abs_dprob``/``max_box_err_px`` compare queries *by index* and are only
+    meaningful if query order is preserved; ``images_with_identical_decisions``
+    is very strict. Judge parity on the ``matched_*`` fields.
+    """
     dp, db, agree, n_kept = [], [], 0, 0
     for a, b in zip(ref, other):
         dp.append(float(np.abs(a.probs - b.probs).max()))
@@ -71,7 +115,7 @@ def _parity(ref, other, thr: float) -> dict:
         agree += int(same)
     return {"max_abs_dprob": round(max(dp), 5), "mean_max_abs_dprob": round(float(np.mean(dp)), 5),
             "max_box_err_px": round(max(db), 3), "images_with_identical_decisions": f"{agree}/{len(ref)}",
-            "kept_detections_ref": n_kept}
+            "kept_detections_ref": n_kept, **_matched_agreement(ref, other, thr)}
 
 
 def main() -> int:

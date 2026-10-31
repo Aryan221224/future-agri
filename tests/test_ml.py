@@ -251,3 +251,26 @@ def test_gate_comparison_on_synthetic_detections():
     assert r["class_conditional"]["worst_class_coverage"] > 0.85
     assert r["action_level"]["review_rate"] < r["class_conditional"]["review_rate"]
     assert r["marginal_lac"]["coverage_ci95"] is not None
+
+
+def test_matched_parity_survives_query_reordering():
+    """export._matched_agreement: a permuted but identical set of detections is full parity."""
+    import importlib.util
+    from pathlib import Path
+    from types import SimpleNamespace
+    spec = importlib.util.spec_from_file_location("export_mod",
+                                                  Path(__file__).resolve().parents[1] / "ml" / "export.py")
+    ex = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ex)
+    rng = np.random.default_rng(0)
+    xy = rng.uniform(0, 500, (30, 2))
+    boxes = np.hstack([xy, xy + 40]).astype(np.float32)
+    probs = rng.dirichlet(np.ones(4), 30).astype(np.float32)
+    score = rng.uniform(0.0, 1.0, 30).astype(np.float32)
+    a = SimpleNamespace(boxes_xyxy=boxes, probs=probs, score=score)
+    perm = rng.permutation(30)
+    b = SimpleNamespace(boxes_xyxy=boxes[perm], probs=probs[perm], score=score[perm])
+    m = ex._matched_agreement([a], [b], thr=0.35)
+    assert m["matched_f1"] == 1.0 and m["class_agreement_matched"] == 1.0
+    p = ex._parity([a], [b], thr=0.35)
+    assert p["max_box_err_px"] > 50          # the index-based number is meaningless here

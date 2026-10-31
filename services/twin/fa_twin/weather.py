@@ -210,7 +210,14 @@ def records_provider(records: list[dict], latitude: float, longitude: float,
             self.latitude, self.longitude, self.elevation = latitude, longitude, elevation
             self.angstA, self.angstB = 0.25, 0.5
             self.description = [desc]
-            for r in records:
+            self.records: list[dict] = []
+            self.extend(records)
+
+        def extend(self, new_records: list[dict]) -> None:
+            """Add (or replace) days. A running crop model sees them immediately,
+            which is how an operational twin receives each day's observed weather."""
+            by_day = {r["DAY"]: i for i, r in enumerate(self.records)}
+            for r in new_records:
                 e0, es0, et0 = reference_ET(
                     DAY=r["DAY"], LAT=latitude, ELEV=elevation, TMIN=r["TMIN"],
                     TMAX=r["TMAX"], IRRAD=r["IRRAD"], VAP=r["VAP"], WIND=r["WIND"],
@@ -219,13 +226,19 @@ def records_provider(records: list[dict], latitude: float, longitude: float,
                            E0=e0 / 10.0, ES0=es0 / 10.0, ET0=et0 / 10.0,
                            RAIN=r["RAIN"] / 10.0)   # PCSE wants cm/day
                 self._store_WeatherDataContainer(WeatherDataContainer(**rec), r["DAY"])
+                if r["DAY"] in by_day:
+                    self.records[by_day[r["DAY"]]] = dict(r)
+                else:
+                    self.records.append(dict(r))
+            self.records.sort(key=lambda x: x["DAY"])
+
+        def last_day(self) -> date | None:
+            return self.records[-1]["DAY"] if self.records else None
 
         def __str__(self):
             return desc
 
-    w = _RecordsWeather()
-    w.records = list(records)
-    return w
+    return _RecordsWeather()
 
 
 def make_normals_weather(latitude: float, longitude: float, start: date, days: int = 400,
@@ -325,3 +338,78 @@ def annual_totals(records: list[dict]) -> dict[str, float]:
         "max_daily_mm": float(rain.max()),
         "mean_dtr_c": float(np.mean([r["TMAX"] - r["TMIN"] for r in records])),
     }
+
+
+# ---------------------------------------------------------------------------
+# Operational members: observed past + real forecast + climatology to harvest
+# ---------------------------------------------------------------------------
+
+REQUIRED_KEYS = ("DAY", "TMAX", "TMIN", "RAIN", "IRRAD", "VAP", "WIND")
+
+
+def validate_records(records: list[dict]) -> list[str]:
+    """Problems with observed records: missing keys, gaps, implausible units."""
+    probs = []
+    for k in REQUIRED_KEYS:
+        if records and k not in records[0]:
+            probs.append(f"missing field {k}")
+    if probs:
+        return probs
+    days = [r["DAY"] for r in records]
+    for a, b in zip(days, days[1:]):
+        if (b - a).days != 1:
+            probs.append(f"gap or disorder between {a} and {b}")
+            break
+    for r in records:
+        if not (-10 <= r["TMIN"] <= r["TMAX"] <= 55):
+            probs.append(f"{r['DAY']}: temperatures out of range (TMIN {r['TMIN']}, TMAX {r['TMAX']})")
+            break
+        if not (0 <= r["RAIN"] <= 600):
+            probs.append(f"{r['DAY']}: RAIN {r['RAIN']} must be mm/day")
+            break
+        if not (1e5 <= r["IRRAD"] <= 4e7):
+            probs.append(f"{r['DAY']}: IRRAD {r['IRRAD']} must be J/m2/day")
+            break
+    return probs
+
+
+def compose_member(observed: list[dict], issue: date, end: date, seed: int,
+                   forecast: list[dict] | None = None, normals: dict | None = None) -> list[dict]:
+    """One planning member that is continuous from the first observed day to ``end``.
+
+    * days before ``issue``: observed records (must be continuous up to issue-1);
+    * days from ``issue``: the supplied forecast member, as far as it goes
+      (a real 15-day NWP ensemble member, e.g. Open-Meteo);
+    * the rest, to ``end``: a climatology realisation seeded by ``seed``.
+
+    This is what lets the twin plan to harvest when the future is unknown --
+    the operational path -- rather than only when a full season of weather is
+    already in hand (the simulation path).
+    """
+    past = [dict(r) for r in observed if r["DAY"] < issue]
+    fc = sorted((dict(r) for r in (forecast or []) if r["DAY"] >= issue), key=lambda r: r["DAY"])
+    out = past + fc
+    nxt = (out[-1]["DAY"] + timedelta(days=1)) if out else issue
+    if nxt <= end:
+        clim = generate_records(nxt, (end - nxt).days + 1, seed, normals=normals)
+        out += clim
+    return out
+
+
+def complete_members(observed: list[dict], issue: date, end: date, n: int, seed: int,
+                     forecast_members: list[list[dict]] | None = None,
+                     normals: dict | None = None) -> list[list[dict]]:
+    """``n`` planning members to ``end``. Members already spanning observed-start..end
+    (simulation) are used as they are; short forecast members are completed with
+    observed past and a climatology tail; with no forecast, members are
+    observed past + climatology. Member j uses seed ``seed*1000 + j`` (CRN)."""
+    first = observed[0]["DAY"] if observed else issue
+    fms = forecast_members or []
+    out = []
+    for j in range(n):
+        f = fms[j % len(fms)] if fms else None
+        if f and f[0]["DAY"] <= first and f[-1]["DAY"] >= end:
+            out.append(f)
+        else:
+            out.append(compose_member(observed, issue, end, seed * 1000 + j, f, normals))
+    return out

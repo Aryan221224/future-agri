@@ -44,7 +44,7 @@
       <label>seed <input id="seed" type="number" value="4" min="0" style="width:70px"></label>
       <select id="policy">
         <option value="twin">twin</option><option value="farmer">farmer (calendar)</option>
-        <option value="twin_alert">twin + inoculum alert</option><option value="twin_cvar">twin, CVaR</option>
+        <option value="twin_alert">twin + inoculum alert</option><option value="twin_mean">twin, risk-neutral</option>
         <option value="none">no sprays</option>
       </select>
       <button class="primary" id="run">Run season</button>
@@ -67,6 +67,10 @@
 <script>
 const API = location.port === "8080" || location.pathname.startsWith("/web") ? "/api" : (window.FA_API || "/api");
 const $ = id => document.getElementById(id);
+// Everything below that comes from the API (decision details, review items posted
+// by the gateway or anyone else) is untrusted text: escape before it touches HTML.
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const safeImg = v => (typeof v === "string" && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(v)) ? v : null;
 async function api(path, opts){
   const r = await fetch(API + path, opts);
   if(!r.ok) throw new Error(r.status + " " + (await r.text()).slice(0,200));
@@ -78,12 +82,12 @@ api("/health").then(h => $("status").textContent = "API connected" + (h.database
 $("run").onclick = async () => {
   $("run").disabled = true; $("metrics").textContent = "running season…";
   try{
-    const r = await api(`/twin/simulate/season?seed=${+$("seed").value}&policy=${$("policy").value}`);
+    const r = await api(`/twin/simulate/season?seed=${+$("seed").value}&policy=${encodeURIComponent($("policy").value)}`, {method: "POST"});
     const kv = [["fresh yield (farm, t/ha)", r.fresh_t_ha_farm], ["water (cm)", r.water_cm],
       ["irrigations", r.irrigations], ["fungicide sprays", r.sprays], ["scouting flights", r.flights],
       ["herbicide", r.herbicide], ["blight", r.infected ? `infected, final severity ${r.final_severity}` : "no infection"],
       ["net (Rs/ha)", r.net_rs_ha.toLocaleString("en-IN")]];
-    $("metrics").innerHTML = kv.map(([k,v]) => `<div class="kv"><span>${k}</span><b>${v}</b></div>`).join("");
+    $("metrics").innerHTML = kv.map(([k,v]) => `<div class="kv"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("");
     const start = new Date("2025-10-25"), days = 109, marks = {};
     for(const e of r.log){
       const d = Math.round((new Date(e.day) - start) / 864e5);
@@ -94,8 +98,8 @@ $("run").onclick = async () => {
     $("tl").innerHTML = Array.from({length: days}, (_, i) => `<i class="${marks[i]||""}" style="height:${marks[i] ? 100 : 18}%"></i>`).join("");
     const shown = r.log.filter(e => e.kind !== "irrigate" || e.action);
     $("log").innerHTML = shown.length ? shown.map(e =>
-      `<div><b>${e.day}</b><span class="pill ${e.action ? "warn" : "ok"}">${e.kind}</span> ${e.detail}</div>`).join("")
-      : `<span class="note">No twin decisions for policy "${r.policy}" (the calendar policy does not consult the twin).</span>`;
+      `<div><b>${esc(e.day)}</b><span class="pill ${e.action ? "warn" : "ok"}">${esc(e.kind)}</span> ${esc(e.detail)}</div>`).join("")
+      : `<span class="note">No twin decisions for policy "${esc(r.policy)}" (the calendar policy does not consult the twin).</span>`;
   }catch(err){ $("metrics").textContent = "failed: " + err.message; }
   $("run").disabled = false;
 };
@@ -104,17 +108,19 @@ async function loadQueue(){
   const f = $("field").value;
   try{
     const items = await api(`/twin/${encodeURIComponent(f)}/review`);
-    $("queue").innerHTML = items.length ? items.map(it => `
-      <div class="item" id="q${it.id}">
-        <div>${it.reason} <span class="pill warn">${it.label_set.join(" / ")}</span></div>
-        <div class="m">frame ${it.frame_id} · model's top class: ${it.top_class}</div>
-        ${it.thumbnail ? `<img src="${it.thumbnail}" alt="detection" style="max-width:100%;margin-top:6px;border-radius:5px">` : ""}
+    $("queue").innerHTML = items.length ? items.map(it => {
+      const id = Number(it.id), img = safeImg(it.thumbnail);
+      return `
+      <div class="item" id="q${id}">
+        <div>${esc(it.reason)} <span class="pill warn">${esc((it.label_set || []).join(" / "))}</span></div>
+        <div class="m">frame ${esc(it.frame_id)} · model's top class: ${esc(it.top_class)}</div>
+        ${img ? `<img src="${img}" alt="detection" style="max-width:100%;margin-top:6px;border-radius:5px">` : ""}
         <div class="row" style="margin:6px 0 0">${["crop","weed","background"].map(l =>
-          `<button data-id="${it.id}" data-l="${l}">${l === "background" ? "not a plant" : l}</button>`).join("")}</div>
-      </div>`).join("") : `<span class="note">Nothing waiting for review on ${f}.</span>`;
+          `<button data-id="${id}" data-l="${l}">${l === "background" ? "not a plant" : l}</button>`).join("")}</div>
+      </div>`; }).join("") : `<span class="note">Nothing waiting for review on ${esc(f)}.</span>`;
     for(const b of $("queue").querySelectorAll("button")) b.onclick = async () => {
       const r = await api(`/twin/${encodeURIComponent(f)}/review/${b.dataset.id}?label=${b.dataset.l}`, {method: "POST"});
-      $("q" + b.dataset.id).outerHTML = `<div class="item m">labelled ${r.label} · ${r.field_labels} field labels · ${r.recalibration}</div>`;
+      $("q" + b.dataset.id).outerHTML = `<div class="item m">labelled ${esc(r.label)} · ${esc(r.field_labels)} field labels · ${esc(r.recalibration)}</div>`;
     };
   }catch(err){ $("queue").textContent = "failed: " + err.message; }
 }

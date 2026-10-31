@@ -240,7 +240,8 @@ def plan_sorties(swaths: list[Swath], home: tuple[float, float],
 
     if d.tank_l:
         def liquid_cb(from_idx) -> int:
-            """Liquid sprayed on arriving at a swath node, in millilitres."""
+            """Liquid sprayed on a swath node, in millilitres (OR-Tools charges a unary
+            transit when leaving the node; either way it counts against that sortie)."""
             j = mgr.IndexToNode(from_idx)
             if oriented[j] is None:
                 return 0

@@ -12,11 +12,12 @@ Policies
 ``farmer``      fixed 4 cm every 10 days; fungicide every 10 days from day 30 on
                 the first sprayable day; blanket herbicide.
 ``twin``        daily soil-water irrigation trigger; weekly fungicide plan
-                (risk-neutral) with event-triggered scouting; herbicide from the
-                one-pass weed map.
+                (CVaR-80, the default objective) with event-triggered scouting;
+                herbicide from the one-pass weed map; the pass assimilated with
+                the EnKF.
+``twin_mean``   as ``twin`` with the risk-neutral (mean) objective.
 ``twin_alert``  as ``twin`` but with a regional inoculum alert (truth of whether
                 the pathogen arrived) -- the input the audit identified as missing.
-``twin_cvar``   as ``twin`` with the CVaR-80 objective.
 ``none``        no irrigation beyond the farmer schedule, no sprays (baseline for
                 the value of protection).
 
@@ -35,7 +36,7 @@ import numpy as np
 from fa_planner.sop import DEFAULT_WINDOW
 from fa_twin.damage import Blight, infection_day, weed_loss_frac
 from fa_twin.engine import SoilParams, ZoneConfig, ZoneTwin
-from fa_twin.weather import forecast_ensemble, generate_records, records_provider
+from fa_twin.weather import forecast_ensemble, forecast_member, generate_records, records_provider
 
 from .orchestrator import FieldTwin, TwinSettings
 
@@ -45,7 +46,7 @@ LAT, LON = 28.45, 77.58
 PLANT, HARVEST = dt.date(2025, 10, 25), dt.date(2026, 2, 10)
 WSTART = dt.date(2025, 10, 1)
 PASS_DAY = 35
-POLICIES = ("none", "farmer", "twin", "twin_alert", "twin_cvar")
+POLICIES = ("none", "farmer", "twin", "twin_mean", "twin_alert")
 
 
 def potato_cfg(soil: SoilParams | None = None) -> ZoneConfig:
@@ -71,16 +72,12 @@ class SeasonResult:
     log: list = field(default_factory=list)
 
 
-def _short_forecast(truth: list[dict], day: dt.date, rng, days: int = 2) -> list[list[dict]]:
-    """A cheap 1-member forecast for the daily irrigation check (rain mis-scaled)."""
-    out = []
-    for r in truth:
-        lead = (r["DAY"] - day).days
-        if 1 <= lead <= days and r["RAIN"] > 0:
-            out.append(dict(r, RAIN=r["RAIN"] * float(np.exp(rng.normal(0, 0.4)))))
-        else:
-            out.append(r)
-    return [out]
+def _short_forecast(truth: list[dict], day: dt.date, seed: int, days: int = 3) -> list[list[dict]]:
+    """One forecast member for the daily irrigation check, with the same lead-time
+    error model as the weekly ensemble (rain mis-scaled, sometimes missed or
+    invented). The audit's version never missed or invented rain, which flattered
+    the water saving."""
+    return [forecast_member(truth, day, seed, forecast_days=days)]
 
 
 def simulate_season(seed: int, policy: str, settings: TwinSettings | None = None,
@@ -92,8 +89,8 @@ def simulate_season(seed: int, policy: str, settings: TwinSettings | None = None
     by_day = {r["DAY"]: r for r in truth}
     s = copy.deepcopy(settings) if settings else TwinSettings()
     s.plan_members = plan_members
-    if policy == "twin_cvar":
-        s.objective = "cvar"
+    if policy == "twin_mean":
+        s.objective = "mean"
     econ = s.econ
 
     # truth field
@@ -109,7 +106,9 @@ def simulate_season(seed: int, policy: str, settings: TwinSettings | None = None
     twin = None
     if policy.startswith("twin"):
         err = SoilParams(SMFCF=0.32 * rng.uniform(0.9, 1.1), SMW=0.15 * rng.uniform(0.9, 1.1))
-        twin = FieldTwin(potato_cfg(err), truth, s,
+        # The twin receives weather the way a deployment does: what has been
+        # observed up to the day before planting, then one day at a time.
+        twin = FieldTwin(potato_cfg(err), [r for r in truth if r["DAY"] < PLANT], s,
                          inoculum=(inoculum_arrived if policy == "twin_alert" else None))
 
     from pcse import signals
@@ -124,6 +123,9 @@ def simulate_season(seed: int, policy: str, settings: TwinSettings | None = None
     herb_cost = econ.herbicide_blanket if herbicide == "blanket" else 0.0
     farmer_next_spray = PLANT + dt.timedelta(days=30)
 
+    # Decisions on day d are made from the state at the end of day d-1, by truth
+    # and twin alike (the twin has observed weather through d-1), so an
+    # irrigation signal enters the same day's water balance in both.
     d = PLANT
     while d <= HARVEST and not true_model.terminated:
         rec = by_day[d]
@@ -134,7 +136,7 @@ def simulate_season(seed: int, policy: str, settings: TwinSettings | None = None
         if policy in ("farmer", "none"):
             irrigate = dap > 0 and dap % 10 == 0
         elif twin is not None:
-            adv = twin.irrigation_advice(d, _short_forecast(truth, d, rng))
+            adv = twin.irrigation_advice(d, _short_forecast(truth, d, seed * 100_000 + dap))
             irrigate = adv.action
         if irrigate:
             true_model.model._send_signal(signal=signals.irrigate, amount=4.0, efficiency=0.7)
@@ -170,9 +172,8 @@ def simulate_season(seed: int, policy: str, settings: TwinSettings | None = None
                 if plan.get("scout"):
                     flights += 1
                     sev = blight.S * float(np.exp(rng.normal(0, 0.3))) if blight.S >= 0.005 else None
-                    twin.record_scouting(d, sev)
-                    if sev is not None:      # re-plan with the observation
-                        plan = twin.weekly_plan(d, fc, seed=seed * 7919 + dap + 1)
+                    twin.record_scouting(d, sev)      # a negative flight is information too
+                    plan = twin.weekly_plan(d, fc, seed=seed * 7919 + dap + 1)
                 fd = plan["fungicide"]
                 pending = fd.spray_day
                 pending_until = d + dt.timedelta(days=6)
@@ -189,9 +190,9 @@ def simulate_season(seed: int, policy: str, settings: TwinSettings | None = None
 
         # ---- truth dynamics
         dS = blight.step(rec)
-        if twin is not None:
-            twin.record_rain_washoff(rec)
         true_model.model.run(days=1)
+        if twin is not None:
+            twin.add_weather([rec])            # day d is observed once it is over
         lai = true_model.model.get_variable("LAI")
         if dS > 0 and lai:
             healthy = max(1e-3, 1.0 - blight.S + dS)

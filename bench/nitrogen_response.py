@@ -32,9 +32,8 @@ LAT, LON = 28.45, 77.58
 CROPS = {
     "potato": dict(variety="Potato_701", sow=dt.date(2025, 10, 25), harvest=dt.date(2026, 2, 10),
                    wstart=dt.date(2025, 10, 1), irr_every=10, irr_cm=4.0, n_irr=10, dm=0.20),
-    "wheat": dict(variety="Winter_wheat_102", sow=dt.date(2025, 11, 15), harvest=dt.date(2026, 4, 30),
-                  wstart=dt.date(2025, 11, 1), irr_every=20, irr_cm=6.0, n_irr=6, dm=1.0,
-                  overrides={"IDSL": 0, "TSUM1": 1400.0, "TSUM2": 1000.0}),
+    "wheat": dict(variety="IN_NW_timely", sow=dt.date(2025, 11, 15), harvest=dt.date(2026, 4, 30),
+                  wstart=dt.date(2025, 11, 1), irr_every=20, irr_cm=6.0, n_irr=6, dm=1.0),
 }
 RATES = (0, 60, 120, 180, 240)
 
@@ -52,8 +51,7 @@ def main():
         for s in range(a.seasons):
             w = records_provider(generate_records(c["wstart"], 220, 700 + s), LAT, LON)
             cfg = ZoneConfig(zone_id="n", latitude=LAT, longitude=LON, crop=crop, variety=c["variety"],
-                             sowing_date=c["sow"], harvest_date=c["harvest"], NAVAILI=30.0,
-                             param_overrides=c.get("overrides", {}))
+                             sowing_date=c["sow"], harvest_date=c["harvest"], NAVAILI=30.0)
             irr = [{"date": c["sow"] + dt.timedelta(days=c["irr_every"] * (i + 1)),
                     "irrigation_cm": c["irr_cm"]} for i in range(c["n_irr"])]
             for r in RATES:

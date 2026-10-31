@@ -79,6 +79,13 @@ class ReviewItem:
     top_class: str
     reason: str
     observed_at: str
+    probs: list[float] | None = None     # fine-class softmax: what recalibration needs
+
+    def to_payload(self) -> dict:
+        """Body for ``POST /twin/{field}/review`` (the human review queue)."""
+        return {"frame_id": self.frame_id, "bbox": [float(x) for x in self.bbox],
+                "label_set": list(self.label_set), "top_class": self.top_class,
+                "reason": self.reason, "probs": self.probs}
 
 
 class EdgePipeline:
@@ -140,7 +147,8 @@ class EdgePipeline:
                         reviews.append(ReviewItem(
                             frame_id=res.frame_id, zone_id=zone_id, bbox=det.bbox,
                             label_set=aset, top_class=top,
-                            reason="action unclear: " + " or ".join(aset), observed_at=when))
+                            reason="action unclear: " + " or ".join(aset), observed_at=when,
+                            probs=[float(x) for x in np.asarray(det.probs).ravel()]))
                     continue
                 label_set = None
                 if cal is not None and hasattr(cal, "predict_set"):
@@ -198,7 +206,11 @@ class EdgePipeline:
         if self.action_gate is not None:
             summary.coverage_target = 1 - self.action_gate.cal.alpha
             summary.calibration_stratum = "action"
-            summary.calibrated = True
+            under = self.action_gate.cal.undercalibrated
+            summary.calibrated = not under
+            if under:
+                summary.notes = (summary.notes + " " if summary.notes else "") + \
+                    f"action groups without enough calibration data (always reviewed): {', '.join(under)}"
         return summary, reviews
 
     @property

@@ -305,7 +305,12 @@ agriculture, which forbids commercial use and requires deletion within 90 days.
   0.487; maize 0.91 AP50, quickweed 0.25, other weeds 0.11. It has no potato,
   wheat or disease classes. The gate must be recalibrated on 100–200 field
   labels before its coverage means anything here ([ADR 0014](docs/adr/0014-action-level-class-conditional-gate.md)).
-  ONNX export works (parity 0.84 against fp32 — check before relying on it).
+  The ONNX export runs, but **parity with PyTorch is unproven**: only 11/20
+  images (and 7/20 for PyTorch fp16) gave identical decisions under a strict
+  per-query check that query reordering in RF-DETR's two-stage selection can
+  break. `ml/export.py` now also reports matched-detection agreement; rerun it
+  on the H200 before deploying the ONNX model. Latency on an edge device has not
+  been measured (none chosen; the 122 ms figure is ONNX on the server's CPU).
 - **Blight, weed and price figures are assumptions.** The fungicide, scouting and
   herbicide verdicts move with them; the blight model infects ~65 % of seasons.
 - **The kinematic simulator is not a flight-dynamics simulator.** It models

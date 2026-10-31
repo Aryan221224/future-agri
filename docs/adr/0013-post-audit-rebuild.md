@@ -88,8 +88,10 @@ The potato crop with no fertiliser took up only 40 kg N/ha (soil N exhausted by
 early December) and still yielded above the 7.2 ceiling: implied tuber N ~0.2 %
 of dry matter vs ~1.2–1.5 % in real potatoes. **The shipped 8.1 potato set does
 not represent nitrogen limitation**, so it cannot explain the yield gap or advise
-on nitrogen. `check_nitrogen_response()` now refuses N advice when 200 kg N
-gains < 10 % (potato refused, wheat passes — tested). The potato yield gap stays
+on nitrogen. `check_nitrogen_response()` refuses N advice when 200 kg N gains
+< 10 % (potato refused, wheat passes — tested). No advice path offers nitrogen
+yet; any future one (including the older `fa_planner.scheduler` N search) must
+call this gate first. The potato yield gap stays
 represented by the farm factor (0.5 × ceiling) until a field calibration exists.
 
 ### 6. The weekly loop

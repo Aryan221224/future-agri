@@ -37,13 +37,16 @@ Two bugs fixed on 31 Oct 2026 (found reviewing the post-audit code)
 1. **The parameter update never reached the crop.** The analysis wrote the
    updated TSUM1/TSUM2/SPAN/RGRLAI factors into a bookkeeping dict and nothing
    else, so the "joint" filter was really a state-only filter whose LAI nudge
-   decays within days. That is consistent with the audit finding that one pass
-   helped the 30-day canopy forecast but not yield. Updated parameters are now
-   written into each member's running PCSE phenology and leaf-dynamics objects.
+   decays within days. (The audit measured its one-pass results with its own
+   prototype filter, which did not have this bug; the repo's earlier weekly-obs
+   OSSE did.) Updated parameters now reach the crop: by default each member is
+   re-run from sowing with its analysed parameters, which corrects the growth
+   stage and the history, not just future rates.
 2. **Inflation was undone in the same line that applied it** (``A *= lam`` then
-   ``xm + A/lam + K@innov``), so the posterior spread was never widened -- which
-   fits the audit's 80 % intervals covering the truth only 60-75 % of the time.
-   Inflation is now applied to the forecast ensemble before the analysis.
+   ``xm + A/lam + K@innov``), so the posterior spread was never widened.
+   Inflation is now applied to the forecast ensemble before the analysis. (The
+   audit's 60-75 % interval coverage came from its own filter and turned out to
+   be mostly a finite-ensemble quantile effect -- see ``interval()``.)
 
 Parameters live in the augmented state as **log factors**, so every member
 stays positive and a symmetric Gaussian update is a sensible approximation.
@@ -196,7 +199,7 @@ class EnsembleTwin:
                  events: list[dict] | None = None, seed: int = 0,
                  engine: str = "auto", inflation: float = 1.0,
                  localisation: float = 0.5, reject_sigma: float = 5.0,
-                 weathers: list | None = None):
+                 weathers: list | None = None, restart: bool = True):
         self.cfg = cfg
         self.weather = weather
         self.weathers = list(weathers) if weathers else None
@@ -210,6 +213,10 @@ class EnsembleTwin:
         self.inflation = float(inflation)
         self.localisation = localisation
         self.reject_sigma = reject_sigma
+        #: Re-run members from sowing with analysed parameters (default). False
+        #: writes parameters into the running crop instead (cheaper, but a stage
+        #: observation then only changes future development rates).
+        self.restart = restart
 
         self._factors = self.pert.sample(self.rng, self.n)
         self.members: list = [self._make_member(i) for i in range(self.n)]
@@ -225,9 +232,11 @@ class EnsembleTwin:
                 setattr(cfg, name, float(getattr(cfg, name) * self._factors[name][i]))
         w = self.weathers[i] if self.weathers else self.weather
         tw = ZoneTwin(cfg, w, events=self.events, engine=self.engine)
+        tw._member_cfg, tw._weather = cfg, w
         pp = tw.model.parameterprovider
         tw._base = {}
         tw._perturb = {}
+        tw._fixed = {}
         for p in self.AUG_PARAMS + ("TDWI",):
             try:
                 base = pp[p]
@@ -239,8 +248,32 @@ class EnsembleTwin:
             if p in self.AUG_PARAMS:
                 tw._base[p] = float(base)
                 tw._perturb[p] = f
+            else:
+                tw._fixed[p] = float(base) * f
             # Overrides set before the crop starts are read when it is created.
             pp.set_override(p, float(base) * f, check=False)
+        return tw
+
+    def _rebuild(self, m, day: date):
+        """Re-run one member from sowing with its current (analysed) parameters.
+
+        This is the audit prototype's approach and it is what makes a growth-stage
+        observation correct the *current* stage: the new TSUM1/TSUM2 change the
+        whole development history, not only future rates. It also avoids PCSE's
+        in-place SPAN change killing every leaf class older than the new SPAN on
+        the next step. Costs one partial season per member (~0.05 s).
+        """
+        from .engine import ZoneTwin
+        tw = ZoneTwin(m._member_cfg, m._weather, events=self.events, engine=self.engine)
+        pp = tw.model.parameterprovider
+        for p, v in m._fixed.items():
+            pp.set_override(p, v, check=False)
+        for p, f in m._perturb.items():
+            pp.set_override(p, m._base[p] * f, check=False)
+        tw._member_cfg, tw._weather = m._member_cfg, m._weather
+        tw._base, tw._perturb, tw._fixed = m._base, m._perturb, m._fixed
+        if day > tw.day:
+            tw.run_till(day)
         return tw
 
     # -- parameter write-back ---------------------------------------------
@@ -334,19 +367,36 @@ class EnsembleTwin:
         ns = len(self.STATE_ROWS)
         lai_a = np.clip(Xa[0, :], 1e-3, 12.0)
         logf = np.clip(Xa[ns:, :], -self.LOG_CLIP, self.LOG_CLIP)
+        day = keep[0][0].day
         for i, m in enumerate(self.members):
             if m.terminated:
                 continue
             for j, p in enumerate(self.AUG_PARAMS):
                 if p in m._perturb:
                     m._perturb[p] = float(math.exp(logf[j, i]))
-            self._write_params(m)
+            if self.restart:
+                try:
+                    m = self.members[i] = self._rebuild(m, max(day, m.day))
+                except Exception as e:
+                    log.warning("could not rebuild member %d: %s; writing parameters in place", i, e)
+                    self._write_params(m)
+            else:
+                self._write_params(m)
             try:
                 if (m.state().get("LAI") or 0.0) > 0:
                     m.set_lai(float(lai_a[i]))
             except Exception as e:
                 log.warning("could not set LAI on member %d: %s", i, e)
         return float(first_innov), any_rejected
+
+    def posterior_parameters(self) -> dict[str, float]:
+        """Ensemble-mean parameter values (absolute, not factors)."""
+        out = {}
+        for p in self.AUG_PARAMS:
+            vals = [m._base[p] * m._perturb[p] for m in self.members if p in m._perturb]
+            if vals:
+                out[p] = float(np.mean(vals))
+        return out
 
     def run(self, observations: list[Observation]) -> AssimilationResult:
         """Assimilate observations in date order (same-day ones jointly), then finish."""
