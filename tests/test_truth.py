@@ -154,3 +154,12 @@ def test_build_virtual_farm_flevoland_network(tmp_path):
     assert {p["source"].split()[0] for p in s["provenance"]} >= {"Fields", "SoilGrids", "NASA"}
     h = vf.truth().harvest()
     assert h.field_yield_kg_ha > 1000
+
+
+def test_anchor_ignores_post_senescence_regrowth():
+    from fa_farm.anchor import usable_cover
+    d = dt.date(2025, 5, 1)
+    ser = [(d + dt.timedelta(days=10 * i), None, c) for i, c in
+           enumerate([0.0, 0.1, 0.5, 0.9, 0.9, 0.6, 0.2, 0.15, 0.7, 0.85])]
+    kept = usable_cover(ser)
+    assert [c for _, _, c in kept] == [0.0, 0.1, 0.5, 0.9, 0.9, 0.6, 0.2, 0.15]

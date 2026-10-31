@@ -118,6 +118,9 @@ def build_virtual_farm(archetype_id: str, year: int, cache: Cache | None = None,
         prov.append(p)
     except DataUnavailable as e:
         warns.append(f"Sentinel-2 unavailable ({e}); truth uses shipped crop parameters")
+    if series:
+        warns.append("crop type of this field in this season is not verified (no open global "
+                     "crop map reachable); its Sentinel-2 cover is used for crop timing only")
     if anchor and series:
         engine = "Wofost72_PP" if a.irrigated else "Wofost72_WLP_CWB"
         cfg = ZoneConfig("anchor", lat, lon, a.crop, a.variety, sow, harvest, soil=soil)

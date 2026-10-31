@@ -36,12 +36,28 @@ def simulate_cover(cfg: ZoneConfig, records: list[dict], days: list[dt.date],
     return out
 
 
+def usable_cover(series: list[tuple], drop_below: float = 0.25) -> list[tuple]:
+    """Observations up to the end of the crop's own canopy: once cover has peaked
+    and then fallen below ``drop_below``, later rises are a cover crop, weeds or
+    the next crop -- not this crop -- and are dropped."""
+    out, peak, low, prev = [], 0.0, False, None
+    for d, nd, c in sorted(series, key=lambda x: x[0]):
+        if low and prev is not None and c > prev + 0.05:
+            break                          # cover rising again after senescence
+        out.append((d, nd, c))
+        peak = max(peak, c)
+        if peak >= 0.5 and c < drop_below:
+            low = True
+        prev = c
+    return out
+
+
 def anchor_to_cover(cfg: ZoneConfig, records: list[dict], series: list[tuple], members: int = 24,
                     seed: int = 0, sd: float = 0.08, engine: str = "Wofost72_WLP_CWB",
                     min_days_after_sowing: int = 10) -> tuple[dict, dict]:
     """Fit crop parameters to an observed cover series [(date, ndvi|None, cover)].
     -> (parameter overrides, info)."""
-    obs = [Observation(d, "CC", float(c), sd) for d, _, c in series
+    obs = [Observation(d, "CC", float(c), sd) for d, _, c in usable_cover(series)
            if cfg.sowing_date + dt.timedelta(days=min_days_after_sowing) <= d <= cfg.harvest_date]
     info = {"n_obs": len(obs), "members": members, "obs_sd": sd}
     if len(obs) < 3:
