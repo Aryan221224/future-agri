@@ -112,3 +112,27 @@ def test_cli_help():
                              "services/farm", "services/scan", "services/drone", "services/runner")),
                              "PATH": "/usr/bin:/bin"})
     assert out.returncode == 0 and "perfect" in out.stdout
+
+
+def test_flight_weather_uses_calmer_dawn_wind():
+    from fa_runner.scenarios import DAWN_WIND_FACTOR, flight_record, mission_weather
+    rec = {"DAY": dt.date(2025, 6, 1), "TMAX": 20.0, "TMIN": 10.0, "RAIN": 0.0, "WIND": 4.0}
+    fr = flight_record(rec)
+    assert fr["WIND"] == pytest.approx(4.0 * DAWN_WIND_FACTOR)
+    w = mission_weather(rec, np.random.default_rng(0))
+    assert w.wind_ms == pytest.approx(4.0 * DAWN_WIND_FACTOR)
+
+
+def test_herbicide_waits_longer_than_fungicide():
+    from fa_runner.season import MAX_WAIT_DAYS
+    assert MAX_WAIT_DAYS["herbicide"] >= 14 and MAX_WAIT_DAYS["fungicide"] <= 7
+
+
+def test_logistics_sensitivity_reports_packs_and_chargers():
+    from fa_runner.optimise import logistics_sensitivity
+    vf = _vf(w=150, h=100)
+    grid = FarmGrid.from_wgs84(vf.spec.polygon_wgs84, 10.0)
+    rows = logistics_sensitivity(grid, SPEC, load_region("EU"), MissionSettings(),
+                                 [(1.5, 270.0, 2.4, 18.0)], options=((4, 1), (6, 2)))
+    assert [(r["battery_sets"], r["chargers"]) for r in rows] == [(4, 1), (6, 2)]
+    assert rows[1]["time_min"] <= rows[0]["time_min"]

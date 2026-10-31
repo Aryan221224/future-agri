@@ -34,7 +34,7 @@ from fa_twin.engine import ZoneConfig, ZoneTwin
 from fa_twin.weather import records_provider
 
 from .economics import Economics
-from .optimise import optimise_flight
+from .optimise import logistics_sensitivity, optimise_flight
 from .scenarios import ForecastFeed, spray_window, wind_samples
 from .season import run_season
 
@@ -56,6 +56,8 @@ class PerfectRun:
     seasons: dict
     value_at_risk_ha: float
     currency: str
+    flight_ranking_patch: list = field(default_factory=list)
+    logistics: list = field(default_factory=list)
     warnings: list = field(default_factory=list)
     timings_s: dict = field(default_factory=dict)
 
@@ -144,6 +146,7 @@ def perfect_run(vf, seeds=(0, 1, 2), lam: float = 0.5, workers: int | None = Non
         final += rr
     final.sort(key=lambda x: x.score, reverse=True)
     best_flight = final[0].settings if final else MissionSettings()
+    logistics = logistics_sensitivity(full, spec, region, best_flight, winds[:2])
     progress(f"[perfect] best flight: h={best_flight.height_m} m v={best_flight.speed_ms} m/s "
              f"spacing={best_flight.swath_m} m rate={best_flight.rate_l_ha} L/ha rtk={best_flight.rtk}")
 
@@ -190,9 +193,12 @@ def perfect_run(vf, seeds=(0, 1, 2), lam: float = 0.5, workers: int | None = Non
     table.sort(key=lambda x: x["score"], reverse=True)
     best = dict(table[0])
     best["jiyi_settings"] = asdict(best_flight) if "optimised" in best["plan"] else asdict(default)
-    return PerfectRun(best, table, [dict(settings=asdict(r.settings), score=round(r.score, 2),
-                                         feasible_frac=r.feasible_frac, kpis_mean=r.kpis_mean,
-                                         kpis_p90=r.kpis_p90, breakdown=r.breakdown)
-                                    for r in (final + ranked[3:])],
+    def rows(rs, scale):
+        return [dict(scale=scale, settings=asdict(r.settings), score=round(r.score, 2),
+                     feasible_frac=r.feasible_frac, kpis_mean=r.kpis_mean, kpis_p90=r.kpis_p90,
+                     breakdown=r.breakdown) for r in rs]
+    best["logistics"] = logistics
+    return PerfectRun(best, table, rows(final, f"whole field {full.area_ha:.1f} ha"),
                       seasons, round(var_ha, 2), econ.currency, warnings,
-                      {"stage1": round(t1 - t0, 1), "stage2": round(t2 - t1, 1)})
+                      {"stage1": round(t1 - t0, 1), "stage2": round(t2 - t1, 1)},
+                      rows(ranked, f"patch {patch.area_ha:.1f} ha"), logistics)

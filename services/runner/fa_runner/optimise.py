@@ -103,3 +103,30 @@ def optimise_flight(grid, spec, region, econ, winds, value_at_risk_ha: float, em
         out.append(RankedSettings(s, float(np.mean(scores)), flyable / len(winds), mean, p90, b))
     out.sort(key=lambda x: x.score, reverse=True)
     return out[:top]
+
+
+def logistics_sensitivity(grid, spec, region, settings: MissionSettings, winds,
+                          options=((4, 1), (6, 1), (4, 2), (6, 2)), seed: int = 0) -> list[dict]:
+    """Job time for the same flight settings with more battery sets and chargers.
+    With one 30-minute charger a 10 L drone flying two tanks per pack becomes
+    charger-bound on any field larger than a few hectares."""
+    from dataclasses import replace
+    pm = PowerModel.calibrate(spec)
+    sm = SprayModel(spec)
+    rows = []
+    for packs, chargers in options:
+        s = replace(settings, n_battery_sets=packs, chargers=chargers)
+        ks = []
+        for i, (ws, wd, wg, tc) in enumerate(winds):
+            res = simulate_mission(grid, spec, s, Weather(ws, wd, wg, tc), seed=seed + i,
+                                   rules=region.rules, power=pm, spray=sm)
+            if res.feasible:
+                ks.append(res.kpis)
+        if not ks:
+            continue
+        rows.append({"battery_sets": packs, "chargers": chargers,
+                     "time_min": round(float(np.mean([k["time_min"] for k in ks])), 1),
+                     "flight_min": round(float(np.mean([k["flight_min"] for k in ks])), 1),
+                     "ha_per_hour": round(float(np.mean([k["ha_per_hour"] for k in ks])), 2),
+                     "battery_swaps": round(float(np.mean([k["battery_swaps"] for k in ks])), 1)})
+    return rows

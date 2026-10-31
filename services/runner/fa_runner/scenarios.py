@@ -58,6 +58,17 @@ class ForecastFeed:
         return out
 
 
+#: Drones spray at dawn or dusk, when wind is lowest; daily-mean 2 m wind overstates it.
+#: Ratio of early-morning to daily-mean wind (assumption ~0.7; replace with hourly
+#: data where available).
+DAWN_WIND_FACTOR = 0.7
+
+
+def flight_record(rec: dict) -> dict:
+    """The daily record as the spray crew meets it at dawn (wind scaled)."""
+    return dict(rec, WIND=float(rec["WIND"]) * DAWN_WIND_FACTOR)
+
+
 def spray_window(region, spec) -> SprayWindow:
     """The stricter of the region's label/regulatory wind limit and the aircraft's."""
     return SprayWindow(max_rain_mm=1.0,
@@ -70,10 +81,9 @@ def mission_weather(rec: dict, rng: np.random.Generator, gust_factor: float = 1.
     gusts as a factor of the mean (assumption), direction drawn (daily direction is
     not in the record), mean temperature."""
     from fa_drone.mission import Weather
-    w = float(rec["WIND"])
+    w = float(rec["WIND"]) * DAWN_WIND_FACTOR
     return Weather(wind_ms=w, wind_dir_deg=float(rng.uniform(0, 360)),
-                   gust_ms=float(rec.get("WIND10_MAX", w * gust_factor)) if "WIND10_MAX" in rec
-                   else w * gust_factor, temp_c=0.5 * (rec["TMAX"] + rec["TMIN"]))
+                   gust_ms=w * gust_factor, temp_c=0.5 * (rec["TMAX"] + rec["TMIN"]))
 
 
 def wind_samples(history: list[dict], months: set[int], window: SprayWindow, n: int,
@@ -82,7 +92,7 @@ def wind_samples(history: list[dict], months: set[int], window: SprayWindow, n: 
     season's months that pass the spray window -- the conditions a job will
     actually be flown in."""
     rng = np.random.default_rng(seed)
-    ok = [r for r in history if r["DAY"].month in months and window.ok(r)]
+    ok = [flight_record(r) for r in history if r["DAY"].month in months and window.ok(flight_record(r))]
     if not ok:
         return []
     pick = rng.choice(len(ok), size=min(n, len(ok)), replace=False)

@@ -38,11 +38,14 @@ from fa_scan.survey import plan_scan
 
 from .economics import Economics
 from .optimise import REF_HA_PER_H
-from .scenarios import ForecastFeed, mission_weather, spray_window
+from .scenarios import ForecastFeed, flight_record, mission_weather, spray_window
 from .twinfarm import TwinFarm
 
 POLICIES = ("none", "calendar", "twin", "twin_alert")
-MAX_WAIT_DAYS = 6
+#: Days a due job may wait for flyable weather. Herbicide stays useful for two weeks
+#: (weeds grow but are still controlled); a fungicide not flown within a week is
+#: re-decided by the next weekly plan instead.
+MAX_WAIT_DAYS = {"herbicide": 14, "fungicide": 6}
 
 
 @dataclass
@@ -128,7 +131,7 @@ def run_season(vf, policy: str, seed: int = 0, feed: ForecastFeed | None = None,
     def fly(d: dt.date, job: dict) -> bool:
         nonlocal last_aa, windy_days
         rec = by_day[d]
-        if not window.ok(rec):
+        if not window.ok(flight_record(rec)):
             windy_days += 1
             return False
         res = simulate_mission(grid, spec, flight, mission_weather(rec, rng), targets=job["targets"],
@@ -221,11 +224,12 @@ def run_season(vf, policy: str, seed: int = 0, feed: ForecastFeed | None = None,
                 continue
             if fly(d, job):
                 continue
-            if (d - job["from"]).days < MAX_WAIT_DAYS:
+            wait = MAX_WAIT_DAYS[job["product"]]
+            if (d - job["from"]).days < wait:
                 keep.append(job)
             else:
                 notes.append(f"{job['product']} due {job['from']} dropped: no feasible spray window "
-                             f"within {MAX_WAIT_DAYS} days")
+                             f"within {wait} days")
         pending = keep
         d += dt.timedelta(days=1)
 
