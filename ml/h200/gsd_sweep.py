@@ -20,6 +20,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))      # detector_stats.py may sit beside this file
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "services" / "gateway"))
 from detector_stats import GSD_REF_M, SIZE_BINS, load_gts, stats_from  # noqa: E402
 
