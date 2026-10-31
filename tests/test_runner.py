@@ -136,3 +136,18 @@ def test_logistics_sensitivity_reports_packs_and_chargers():
                                  [(1.5, 270.0, 2.4, 18.0)], options=((4, 1), (6, 2)))
     assert [(r["battery_sets"], r["chargers"]) for r in rows] == [(4, 1), (6, 2)]
     assert rows[1]["time_min"] <= rows[0]["time_min"]
+
+
+def test_perfect_run_end_to_end_fields():
+    from fa_runner.perfect import perfect_run
+    vf = _vf(w=80, h=60)
+    pr = perfect_run(vf, seeds=(0,), workers=1, plan_members=4, n_winds=2,
+                     flight_grid=dict(heights=(2.5,), speeds=(5.0, 7.0), swaths=(4.0,), rates=(15.0,),
+                                      rtk=(False,)),
+                     sources=[ForecastSource.CLIMATOLOGY], progress=lambda m: None)
+    assert pr.best["plan"] in {t["plan"] for t in pr.ranked}
+    assert pr.logistics and "battery_sets" in pr.logistics[0]
+    assert set(pr.timings_s) == {"stage1", "stage2"}
+    assert all(isinstance(w, str) for w in pr.warnings)
+    assert pr.flight_ranking and pr.flight_ranking[0]["scale"].startswith("whole field")
+    assert pr.flight_ranking_patch and pr.flight_ranking_patch[0]["scale"].startswith("patch")

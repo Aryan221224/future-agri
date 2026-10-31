@@ -198,7 +198,9 @@ def perfect_run(vf, seeds=(0, 1, 2), lam: float = 0.5, workers: int | None = Non
                      feasible_frac=r.feasible_frac, kpis_mean=r.kpis_mean, kpis_p90=r.kpis_p90,
                      breakdown=r.breakdown) for r in rs]
     best["logistics"] = logistics
-    return PerfectRun(best, table, rows(final, f"whole field {full.area_ha:.1f} ha"),
-                      seasons, round(var_ha, 2), econ.currency, warnings,
-                      {"stage1": round(t1 - t0, 1), "stage2": round(t2 - t1, 1)},
-                      rows(ranked, f"patch {patch.area_ha:.1f} ha"), logistics)
+    return PerfectRun(best=best, ranked=table,
+                      flight_ranking=rows(final, f"whole field {full.area_ha:.1f} ha"),
+                      seasons=seasons, value_at_risk_ha=round(var_ha, 2), currency=econ.currency,
+                      flight_ranking_patch=rows(ranked, f"patch {patch.area_ha:.1f} ha"),
+                      logistics=logistics, warnings=warnings,
+                      timings_s={"stage1": round(t1 - t0, 1), "stage2": round(t2 - t1, 1)})
