@@ -30,40 +30,29 @@ def iou_xyxy(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     return inter / np.maximum(aa[:, None] + ab[None, :] - inter, 1e-9)
 
 
-def compute(run: Path, data: Path, split: str = "test", thr: float | None = None) -> dict:
-    metrics = json.loads((run / "eval" / "metrics.json").read_text())
-    thr = thr if thr is not None else float(metrics["operating_threshold"])
-    coco = json.loads((data / split / "_annotations.coco.json").read_text())
-    names = {c["id"]: c["name"] for c in coco["categories"]}
-    classes = [names[k] for k in sorted(names)]
-    z = np.load(run / "eval" / f"preds_{split}_torch.npz")
-    gt_by_img: dict[int, list] = {}
-    for a in coco["annotations"]:
-        x, y, w, h = a["bbox"]
-        gt_by_img.setdefault(a["image_id"], []).append((x, y, x + w, y + h, names[a["category_id"]]))
-    img_px = {im["id"]: im["width"] * im["height"] for im in coco["images"]}
-
-    det = {"weed": [], "crop": []}           # (size_px, detected_any, detected_as_right_group)
-    tp_w = fp_w = 0
-    fp_total = 0
+def stats_from(images: list[dict], classes: list[str], thr: float, gsd_m: float = GSD_REF_M) -> dict:
+    """Action-level statistics from per-image predictions and ground truth.
+    ``images``: [{"boxes": (Q,4) xyxy px, "class_scores": (Q,K), "gts": [(x1,y1,x2,y2,name)],
+    "pixels": w*h}]."""
+    det = {"weed": [], "crop": []}
+    tp_w = fp_w = fp_total = 0
     conf = {"weed_as_crop": 0, "weed_n": 0, "crop_as_weed": 0, "crop_n": 0}
     area_m2 = 0.0
-    for k, iid in enumerate(z["image_ids"]):
-        sc = z["class_scores"][k]
+    for im in images:
+        sc = im["class_scores"]
         s, lab = sc.max(axis=1), sc.argmax(axis=1)
         keep = s >= thr
-        pb, pl = z["boxes"][k][keep], lab[keep]
-        gts = gt_by_img.get(int(iid), [])
-        area_m2 += img_px[int(iid)] * GSD_REF_M ** 2
+        pb, pl = im["boxes"][keep], lab[keep]
+        gts = im["gts"]
+        area_m2 += im["pixels"] * gsd_m ** 2
         gb = np.array([g[:4] for g in gts]) if gts else np.zeros((0, 4))
         used = np.zeros(len(pb), bool)
-        if len(gb) and len(pb):
-            M = iou_xyxy(gb, pb)
+        M = iou_xyxy(gb, pb) if (len(gb) and len(pb)) else None
         for gi, g in enumerate(gts):
             grp = "crop" if g[4] in CROP else "weed"
             size = float(np.sqrt((g[2] - g[0]) * (g[3] - g[1])))
             hit, right = False, False
-            if len(pb):
+            if M is not None:
                 cand = np.where((M[gi] >= 0.5) & ~used)[0]
                 if len(cand):
                     j = cand[np.argmax(M[gi, cand])]
@@ -93,18 +82,40 @@ def compute(run: Path, data: Path, split: str = "test", thr: float | None = None
         return {"recall_any": rec, "recall_right_group": rec_right, "n": n, "median_size_px": med,
                 "overall_recall_right_group": float(rows[:, 2].mean()) if len(rows) else None}
 
-    return {
-        "model": metrics["model_version"], "threshold": thr, "split": split,
-        "gsd_ref_m": GSD_REF_M, "size_bins_px": SIZE_BINS,
-        "weed": by_size(det["weed"]), "crop": by_size(det["crop"]),
-        "weed_precision": tp_w / max(tp_w + fp_w, 1),
-        "fp_per_m2": fp_total / max(area_m2, 1e-9), "weed_fp_per_m2": fp_w / max(area_m2, 1e-9),
-        "weed_as_crop_frac": conf["weed_as_crop"] / max(conf["weed_n"], 1),
-        "crop_as_weed_frac": conf["crop_as_weed"] / max(conf["crop_n"], 1),
-        "provenance": ("RF-DETR-Medium fine-tuned on WeedsGalore (CC-BY-4.0) on the H200, 30 Oct 2026; "
-                       f"{split} split, IoU 0.5 greedy matching, operating threshold {thr}. One German "
-                       "maize field at ~2.5 mm GSD: recalibrate on field labels before trusting elsewhere."),
-    }
+    return {"gsd_m": gsd_m, "weed": by_size(det["weed"]), "crop": by_size(det["crop"]),
+            "weed_precision": tp_w / max(tp_w + fp_w, 1),
+            "fp_per_m2": fp_total / max(area_m2, 1e-9), "weed_fp_per_m2": fp_w / max(area_m2, 1e-9),
+            "weed_as_crop_frac": conf["weed_as_crop"] / max(conf["weed_n"], 1),
+            "crop_as_weed_frac": conf["crop_as_weed"] / max(conf["crop_n"], 1)}
+
+
+def load_gts(coco: dict) -> tuple[list[str], dict, dict]:
+    names = {c["id"]: c["name"] for c in coco["categories"]}
+    classes = [names[k] for k in sorted(names)]
+    gt_by_img: dict[int, list] = {}
+    for a in coco["annotations"]:
+        x, y, w, h = a["bbox"]
+        gt_by_img.setdefault(a["image_id"], []).append((x, y, x + w, y + h, names[a["category_id"]]))
+    img_px = {im["id"]: im["width"] * im["height"] for im in coco["images"]}
+    return classes, gt_by_img, img_px
+
+
+def compute(run: Path, data: Path, split: str = "test", thr: float | None = None) -> dict:
+    metrics = json.loads((run / "eval" / "metrics.json").read_text())
+    thr = thr if thr is not None else float(metrics["operating_threshold"])
+    coco = json.loads((data / split / "_annotations.coco.json").read_text())
+    classes, gt_by_img, img_px = load_gts(coco)
+    z = np.load(run / "eval" / f"preds_{split}_torch.npz")
+    images = [{"boxes": z["boxes"][k], "class_scores": z["class_scores"][k],
+               "gts": gt_by_img.get(int(iid), []), "pixels": img_px[int(iid)]}
+              for k, iid in enumerate(z["image_ids"])]
+    st = stats_from(images, classes, thr)
+    st.pop("gsd_m")
+    return {"model": metrics["model_version"], "threshold": thr, "split": split,
+            "gsd_ref_m": GSD_REF_M, "size_bins_px": SIZE_BINS, **st,
+            "provenance": ("RF-DETR-Medium fine-tuned on WeedsGalore (CC-BY-4.0) on the H200, 30 Oct 2026; "
+                           f"{split} split, IoU 0.5 greedy matching, operating threshold {thr}. One German "
+                           "maize field at ~2.5 mm GSD: recalibrate on field labels before trusting elsewhere.")}
 
 
 if __name__ == "__main__":

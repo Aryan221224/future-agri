@@ -44,3 +44,5 @@ about which of its answers are fragile.
 | 0012 | Conformal sets for detections, with background as a class | new |
 | 0013 | Post-audit rebuild: realistic weather, fixed EnKF, weekly loop | **yes** — replaces the poster's headline numbers |
 | 0014 | Gate on actions (crop/weed), class-conditional, field-recalibrated | narrows 0012 |
+| 0015 | Global virtual test farm from real data; real archived ensemble forecasts | supersedes India-only defaults of 0013 |
+| 0016 | Digital twin of the 10 L K3-A Pro sprayer, calibrated to its spec sheet | new |

@@ -1,6 +1,6 @@
 # Future Agri
 
-A crop digital twin that tells a farmer, every week, whether to **irrigate,
+A global crop digital twin that tells a farmer, every week, whether to **irrigate,
 spray fungicide, spray herbicide, or wait** — and how sure it is. A WOFOST crop
 model kept in step with the field by one camera pass and ensemble data
 assimilation, a forecast-ensemble planner scored in ₹/ha, a calibrated
@@ -273,6 +273,13 @@ services/gateway/      edge perception · conformal gate · zone aggregation
 services/api/          FastAPI: observations, review queue, coverage monitor,
                        /twin advisory endpoints (no database needed)
 services/ingest/       MQTT → TimescaleDB, idempotent
+services/farm/         global virtual test farm: real-data sources (FTW boundaries, SoilGrids,
+                       Copernicus DEM, NASA POWER, archived ECMWF/NOAA ensembles, Sentinel-2),
+                       research archetypes, region packs, ground truth anchored to Sentinel-2
+services/scan/         separate camera-drone scan (measured RF-DETR size curve) -> DigitalFarm
+services/drone/        10 L K3-A Pro spray-drone twin: power, battery, spray, GNSS, route
+                       behaviour, mission simulator, JIYI KML / job-record I/O
+services/runner/       future iterations, flight optimiser, closed-loop season, perfect run, CLI
 sim/                   kinematic simulator (always works) · PX4/MAVSDK (real)
 db/migrations/         PostGIS + TimescaleDB schema
 bench/                 every number in this README

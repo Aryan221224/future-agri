@@ -1,8 +1,8 @@
-.PHONY: help install demo test bench bench-quick gate-eval twin-ui lint licences up down clean sitl ml-smoke
+.PHONY: help install demo test bench bench-quick gate-eval twin-ui lint licences up down clean sitl ml-smoke farm perfect archetypes test-network
 .DEFAULT_GOAL := help
 
 PY ?= python3
-PYTHONPATH := packages/fa_core:services/twin:services/planner:services/gateway:services/loop:services/api:sim
+PYTHONPATH := packages/fa_core:services/twin:services/planner:services/gateway:services/loop:services/api:services/farm:services/scan:services/drone:services/runner:sim
 export PYTHONPATH
 
 help:  ## Show this help
@@ -68,3 +68,15 @@ sitl:  ## Print the verified PX4 SITL setup (see docs/adr/0007)
 clean:  ## Remove caches and generated results
 	find . -name __pycache__ -type d -prune -exec rm -rf {} +
 	rm -rf .pytest_cache bench/results
+
+farm:  ## Build the virtual test farm from real data (ARCH=A5 YEAR=2025)
+	PYTHONPATH=$(PYTHONPATH) python -m fa_runner farm --archetype $${ARCH:-A5} --year $${YEAR:-2025}
+
+perfect:  ## Perfect run for one archetype (ARCH=A5 YEAR=2025 SEEDS=3) -> runs/
+	PYTHONPATH=$(PYTHONPATH) python -m fa_runner perfect --archetype $${ARCH:-A5} --year $${YEAR:-2025} --seeds $${SEEDS:-3}
+
+archetypes:  ## Perfect-run benchmark across archetypes (hours on a laptop; use the H200 server)
+	PYTHONPATH=$(PYTHONPATH) python bench/archetype_runs.py --seeds $${SEEDS:-3}
+
+test-network:  ## Live real-data tests (needs internet)
+	FA_NETWORK=1 PYTHONPATH=$(PYTHONPATH) python -m pytest -q -m network
