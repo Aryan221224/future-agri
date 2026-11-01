@@ -30,6 +30,19 @@ def session_with_herbicide_op():
     raise AssertionError("no herbicide job proposed")
 
 
+def session_on_flyable_day():
+    """(session on the first day the proposed herbicide job can be flown, that job still
+    proposed). Flying it runs that day's morning first, as fly_now does."""
+    from fa_runner.scenarios import flight_record
+    s, op = session_with_herbicide_op()
+    for _ in range(40):
+        rec = s.world.weather(s.day)
+        if rec is not None and s.window.ok(flight_record(rec)) and op.status == "proposed":
+            return s, op
+        s.step()
+    raise AssertionError("no flyable day within 20 days")
+
+
 def clone(s: SeasonSession) -> SeasonSession:
     return SeasonSession.restore(herb_kwargs(), s.actions)
 
