@@ -297,3 +297,39 @@ def test_ortho_upload_needs_gpu_server(page, console):
         assert not page.errors, page.errors
     finally:
         farms.field_builder, farms.today = old
+
+
+def test_build_shows_sub_loader_with_rate(page, console, tmp_path):
+    """Under the main bar: the current step's own loader with items, data, rate and time left."""
+    import threading
+
+    from test_console_farms import fake_builder
+    app = console["app"]
+    release = threading.Event()
+
+    def slow(template, year, cache, progress=None, **kw):
+        progress(0.6, "satellite cover of this field (Sentinel-2)",
+                 {"done": 7, "total": 25, "unit": "scenes", "bytes": 68_000, "approx": False,
+                  "rate_bps": 24_000, "eta_s": 9, "label": "satellite scene 7/25: 6 clear over this field"})
+        release.wait(30)
+        return fake_builder(template, year, cache, **kw)
+    app.state.farms.builder = slow
+    try:
+        gj = tmp_path / "field.geojson"
+        gj.write_text(json.dumps({"type": "Feature", "geometry": square(), "properties": {}}))
+        page.goto(console["base"] + "/#/farms/new")
+        page.get_by_role("button", name="Draw or upload").click()
+        page.set_input_files("[data-testid=boundary-file]", str(gj))
+        page.get_by_role("button", name="Continue").click()
+        page.get_by_label("Farm name", exact=True).fill("Slow link field")
+        page.get_by_role("button", name="Build the digital farm").click()
+        sub = page.get_by_test_id("subloader").first
+        sub.wait_for(timeout=20_000)
+        text = sub.inner_text()
+        for part in ("satellite scene 7/25", "7/25 scenes", "68 kB", "24 kB/s", "about 9 s left", "on this step"):
+            assert part in text, (part, text)
+        shot(page, "13_build_sub_loader")
+    finally:
+        release.set()
+        app.state.farms.builder = fake_builder
+    assert not page.errors, page.errors

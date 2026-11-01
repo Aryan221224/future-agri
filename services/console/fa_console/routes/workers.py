@@ -22,6 +22,7 @@ class Progress(BaseModel):
     token: str
     progress: float = Field(..., ge=0, le=1)
     message: str = ""
+    detail: dict | None = None
 
 
 class Complete(BaseModel):
@@ -68,7 +69,7 @@ def claim(body: Claim, request: Request):
 
 @router.post("/{jid}/progress")
 def progress(jid: str, body: Progress, request: Request) -> dict:
-    return request.app.state.jobs.report(body.token, jid, body.progress, body.message)
+    return request.app.state.jobs.report(body.token, jid, body.progress, body.message, body.detail)
 
 
 @router.post("/{jid}/complete")

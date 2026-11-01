@@ -78,9 +78,17 @@ def _field_ndvi(item, polygon_wgs84) -> float | None:
     return float(np.median(nd))
 
 
-WINDOW_DAYS = 10          # one scene per 10 days is ample for crop timing and anchoring
-SCENE_WORKERS = 4         # scenes fetched at once (each is ~3 MB of image tiles)
+WINDOW_DAYS = 10          # Earth Search fallback: one scene per 10 days (each costs ~3 MB of tiles)
+SCENE_WORKERS = 4         # Earth Search fallback: scenes fetched at once
+SCENE_BYTES = 3_300_000   # Earth Search fallback: measured bytes per scene (6 range requests)
 BUDGET_S = 600.0          # stop after this long and keep what arrived
+
+# Primary path: Microsoft Planetary Computer computes the field statistics server-side, so a
+# scene costs ~6 kB and under a second instead of ~3 MB of image tiles (measured 1 Nov 2026:
+# 0.8 s / 5.9 kB per scene; field median NDVI within +0.010 (max 0.016) of the pixel method).
+MPC_STAC = "https://planetarycomputer.microsoft.com/api/stac/v1"
+MPC_STATS = "https://planetarycomputer.microsoft.com/api/data/v1/item/statistics"
+MPC_WORKERS = 8
 
 
 def _search(polygon_wgs84, start: dt.date, end: dt.date, max_cloud: float) -> list:
@@ -91,23 +99,118 @@ def _search(polygon_wgs84, start: dt.date, end: dt.date, max_cloud: float) -> li
     return list(search.items())
 
 
-def _plan(items, start: dt.date, end: dt.date) -> list[list]:
-    """Per 10-day window, up to two scenes on different dates, least cloudy first: the
-    pick, and one fallback in case the pick is cloudy over this field."""
+def _mpc_search(polygon_wgs84, start: dt.date, end: dt.date, max_cloud: float) -> list:
+    try:
+        from pystac_client import Client
+        search = Client.open(MPC_STAC).search(collections=["sentinel-2-l2a"],
+                                              intersects=polygon_wgs84.__geo_interface__,
+                                              datetime=f"{start.isoformat()}/{end.isoformat()}",
+                                              query={"eo:cloud_cover": {"lt": max_cloud}}, max_items=200)
+        return list(search.items())
+    except Exception as e:  # noqa: BLE001
+        raise DataUnavailable("satellite (Planetary Computer)", str(e)) from e
+
+
+def _mpc_offset(item) -> int:
+    """Planetary Computer keeps the +1000 added to L2A values from processing baseline 04.00."""
+    try:
+        return 1000 if float(item.properties.get("s2:processing_baseline", "0")) >= 4.0 else 0
+    except ValueError:
+        return 0
+
+
+def median_from_histogram(stats: dict) -> tuple[float | None, int, int]:
+    """(median NDVI of clear pixels or None if too cloudy, clear pixels, all pixels) from one
+    band of a statistics response whose masked pixels were pushed outside [-1, 1]."""
+    counts = np.asarray(stats["histogram"][0], float)
+    edges = np.asarray(stats["histogram"][1], float)
+    mids = (edges[:-1] + edges[1:]) / 2
+    clear, total = int(counts.sum()), int(stats.get("count", counts.sum()))
+    if clear < max(4, 0.6 * total):
+        return None, clear, total
+    return float(mids[np.searchsorted(np.cumsum(counts), clear / 2)]), clear, total
+
+
+def _field_ndvi_mpc(item, polygon_wgs84) -> tuple[float | None, int]:
+    """Field median NDVI over vegetation/bare-soil pixels (SCL 4, 5), computed by the server."""
+    from .base import session
+    off = _mpc_offset(item)
+    expr = f"where(((SCL==4)|(SCL==5))&(B04>{off})&(B08>{off}),(B08-B04)/(B08+B04-{2 * off}),-2)"
+    feat = {"type": "Feature", "geometry": polygon_wgs84.__geo_interface__, "properties": {}}
+    r = session().post(MPC_STATS, params={"collection": "sentinel-2-l2a", "item": item.id, "expression": expr,
+                                          "asset_as_band": "true", "histogram_bins": 500,
+                                          "histogram_range": "-1,1", "max_size": 1024},
+                       json=feat, timeout=60)
+    r.raise_for_status()
+    band = next(iter(r.json()["properties"]["statistics"].values()))
+    return median_from_histogram(band)[0], len(r.content)
+
+
+def _plan(items, start: dt.date, end: dt.date, window_days: int = WINDOW_DAYS) -> list[list]:
+    """Per window, up to two scenes on different dates, least cloudy first: the pick and one
+    fallback in case the pick is cloudy over this field. window_days=1: every date."""
     windows: dict[int, list] = {}
     for it in items:
         d = it.datetime.date()
         if start <= d <= end:
-            windows.setdefault((d - start).days // WINDOW_DAYS, []).append(it)
+            windows.setdefault((d - start).days // window_days, []).append(it)
     plan = []
     for w in sorted(windows):
         picks, dates = [], set()
         for it in sorted(windows[w], key=lambda i: (i.properties.get("eo:cloud_cover", 100.0), i.datetime)):
-            if it.datetime.date() not in dates:
+            if window_days == 1 or it.datetime.date() not in dates:
                 dates.add(it.datetime.date())
                 picks.append(it)
         plan.append(picks[:2])
     return plan
+
+
+def _run(plan, fetch, say, budget_s: float, workers: int, label: str, approx_bytes: int | None):
+    """Fetch the plan's scenes ``workers`` at a time; ``fetch(item) -> (ndvi | None, bytes)``.
+    Returns ({window: (date, ndvi)}, note, stopped_early, errors)."""
+    from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+    n, done, got, nbytes, errors = len(plan), 0, {}, 0, 0
+    t0 = time.monotonic()
+
+    def detail():
+        el = max(time.monotonic() - t0, 1e-6)
+        return {"done": done, "total": n, "unit": "scenes", "bytes": nbytes, "approx": approx_bytes is not None,
+                "rate_bps": nbytes / el, "eta_s": (n - done) * el / done if done else None, "source": label}
+
+    def safe(item):
+        try:
+            nd, b = fetch(item)
+            return nd, b, False
+        except Exception:  # noqa: BLE001 -- one bad scene must not sink the series
+            return None, 0, True
+    say(0.0, f"satellite scene 0/{n} ({label})", detail())
+    ex = ThreadPoolExecutor(max(1, workers))
+    running = {ex.submit(safe, cands[0]): (w, 0) for w, cands in enumerate(plan)}
+    over, note = False, ""
+    while running and not over:
+        fin, _ = wait(running, return_when=FIRST_COMPLETED)
+        for fut in fin:
+            w, k = running.pop(fut)
+            nd, b, err = fut.result()
+            errors += err
+            nbytes += approx_bytes if approx_bytes is not None else b
+            if nd is None and k + 1 < len(plan[w]):
+                running[ex.submit(safe, plan[w][k + 1])] = (w, k + 1)
+            else:
+                if nd is not None:
+                    got[w] = (plan[w][k].datetime.date().isoformat(), nd)
+                done += 1
+                say(done / n, f"satellite scene {done}/{n}: {len(got)} clear over this field", detail())
+            if time.monotonic() - t0 > budget_s:          # checked after every scene
+                over = True
+                note = f"stopped at the {budget_s / 60:.0f} min time budget after {done} of {n} scenes"
+                break
+            if label != "Earth Search" and done + errors >= 6 and errors > 0.5 * (done + errors):
+                over = True                               # the service is failing: let the caller fall back
+                note = "too many failed requests"
+                break
+    ex.shutdown(wait=True, cancel_futures=True)           # queued scenes dropped; running ones finish
+    return got, note, over, errors
 
 
 def s2_cover_series(polygon_wgs84, start: dt.date, end: dt.date, cache: Cache, max_cloud: float = 60.0,
@@ -115,64 +218,51 @@ def s2_cover_series(polygon_wgs84, start: dt.date, end: dt.date, cache: Cache, m
                     ) -> tuple[list[tuple[dt.date, float, float]], Provenance]:
     """[(date, field NDVI, FVC)] for cloud-free acquisitions in [start, end].
 
-    Every scene costs ~3 MB of full-resolution image tiles from AWS us-west-2 -- about a
-    minute each on a slow link -- so the series reads the least cloudy scene per 10-day
-    window (one fallback if it is cloudy over the field), a few at a time, reports each
-    scene, and stops at ``budget_s`` keeping what arrived."""
-    from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
-    note = ""
+    Planetary Computer first: every clear scene, statistics computed server-side (~6 kB a
+    scene). If it is unreachable or failing, Earth Search pixels: the least cloudy scene per
+    10-day window, as each costs ~3 MB of image tiles. Either way: progress per scene and a
+    time budget that keeps what arrived."""
+    say = progress or (lambda frac, msg, detail=None: None)
+    note, url = "", STAC
     hit = cache.get_json(cache.key("s2", polygon_wgs84.wkt, start.isoformat(), end.isoformat(), max_cloud))
     if hit is None:                                   # (the full-series cache of earlier versions wins)
-        key = cache.key("s2w", polygon_wgs84.wkt, start.isoformat(), end.isoformat(), max_cloud, WINDOW_DAYS)
-        stored = cache.get_json(key)
+        k_mpc = cache.key("s2mpc", polygon_wgs84.wkt, start.isoformat(), end.isoformat(), max_cloud)
+        k_es = cache.key("s2w", polygon_wgs84.wkt, start.isoformat(), end.isoformat(), max_cloud, WINDOW_DAYS)
+        stored = cache.get_json(k_mpc) or cache.get_json(k_es)
         if stored is not None:
             hit, note = stored["series"], stored.get("note", "")
         else:
+            hit, key, why = None, None, ""
             try:
-                items = _search(polygon_wgs84, start, end, max_cloud)
-            except Exception as e:  # noqa: BLE001
-                raise DataUnavailable("satellite", str(e)) from e
-            plan = _plan(items, start, end)
-            say = progress or (lambda frac, msg: None)
-            n, done, got = len(plan), 0, {}
-            t0 = time.monotonic()
-            say(0.0, f"satellite scene 0/{n} (least cloudy per {WINDOW_DAYS} days)")
-            ex = ThreadPoolExecutor(max(1, workers))
-            running = {ex.submit(_safe_ndvi, cands[0], polygon_wgs84): (w, 0) for w, cands in enumerate(plan)}
-            over = False
-            while running and not over:
-                fin, _ = wait(running, return_when=FIRST_COMPLETED)
-                for fut in fin:
-                    w, k = running.pop(fut)
-                    nd = fut.result()
-                    if nd is None and k + 1 < len(plan[w]):
-                        running[ex.submit(_safe_ndvi, plan[w][k + 1], polygon_wgs84)] = (w, k + 1)
-                    else:
-                        if nd is not None:
-                            got[w] = (plan[w][k].datetime.date().isoformat(), nd)
-                        done += 1
-                        say(done / n, f"satellite scene {done}/{n}: {len(got)} clear over this field")
-                    if time.monotonic() - t0 > budget_s:          # checked after every scene
-                        over = True
-                        note = f"stopped at the {budget_s / 60:.0f} min time budget after {done} of {n} scenes"
-                        break
-            ex.shutdown(wait=True, cancel_futures=True)     # queued scenes dropped; running ones finish
-            hit = [got[w] for w in sorted(got)]
-            note = note or f"{len(hit)} clear scenes, least cloudy per {WINDOW_DAYS}-day window"
-            if not over:
+                items = _mpc_search(polygon_wgs84, start, end, max_cloud)
+                got, note, over, errors = _run(_plan(items, start, end, window_days=1),
+                                               lambda it: _field_ndvi_mpc(it, polygon_wgs84), say,
+                                               budget_s, MPC_WORKERS, "Planetary Computer", None)
+                if note == "too many failed requests":
+                    raise DataUnavailable("satellite (Planetary Computer)", f"{errors} failed requests")
+                hit, key, url = [got[w] for w in sorted(got)], k_mpc, MPC_STAC
+                note = note or f"{len(hit)} clear scenes, every date (Planetary Computer statistics)"
+                if over:
+                    key = None
+            except DataUnavailable as e:
+                why = f"; Planetary Computer unavailable ({str(e)[:120]})"
+            if hit is None:
+                try:
+                    items = _search(polygon_wgs84, start, end, max_cloud)
+                except Exception as e:  # noqa: BLE001
+                    raise DataUnavailable("satellite", str(e)) from e
+                got, note, over, _ = _run(_plan(items, start, end), lambda it: (_field_ndvi(it, polygon_wgs84), 0), say,
+                                          budget_s, workers,
+                                          "Earth Search", SCENE_BYTES)
+                hit, key = [got[w] for w in sorted(got)], (None if over else k_es)
+                note = (note or f"{len(hit)} clear scenes, least cloudy per {WINDOW_DAYS}-day window") + why
+            if key is not None:
                 cache.put_json(key, {"series": hit, "note": note})
-            say(1.0, f"satellite: {len(hit)} clear scenes")
+            say(1.0, f"satellite: {len(hit)} clear scenes", None)
     ser = [(dt.date.fromisoformat(d), nd, fvc(nd)) for d, nd in hit]
-    prov = Provenance("Sentinel-2 L2A field-median NDVI (SCL-masked) -> FVC", STAC,
+    prov = Provenance("Sentinel-2 L2A field-median NDVI (SCL-masked) -> FVC", url,
                       "Copernicus open data", today(), S2_ATTRIB, True, note)
     return ser, prov
-
-
-def _safe_ndvi(item, polygon_wgs84):
-    try:
-        return _field_ndvi(item, polygon_wgs84)
-    except Exception:  # noqa: BLE001 -- one bad scene must not sink the series
-        return None
 
 
 def encode_png(rgb: np.ndarray) -> bytes:

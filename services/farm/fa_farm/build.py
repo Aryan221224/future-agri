@@ -66,13 +66,19 @@ def sample_dem_cells(dem: np.ndarray, lat0: float, lon0: float, half_size_m: flo
     return dem[rows, cols]
 
 
+def _sub(say, base: float, span: float, step: str):
+    """A source's own progress mapped into [base, base+span] of the build, under one step name
+    (so the sub-loader keeps running) with the source's own message as the sub-loader label."""
+    return lambda f, m, d=None: say(base + span * f, step, {**(d or {}), "label": m})
+
+
 def build_virtual_farm(archetype_id: str, year: int, cache: Cache | None = None,
                        site_index: int = 0, cell_m: float = 5.0, seed: int = 0,
                        polygon_wgs84=None, anchor: bool = True, history_years: int = 20,
                        weed_mean_m2: float = 8.0, blight_inoculum: bool | None = None,
                        n_zones: int = 4, progress=None) -> VirtualFarm:
     cache = cache or Cache()
-    say = progress or (lambda frac, msg: None)
+    say = progress or (lambda frac, msg, detail=None: None)
     a = load_archetypes()[archetype_id]
     if not a.supported:
         raise ValueError(f"archetype {a.id} ({a.name}) not supported: {a.unsupported_reason}")
@@ -90,7 +96,9 @@ def build_virtual_farm(archetype_id: str, year: int, cache: Cache | None = None,
     lat, lon = float(c.y), float(c.x)
 
     say(0.15, "soil (SoilGrids 2.0)")
-    profile, soil, p = soilgrids_profile(lat, lon, cache)
+    profile, soil, p = soilgrids_profile(
+        lat, lon, cache, progress=lambda d, n: say(0.15 + 0.14 * d / n, "soil (SoilGrids 2.0)",
+                                                   {"done": d, "total": n, "unit": "layers"}))
     prov.append(p)
 
     grid = FarmGrid.from_wgs84(polygon_wgs84, cell_m)
@@ -121,7 +129,7 @@ def build_virtual_farm(archetype_id: str, year: int, cache: Cache | None = None,
     try:
         series, p = s2_cover_series(polygon_wgs84, sow - dt.timedelta(days=20),
                                     harvest + dt.timedelta(days=10), cache,
-                                    progress=lambda f, m: say(0.55 + 0.19 * f, m))
+                                    progress=_sub(say, 0.55, 0.19, "satellite cover of this field (Sentinel-2)"))
         prov.append(p)
     except DataUnavailable as e:
         warns.append(f"Sentinel-2 unavailable ({e}); truth uses shipped crop parameters")
@@ -186,7 +194,7 @@ def build_field_farm(template_id: str, polygon_wgs84, sowing: dt.date, cache: Ca
     from .archetypes import Site
     from .sources.weather import power_recent
     cache = cache or Cache()
-    say = progress or (lambda frac, msg: None)
+    say = progress or (lambda frac, msg, detail=None: None)
     today = today or dt.date.today()
     a = load_archetypes()[template_id]
     if not a.supported:
@@ -204,7 +212,9 @@ def build_field_farm(template_id: str, polygon_wgs84, sowing: dt.date, cache: Ca
     c = polygon_wgs84.centroid
     lat, lon = float(c.y), float(c.x)
     say(0.15, "soil (SoilGrids 2.0)")
-    profile, soil, p = soilgrids_profile(lat, lon, cache)
+    profile, soil, p = soilgrids_profile(
+        lat, lon, cache, progress=lambda d, n: say(0.15 + 0.14 * d / n, "soil (SoilGrids 2.0)",
+                                                   {"done": d, "total": n, "unit": "layers"}))
     prov.append(p)
     grid = FarmGrid.from_wgs84(polygon_wgs84, cell_m)
     minx, miny, maxx, maxy = grid.bounds_local
@@ -233,7 +243,7 @@ def build_field_farm(template_id: str, polygon_wgs84, sowing: dt.date, cache: Ca
         try:
             series, p = s2_cover_series(polygon_wgs84, sowing - dt.timedelta(days=20),
                                         min(today, harvest + dt.timedelta(days=10)), cache,
-                                        progress=lambda f, m: say(0.75 + 0.2 * f, m))
+                                        progress=_sub(say, 0.75, 0.2, "satellite cover this season (Sentinel-2)"))
             prov.append(p)
         except DataUnavailable as e:
             warns.append(f"Sentinel-2 unavailable ({e})")

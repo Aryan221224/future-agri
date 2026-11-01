@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS jobs (id TEXT PRIMARY KEY, farm_id TEXT, kind TEXT NO
   status TEXT NOT NULL, progress REAL NOT NULL DEFAULT 0, message TEXT NOT NULL DEFAULT '',
   params TEXT NOT NULL DEFAULT '{}', result TEXT, error TEXT, worker TEXT,
   target TEXT NOT NULL DEFAULT 'local', created_at TEXT NOT NULL, started_at TEXT,
-  finished_at TEXT, heartbeat_at TEXT);
+  finished_at TEXT, heartbeat_at TEXT, detail TEXT);
 CREATE INDEX IF NOT EXISTS jobs_queue ON jobs(status, created_at);
 CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, farm_id TEXT,
   ts TEXT NOT NULL, kind TEXT NOT NULL, actor TEXT NOT NULL DEFAULT 'operator',
@@ -47,8 +47,8 @@ CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 FARM_COLS = ("name", "mode", "template", "crop", "region", "country", "year", "lat", "lon", "area_ha",
              "cell_m", "polygon", "sowing", "harvest", "status", "meta")
 JOB_COLS = ("status", "progress", "message", "params", "result", "error", "worker", "target",
-            "started_at", "finished_at", "heartbeat_at")
-JSON_COLS = {"meta", "params", "result", "payload", "polygon"}
+            "started_at", "finished_at", "heartbeat_at", "detail")
+JSON_COLS = {"meta", "params", "result", "payload", "polygon", "detail"}
 TERMINAL = ("done", "failed", "cancelled")
 
 
@@ -75,6 +75,9 @@ class Store:
             self._db.execute("PRAGMA journal_mode=WAL")
             self._db.execute("PRAGMA foreign_keys=ON")
             self._db.executescript(SCHEMA)
+            cols = {r[1] for r in self._db.execute("PRAGMA table_info(jobs)")}
+            if "detail" not in cols:                       # databases from before the sub-part loader
+                self._db.execute("ALTER TABLE jobs ADD COLUMN detail TEXT")
 
     # ---------------------------------------------------------------- helpers
     def _rows(self, sql: str, args=()) -> list[dict]:

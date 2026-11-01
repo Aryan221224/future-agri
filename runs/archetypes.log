@@ -1,0 +1,37 @@
+=== A6 2025
+[perfect] prior yield 12236 kg DM/ha -> value at risk 57924 KES/ha per application
+[perfect] stage 1: 8 settings ranked on a 0.1 ha patch in 4 s
+[perfect] best flight: h=2.0 m v=7.0 m/s spacing=5.0 m rate=15.0 L/ha rtk=True
+[perfect] stage 2: 18 closed-loop seasons in 19 s
+{"best": "twin_optimised_early_scan", "net": 575718.96}
+=== A2 2025
+[perfect] prior yield 7515 kg DM/ha -> value at risk 6116878 VND/ha per application
+[perfect] stage 1: 8 settings ranked on a 1.4 ha patch in 32 s
+[perfect] best flight: h=2.0 m v=7.0 m/s spacing=5.0 m rate=15.0 L/ha rtk=False
+[perfect] stage 2: 18 closed-loop seasons in 17 s
+{"best": "twin_optimised_early_scan", "net": 63595844.41}
+=== A1 2025
+[perfect] prior yield 5217 kg DM/ha -> value at risk 151642 JPY/ha per application
+[perfect] stage 1: 8 settings ranked on a 0.9 ha patch in 18 s
+[perfect] best flight: h=2.0 m v=7.0 m/s spacing=5.0 m rate=15.0 L/ha rtk=True
+[perfect] stage 2: 18 closed-loop seasons in 18 s
+{"best": "twin_optimised_early_scan", "net": 1523207.13}
+=== A4 2025
+[perfect] prior yield 8978 kg DM/ha -> value at risk 181 USD/ha per application
+[perfect] stage 1: 8 settings ranked on a 1.9 ha patch in 34 s
+[perfect] best flight: h=2.0 m v=7.0 m/s spacing=5.0 m rate=15.0 L/ha rtk=False
+[perfect] stage 2: 18 closed-loop seasons in 41 s
+{"best": "twin_optimised_early_scan", "net": 1965.62}
+=== A3 2024
+[perfect] prior yield 3416 kg DM/ha -> value at risk 864 BRL/ha per application
+[perfect] stage 1: 8 settings ranked on a 26.8 ha patch in 590 s
+[perfect] best flight: h=3.0 m v=7.0 m/s spacing=5.0 m rate=15.0 L/ha rtk=True
+[perfect] stage 2: 18 closed-loop seasons in 30 s
+{"best": "twin_optimised_early_scan", "net": 11007.7}
+=== A5 2025
+[perfect] prior yield 17770 kg DM/ha -> value at risk 1333 EUR/ha per application
+[perfect] stage 1: 8 settings ranked on a 2.0 ha patch in 31 s
+[perfect] best flight: h=2.0 m v=7.0 m/s spacing=5.0 m rate=15.0 L/ha rtk=True
+[perfect] stage 2: 21 closed-loop seasons in 364 s
+{"best": "twin_alert_optimised_flight", "net": 7641.45}
+ARCHETYPES_DONE

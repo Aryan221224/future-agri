@@ -43,35 +43,61 @@ def _check(name: str, fn, lines: list[str]) -> object:
 
 
 def speed(argv) -> int:
-    """Is throughput to the Sentinel-2 bucket limited per connection or for the whole link?
-    Downloads 4 x 1.5 MB slices of real images one after another, then 4 others at once."""
-    from fa_farm.sources.base import session
+    """How long does the satellite step take on this computer, and why? Prints each result
+    as it arrives (every request has a 30 s limit), in under a minute on a normal link:
+    1. the path the build now uses -- Planetary Computer computes field statistics
+       server-side (~10 kB a scene); a full 6-month season is timed;
+    2. the fallback -- raw image tiles from AWS us-west-2 (~3 MB a scene)."""
+    import tempfile
+
+    from shapely.geometry import box
+
+    import fa_farm.sources.satellite as sat
+    from fa_farm.sources.base import Cache, session
+    lines: list[str] = []
+
+    def say(text: str) -> None:
+        print(text, flush=True)
+        lines.append(text)
+    say(f"Future Agri satellite speed check, {dt.datetime.now().isoformat(timespec='seconds')}")
+    say("1. Planetary Computer (what the farm build uses first)")
+    poly = box(LON, LAT, LON + 0.0024, LAT + 0.0024)
+    end = dt.date.today() - dt.timedelta(days=5)
+    start = end - dt.timedelta(days=182)
+    t0 = time.time()
+
+    def prog(frac, msg, d=None):
+        if d and d.get("done"):
+            say(f"   {msg}  ({d['bytes'] / 1e3:.0f} kB, {time.time() - t0:.1f} s)")
+    try:
+        ser, prov = sat.s2_cover_series(poly, start, end, Cache(Path(tempfile.mkdtemp(prefix="fa_speed_"))),
+                                        progress=prog, budget_s=120)
+        say(f"   => a 6-month season in {time.time() - t0:.1f} s: {prov.note}")
+    except Exception as e:  # noqa: BLE001 -- the point is to report it
+        say(f"   => FAILED after {time.time() - t0:.1f} s: {type(e).__name__}: {e}")
+
+    say("2. AWS us-west-2 image tiles (the fallback), 4 slices of 0.5 MB")
     base = ("https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/43/R/GM/2025/11/"
             "S2B_43RGM_20251109_0_L2A/")
-    files = ["B02.tif", "B03.tif", "B04.tif", "B08.tif"]
-    size = 1_500_000
-
-    def get(name: str, start: int) -> int:
-        r = session().get(base + name, headers={"Range": f"bytes={start}-{start + size - 1}"}, timeout=120)
-        r.raise_for_status()
-        return len(r.content)
-    lines = [f"Future Agri link speed to the Sentinel-2 bucket (AWS us-west-2), {dt.datetime.now().isoformat(timespec='seconds')}"]
-    t0 = time.time()
-    got = sum(get(f, 60_000_000) for f in files)
-    t_seq = time.time() - t0
-    lines.append(f"one at a time: {got / 1e6:.1f} MB in {t_seq:.1f} s = {got / 1e3 / t_seq:.0f} kB/s")
-    t0 = time.time()
-    with cf.ThreadPoolExecutor(4) as ex:
-        got = sum(ex.map(lambda f: get(f, 90_000_000), files))
-    t_par = time.time() - t0
-    lines.append(f"four at once:  {got / 1e6:.1f} MB in {t_par:.1f} s = {got / 1e3 / t_par:.0f} kB/s"
-                 f"  ({t_seq / t_par:.1f}x)")
-    for ln in lines:
-        print(ln, flush=True)
+    size = 500_000
+    for k, name in enumerate(["B02.tif", "B03.tif", "B04.tif", "B08.tif"]):
+        t1 = time.time()
+        try:
+            r = session().get(base + name, headers={"Range": f"bytes={60_000_000 + k * size}-"
+                                                             f"{60_000_000 + (k + 1) * size - 1}"}, timeout=30)
+            r.raise_for_status()
+            dt_s = time.time() - t1
+            say(f"   {name}: {len(r.content) / 1e3:.0f} kB in {dt_s:.1f} s = {len(r.content) / 1e3 / dt_s:.0f} kB/s")
+        except Exception as e:  # noqa: BLE001
+            say(f"   {name}: FAILED after {time.time() - t1:.1f} s: {type(e).__name__}: {e}")
     out = Path(__file__).resolve().parents[3] / "diagnose_speed.txt"
-    out.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(f"\nreport written to {out}", flush=True)
-    return 0
+    try:
+        out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        print(f"\nreport written to {out}", flush=True)
+    except OSError as e:
+        print(f"\ncould not write {out}: {e}", flush=True)
+    sys.stdout.flush()
+    os._exit(0)
 
 
 def main() -> int:
@@ -127,8 +153,15 @@ def main() -> int:
                    gdal_read({"GDAL_HTTP_PROXY": sys_proxy.split("://")[-1].rstrip("/"),
                               "GDAL_HTTP_TIMEOUT": "20", "GDAL_HTTP_CONNECTTIMEOUT": "10"}), lines)
         import fa_farm.sources.satellite as sat
-        _check("GDAL    -> one scene's field NDVI (what the build does per scene)",
+        _check("GDAL    -> one scene's field NDVI from image tiles (fallback)",
                lambda: sat._field_ndvi(items[0], poly), lines)
+
+    def mpc():
+        import fa_farm.sources.satellite as sat
+        end = dt.date.today()
+        found = sat._mpc_search(poly, end - dt.timedelta(days=60), end, 60)
+        return sat._field_ndvi_mpc(found[0], poly) if found else "no scenes"
+    _check("Python  -> one scene's field NDVI from Planetary Computer (build path)", mpc, lines)
 
     from fa_farm.sources.terrain import dem_window
     _check("GDAL    -> Copernicus DEM (terrain)", lambda: dem_window(LAT, LON, 200.0, tmp)[1], lines)

@@ -44,9 +44,14 @@ class JobContext:
         if self.id in self.mgr._cancel:
             raise JobCancelled()
 
-    def progress(self, frac: float, message: str = "") -> None:
-        self.mgr.store.update_job(self.id, progress=round(max(0.0, min(1.0, float(frac))), 4),
-                                  message=str(message)[:500], heartbeat_at=now())
+    def progress(self, frac: float, message: str = "", detail: dict | None = None) -> None:
+        """``detail``: the current sub-part for the smaller loader -- step, started, and when
+        known done/total/unit, bytes, rate_bps, eta_s."""
+        fields = {"progress": round(max(0.0, min(1.0, float(frac))), 4), "message": str(message)[:500],
+                  "heartbeat_at": now()}
+        if detail is not None:
+            fields["detail"] = detail
+        self.mgr.store.update_job(self.id, **fields)
         self.check()
 
 
@@ -203,10 +208,10 @@ class JobManager:
             job = self.store.get_job(jid)
             if job is None:
                 return
-            snap = (job["status"], job["progress"], job["message"])
+            snap = (job["status"], job["progress"], job["message"], str(job.get("detail")))
             if snap != last:
                 last = snap
-                yield {k: job[k] for k in ("id", "kind", "status", "progress", "message", "error", "result", "worker")}
+                yield {k: job[k] for k in ("id", "kind", "status", "progress", "message", "error", "result", "worker", "detail")}
             if job["status"] in TERMINAL:
                 return
             await asyncio.sleep(interval)
@@ -237,14 +242,17 @@ class JobManager:
             self.store.add_event(job["farm_id"], "job_remote", {"job": job["id"], "worker": worker})
         return job
 
-    def report(self, token: str, jid: str, progress: float, message: str = "") -> dict:
+    def report(self, token: str, jid: str, progress: float, message: str = "", detail: dict | None = None) -> dict:
         self._auth(token)
         job = self.store.get_job(jid)
         if job is None or job["status"] != "running":
             raise KeyError(jid)
         if job["worker"] in self.remote:
             self.remote[job["worker"]]["last_seen"] = time.time()
-        self.store.update_job(jid, progress=round(float(progress), 4), message=str(message)[:500], heartbeat_at=now())
+        fields = {"progress": round(float(progress), 4), "message": str(message)[:500], "heartbeat_at": now()}
+        if detail is not None:
+            fields["detail"] = detail
+        self.store.update_job(jid, **fields)
         return {"cancel": jid in self._cancel}
 
     def complete(self, token: str, jid: str, result: dict | None = None, error: str | None = None) -> dict:

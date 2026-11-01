@@ -19,6 +19,12 @@ SG_ATTRIB = ("SoilGrids 2.0, ISRIC - World Soil Information (Poggio et al. 2021,
 DEPTHS = (("0-5cm", 5), ("5-15cm", 10), ("15-30cm", 15), ("30-60cm", 30))
 # property -> scale to SI-ish: sand/clay g/kg -> fraction; soc dg/kg -> %; bdod cg/cm3 -> g/cm3
 PROPS = {"sand": 1e-3, "clay": 1e-3, "soc": 1e-2, "bdod": 1e-2}
+# WCS: the same 250 m grid, a ~1 kB window per layer (each VRT index above is ~6 MB, which a slow
+# link could not fetch within a minute). Homolosine is ISRIC's grid; EPSG:152160 is their code for it.
+WCS_URL = "https://maps.isric.org/mapserv"
+IGH = "+proj=igh +lat_0=0 +lon_0=0 +datum=WGS84 +units=m +no_defs"
+IGH_URN = "http://www.opengis.net/def/crs/EPSG/0/152160"
+WCS_HALF_M = 1125.0                       # 9 x 9 cells: the point and every cell within ~1 km
 
 
 def saxton_rawls(sand: float, clay: float, om_pct: float) -> dict:
@@ -70,6 +76,67 @@ def _sample_vrt(url: str, lat: float, lon: float) -> float:
     return v
 
 
+def _wcs_window(prop: str, depth: str, x: float, y: float, half: float):
+    """(int16 array, (left, top, cell)) for one layer around (x, y) in Homolosine metres; 0 = no data."""
+    from rasterio.io import MemoryFile
+
+    from .base import session
+    r = session().get(WCS_URL, params={
+        "map": f"/map/{prop}.map", "SERVICE": "WCS", "VERSION": "2.0.1", "REQUEST": "GetCoverage",
+        "COVERAGEID": f"{prop}_{depth}_mean", "FORMAT": "GEOTIFF_INT16",
+        "SUBSET": [f"X({x - half},{x + half})", f"Y({y - half},{y + half})"],
+        "SUBSETTINGCRS": IGH_URN, "OUTPUTCRS": IGH_URN}, timeout=30)
+    r.raise_for_status()
+    with MemoryFile(r.content) as mem, mem.open() as src:
+        t = src.transform
+        return src.read(1), (t.c, t.f, t.a)
+
+
+def _profile_wcs(lat: float, lon: float, progress=None) -> dict:
+    """Depth-weighted profile at the nearest cell (within ~1 km) that has a value in every
+    layer: 16 small WCS requests, 8 at a time."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    from pyproj import Transformer
+    to_igh = Transformer.from_crs("EPSG:4326", IGH, always_xy=True)
+    x, y = to_igh.transform(lon, lat)
+    jobs = [(prop, depth, w) for prop in PROPS for depth, w in DEPTHS]
+    got: dict = {}
+    try:
+        with ThreadPoolExecutor(max_workers=8) as ex:
+            futs = {ex.submit(_wcs_window, p, d, x, y, WCS_HALF_M): (p, d) for p, d, _ in jobs}
+            for fut in as_completed(futs):
+                got[futs[fut]] = fut.result()
+                if progress:
+                    progress(len(got), len(jobs))
+    except Exception as e:  # noqa: BLE001
+        raise DataUnavailable("soil (SoilGrids WCS)", str(e)) from e
+    shapes = {a.shape for a, _ in got.values()}
+    grids = {g for _, g in got.values()}
+    if len(shapes) != 1 or len(grids) != 1:
+        raise DataUnavailable("soil (SoilGrids WCS)", "layers came back on different grids")
+    (left, top, cell), (rows, cols) = grids.pop(), shapes.pop()
+    valid = np.ones((rows, cols), bool)
+    for (p, _), (a, _) in got.items():
+        if p in ("sand", "bdod"):                 # 0 g/kg sand or 0 bulk density = masked cell
+            valid &= a > 0
+    cy, cx = np.mgrid[0:rows, 0:cols]
+    dist = np.hypot(left + (cx + 0.5) * cell - x, top - (cy + 0.5) * cell - y)
+    dist[~valid] = np.inf
+    if not np.isfinite(dist.min()) or dist.min() > 1000.0 + cell:
+        raise DataUnavailable("soil", f"no SoilGrids value within 1 km of ({lat}, {lon})")
+    r, c = np.unravel_index(int(np.argmin(dist)), dist.shape)
+    vals = {}
+    for prop, scale in PROPS.items():
+        pairs = [(float(got[(prop, d)][0][r, c]), w) for d, w in DEPTHS]
+        vals[prop] = sum(v * scale * w for v, w in pairs) / sum(w for _, w in pairs)
+    plon, plat = Transformer.from_crs(IGH, "EPSG:4326", always_xy=True).transform(
+        left + (c + 0.5) * cell, top - (r + 0.5) * cell)
+    d = float(dist[r, c])
+    return {"sand": vals["sand"], "clay": vals["clay"], "soc_pct": vals["soc"], "bdod": vals["bdod"],
+            "sampled_at": [plat, plon, 0.0 if d < cell / 2 else round(d, 0)]}
+
+
 def _search_points(lat: float, lon: float, step_m: float = 250.0, rings: int = 4):
     """The point itself, then rings of 8 points every ``step_m`` out to ~1 km."""
     yield lat, lon, 0.0
@@ -98,14 +165,21 @@ def _profile_at(lat: float, lon: float) -> dict:
     return {"sand": vals["sand"], "clay": vals["clay"], "soc_pct": vals["soc"], "bdod": vals["bdod"]}
 
 
-def soilgrids_profile(lat: float, lon: float, cache: Cache, rdmsol_cm: float = 120.0):
-    """Depth-weighted 0-60 cm sand, clay, SOC and bulk density -> (profile, SoilParams, Provenance)."""
+def soilgrids_profile(lat: float, lon: float, cache: Cache, rdmsol_cm: float = 120.0, progress=None):
+    """Depth-weighted 0-60 cm sand, clay, SOC and bulk density -> (profile, SoilParams, Provenance).
+    WCS windows first (~20 kB in all); the VRT point reads (~6 MB per layer) if WCS fails.
+    ``progress(done, total)`` counts layers read."""
     key = cache.key("soilgrids", round(lat, 4), round(lon, 4))
     hit = cache.get_json(key)
     if hit is None:
-        hit = None
+        try:
+            hit = _profile_wcs(lat, lon, progress)
+        except DataUnavailable as e:
+            if "within 1 km" in str(e):
+                raise
+            hit = None
         tried = []
-        for plat, plon, dist in _search_points(lat, lon):
+        for plat, plon, dist in ([] if hit is not None else _search_points(lat, lon)):
             try:
                 hit = _profile_at(plat, plon)
                 hit["sampled_at"] = [plat, plon, dist]

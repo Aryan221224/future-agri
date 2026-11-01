@@ -18,6 +18,7 @@ from fa_farm.sources.boundaries import candidates_near, field_near, polygon_from
 
 from .errors import Busy, NotFound
 from .scene import build_scene, imagery_png
+from .store import now
 
 MAX_HA = 500.0
 MAX_CELLS = 20_000
@@ -173,8 +174,13 @@ class FarmService:
             self.store.update_farm(fid, polygon=json.loads(json.dumps(poly.__geo_interface__)), area_ha=area,
                                    lat=float(poly.centroid.y), lon=float(poly.centroid.x), cell_m=cell)
 
-        def progress(frac, msg):
-            ctx.progress(0.05 + 0.8 * float(frac), msg)
+        step = {"step": None, "started": None}
+
+        def progress(frac, msg, detail=None):
+            # the smaller loader: a new step restarts it; counts/rate/eta come from the step itself
+            if msg != step["step"]:
+                step.update(step=msg, started=now())
+            ctx.progress(0.05 + 0.8 * float(frac), msg, {**step, **(detail or {})})
 
         if farm["mode"] == "sim":
             vf = self.builder(farm["template"], int(farm["year"]), cache,

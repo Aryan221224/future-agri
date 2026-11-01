@@ -69,6 +69,14 @@ export interface Job {
   id: string; farm_id: string | null; kind: string; status: 'queued' | 'running' | 'done' | 'failed' | 'cancelled'
   progress: number; message: string; params: Record<string, unknown>; result: Record<string, unknown> | null
   error: string | null; worker: string | null; target: string; created_at: string; started_at: string | null; finished_at: string | null
+  detail?: JobDetail | null
+}
+
+/** The current sub-part of a job, for the smaller loader under the main one. */
+export interface JobDetail {
+  step?: string | null; started?: string | null; label?: string
+  done?: number; total?: number; unit?: string
+  bytes?: number; approx?: boolean; rate_bps?: number; eta_s?: number | null; source?: string
 }
 
 export interface Scene {

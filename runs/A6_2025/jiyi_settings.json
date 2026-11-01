@@ -1,0 +1,38 @@
+{
+ "aircraft": "T1-class 10 L quad sprayer (JIYI K3-A Pro)",
+ "flight_controller": "JIYI K3-A Pro",
+ "work_height_m": 2.0,
+ "work_speed_ms": 7.0,
+ "row_spacing_m": 5.0,
+ "dose_l_per_ha": 15.0,
+ "dose_l_per_mu": 1.0,
+ "dose_gal_per_acre": 1.604,
+ "flow_mode": "linkage (flow proportional to speed)",
+ "rtk": true,
+ "route_angle_deg": null,
+ "pump_l_min_max": 3.5,
+ "notes": [
+  "Import the KML (one file, polygons only) from the phone's kitJson folder.",
+  "Breakpoint resume on: refill/battery swap returns to the last sprayed point.",
+  "regulation pack KE is UNVERIFIED -- check local law before flying",
+  "prices/costs for KE are illustrative assumptions"
+ ],
+ "regulation": {
+  "pack": "KE",
+  "verified": false,
+  "wind_max_ms": 3.0,
+  "buffer_m": 10.0,
+  "records": [
+   "date",
+   "start_time",
+   "product",
+   "rate_l_ha",
+   "area_ha",
+   "aircraft_id",
+   "operator",
+   "wind_speed_ms",
+   "wind_direction_deg",
+   "temperature_c"
+  ]
+ }
+}

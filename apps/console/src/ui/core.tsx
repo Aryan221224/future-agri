@@ -1,6 +1,6 @@
 import { LOCALE } from '../i18n'
 import { cloneElement, isValidElement, useEffect, useId, useRef, useState, type ReactElement, type ReactNode } from 'react'
-import { watchJob, type Job } from '../api'
+import { watchJob, type Job, type JobDetail } from '../api'
 import { Icon } from './icons'
 
 export function Badge({ kind = '', children }: { kind?: '' | 'ok' | 'live' | 'info' | 'warn' | 'bad' | 'plain'; children: ReactNode }) {
@@ -122,6 +122,38 @@ export function JobBar({ job, label }: { job: Partial<Job> | null; label?: strin
         <span className="num muted">{job.status === 'done' ? 'done' : failed ? 'failed' : `${Math.round((job.progress ?? 0) * 100)}%`}</span>
       </div>
       {failed ? null : <Progress value={job.progress ?? 0} indeterminate={job.status === 'queued'} />}
+      {job.status === 'running' && job.detail ? <SubLoader d={job.detail} /> : null}
+    </div>
+  )
+}
+
+const bytes = (b: number) => (b >= 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1e3))} kB`)
+const secs = (s: number) => (s < 60 ? `${Math.round(s)} s` : `${Math.floor(s / 60)} min ${Math.round(s % 60)} s`)
+
+/** The smaller loader for the step in progress: restarts with each step and shows what can be
+ * measured -- items done, data downloaded, download rate, time left -- and the step's elapsed time. */
+export function SubLoader({ d }: { d: JobDetail }) {
+  const [, tick] = useState(0)
+  useEffect(() => {
+    const t = window.setInterval(() => tick((n) => n + 1), 1000)
+    return () => window.clearInterval(t)
+  }, [])
+  const started = d.started ? Date.parse(d.started.endsWith('Z') || d.started.includes('+') ? d.started : d.started + 'Z') : NaN
+  const elapsed = Number.isFinite(started) ? Math.max(0, (Date.now() - started) / 1000) : null
+  const counted = typeof d.done === 'number' && typeof d.total === 'number' && d.total > 0
+  const parts: string[] = []
+  if (counted) parts.push(`${d.done}/${d.total} ${d.unit ?? ''}`.trim())
+  if (typeof d.bytes === 'number' && d.bytes > 0) parts.push(`${d.approx ? '≈' : ''}${bytes(d.bytes)}`)
+  if (typeof d.rate_bps === 'number' && d.rate_bps > 0) parts.push(`${bytes(d.rate_bps)}/s`)
+  if (typeof d.eta_s === 'number' && d.eta_s > 0) parts.push(`about ${secs(d.eta_s)} left`)
+  if (elapsed !== null) parts.push(`${secs(elapsed)} on this step`)
+  return (
+    <div className="subloader" data-testid="subloader">
+      <div className="xsmall muted" style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <span>{d.label || d.step || 'Working'}</span>
+        <span className="num">{parts.join(' · ')}</span>
+      </div>
+      <Progress value={counted ? (d.done as number) / (d.total as number) : 0} indeterminate={!counted} />
     </div>
   )
 }

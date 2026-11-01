@@ -105,6 +105,7 @@ def test_soilgrids_falls_back_to_nearest_valid_cell(tmp_path, monkeypatch):
             raise DataUnavailable("soil", "no SoilGrids value")
         return {"sand": 300.0, "clay": 300.0, "soc": 150.0, "bdod": 130.0}[url.split("/")[-2]]
     monkeypatch.setattr(SO, "_sample_vrt", fake)
+    monkeypatch.setattr(SO, "_profile_wcs", lambda *a, **k: (_ for _ in ()).throw(DataUnavailable("soil", "x")))
     prof, sp, prov = SO.soilgrids_profile(37.88, 139.0, Cache(tmp_path))
     assert prof["clay"] == pytest.approx(0.30) and "nearest valid" in prov.note
 
@@ -176,3 +177,44 @@ def test_scl_read_onto_red_grid_odd_window(tmp_path):
         out = S.scl_on_grid(sd, red, win)
     assert out.shape == (41, 161)
     assert (out == 9).sum() == 161 * 1 and out[0, 0] == 9     # row 101 at 10 m = row 50 at 20 m
+
+
+def _wcs_grid(monkeypatch, masked_centre: bool):
+    """Fake WCS: 9x9 cells of 250 m around the point; 0 = masked (water, paddy, urban)."""
+    import numpy as np
+    calls = []
+
+    def fetch(prop, depth, x, y, half):
+        calls.append((prop, depth))
+        a = np.full((9, 9), {"sand": 300, "clay": 250, "soc": 120, "bdod": 140}[prop], np.int16)
+        if masked_centre:
+            a[1:8, 1:8] = 0
+            a[4, 7] = {"sand": 500, "clay": 100, "soc": 80, "bdod": 150}[prop]   # nearest valid: 750 m east
+        return a, (x - half, y + half, 250.0)
+    monkeypatch.setattr(SO, "_wcs_window", fetch)
+    return calls
+
+
+def test_soilgrids_wcs_reads_one_small_window_per_layer(tmp_path, monkeypatch):
+    calls = _wcs_grid(monkeypatch, masked_centre=False)
+    monkeypatch.setattr(SO, "_sample_vrt", lambda *a: pytest.fail("the 6 MB VRTs must not be opened"))
+    seen = []
+    prof, sp, prov = SO.soilgrids_profile(28.47, 77.54, Cache(tmp_path),
+                                          progress=lambda done, total: seen.append((done, total)))
+    assert len(calls) == 16 and prof["sand"] == pytest.approx(0.30) and prof["bdod"] == pytest.approx(1.40)
+    assert seen[-1] == (16, 16) and "nearest valid" not in prov.note
+
+
+def test_soilgrids_wcs_takes_nearest_valid_cell(tmp_path, monkeypatch):
+    _wcs_grid(monkeypatch, masked_centre=True)
+    prof, sp, prov = SO.soilgrids_profile(28.47, 77.54, Cache(tmp_path))
+    assert prof["sand"] == pytest.approx(0.50) and "nearest valid cell 750 m" in prov.note
+
+
+@pytest.mark.network
+def test_soilgrids_wcs_matches_vrt(tmp_path):
+    lat, lon = 52.5, 5.6
+    wcs = SO._profile_wcs(lat, lon)
+    vrt = SO._profile_at(lat, lon)
+    for k in ("sand", "clay", "soc_pct", "bdod"):
+        assert wcs[k] == pytest.approx(vrt[k], rel=0.02, abs=1e-3)

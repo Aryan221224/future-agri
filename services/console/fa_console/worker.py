@@ -125,9 +125,10 @@ class Console:
     def claim(self, name: str, kinds: list[str], info: dict) -> dict | None:
         return self.call("POST", "/api/workers/claim", {"token": self.token, "worker": name, "kinds": kinds, "info": info})
 
-    def progress(self, jid: str, frac: float, message: str) -> bool:
+    def progress(self, jid: str, frac: float, message: str, detail: dict | None = None) -> bool:
         r = self.call("POST", f"/api/workers/{jid}/progress",
-                      {"token": self.token, "progress": max(0.0, min(1.0, float(frac))), "message": message[:500]})
+                      {"token": self.token, "progress": max(0.0, min(1.0, float(frac))), "message": message[:500],
+                       "detail": detail})
         return bool((r or {}).get("cancel"))
 
     def complete(self, jid: str, result: dict | None = None, error: str | None = None) -> None:
@@ -192,6 +193,7 @@ class RemoteContext:
     def __init__(self, console: Console, job: dict, min_interval: float = 1.0):
         self.console, self.job, self.min_interval = console, job, min_interval
         self.last = (0.0, "started")
+        self.detail = None
         self._sent = 0.0
         self._cancel = False
         self._lock = threading.Lock()
@@ -211,15 +213,17 @@ class RemoteContext:
                 return
             self._sent = now
             frac, msg = self.last
+            detail = self.detail
         try:
-            self._cancel = self.console.progress(self.id, frac, msg) or self._cancel
+            self._cancel = self.console.progress(self.id, frac, msg, detail) or self._cancel
         except AuthError:
             raise
         except Exception as e:  # noqa: BLE001 -- a dropped report is not a failed job
             log.warning("progress report failed: %s", e)
 
-    def progress(self, frac: float, message: str = "") -> None:
+    def progress(self, frac: float, message: str = "", detail: dict | None = None) -> None:
         self.last = (float(frac), str(message))
+        self.detail = detail
         self.send(force=frac >= 1.0)
         self.check()
 

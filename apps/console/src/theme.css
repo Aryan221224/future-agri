@@ -136,6 +136,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .muted { color: var(--ink-2); }
 .faint { color: var(--ink-3); }
 .small { font-size: var(--fs-s); }
+.xsmall { font-size: calc(var(--fs-s) * 0.9); }
 .xs { font-size: var(--fs-xs); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
@@ -289,6 +290,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .progress { height: 8px; background: var(--paper-2); border-radius: 99px; overflow: hidden; }
 .progress > i { display: block; height: 100%; background: var(--canopy); border-radius: 99px; transition: width 300ms ease; }
 .progress.indet > i { width: 30% !important; animation: indet 1.2s ease-in-out infinite; }
+.subloader { display: flex; flex-direction: column; gap: 4px; padding-left: 10px; border-left: 2px solid var(--paper-2); }
+.subloader .progress { height: 4px; }
+.subloader .progress > i { background: var(--sky); }
 @keyframes indet { 0% { transform: translateX(-100%); } 100% { transform: translateX(340%); } }
 
 .notice { padding: 12px 14px; border-radius: var(--radius-s); background: var(--sky-soft); color: var(--ink); font-size: var(--fs-s); }
