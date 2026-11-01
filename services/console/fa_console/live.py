@@ -160,7 +160,8 @@ class LiveService:
                 sow = dt.date.fromisoformat(farm["sowing"])
                 if sow <= dt.date.today():
                     series, _ = s2_cover_series(vf.spec.polygon_wgs84, sow - dt.timedelta(days=20),
-                                                dt.date.today(), self.settings.data_cache())
+                                                dt.date.today(), self.settings.data_cache(),
+                                                budget_s=90)       # answered inside a web request
             latest = {"available": False}
             scene = self.store.farm_dir(fid) / "scene.json"
             if scene.exists():

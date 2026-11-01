@@ -127,7 +127,9 @@ def fetch_json(url: str, params: dict | None, cache: Cache, layer: str, timeout:
 def gdal_env() -> dict:
     """Environment for GDAL /vsicurl reads through the session proxy."""
     env = {"GDAL_DISABLE_READDIR_ON_OPEN": "EMPTY_DIR", "GDAL_HTTP_MAX_RETRY": "3",
-           "GDAL_HTTP_RETRY_DELAY": "1", "CPL_VSIL_CURL_ALLOWED_EXTENSIONS": ".tif,.vrt,.TIF,.ovr"}
+           "GDAL_HTTP_RETRY_DELAY": "1", "CPL_VSIL_CURL_ALLOWED_EXTENSIONS": ".tif,.vrt,.TIF,.ovr",
+           # a stalled download fails instead of hanging the build (a 1.5 MB tile at 50 kB/s is 30 s)
+           "GDAL_HTTP_TIMEOUT": "120", "GDAL_HTTP_CONNECTTIMEOUT": "20"}
     proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
     if proxy:
         env["GDAL_HTTP_PROXY"] = proxy.replace("http://", "").replace("https://", "")

@@ -120,7 +120,8 @@ def build_virtual_farm(archetype_id: str, year: int, cache: Cache | None = None,
     say(0.55, "satellite cover of this field (Sentinel-2)")
     try:
         series, p = s2_cover_series(polygon_wgs84, sow - dt.timedelta(days=20),
-                                    harvest + dt.timedelta(days=10), cache)
+                                    harvest + dt.timedelta(days=10), cache,
+                                    progress=lambda f, m: say(0.55 + 0.19 * f, m))
         prov.append(p)
     except DataUnavailable as e:
         warns.append(f"Sentinel-2 unavailable ({e}); truth uses shipped crop parameters")
@@ -231,7 +232,8 @@ def build_field_farm(template_id: str, polygon_wgs84, sowing: dt.date, cache: Ca
         say(0.75, "satellite cover this season (Sentinel-2)")
         try:
             series, p = s2_cover_series(polygon_wgs84, sowing - dt.timedelta(days=20),
-                                        min(today, harvest + dt.timedelta(days=10)), cache)
+                                        min(today, harvest + dt.timedelta(days=10)), cache,
+                                        progress=lambda f, m: say(0.75 + 0.2 * f, m))
             prov.append(p)
         except DataUnavailable as e:
             warns.append(f"Sentinel-2 unavailable ({e})")
