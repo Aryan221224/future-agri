@@ -7,3 +7,4 @@ bench/results/
 .DS_Store
 ml/runs/
 .superpowers/
+apps/console/node_modules/

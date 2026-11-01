@@ -1,0 +1,13 @@
+{
+  "name": "Future Agri Mission Console",
+  "short_name": "Future Agri",
+  "description": "Run the scan, twin, plan, fly and record loop for your fields.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#edf1ee",
+  "theme_color": "#1e7a46",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

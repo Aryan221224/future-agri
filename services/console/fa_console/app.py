@@ -94,6 +94,9 @@ def _spa(app: FastAPI) -> None:
             if f.is_file() and root in f.parents:
                 headers = {"Cache-Control": "no-cache"} if f.name in ("sw.js", "index.html") else None
                 return FileResponse(f, headers=headers)
+            if "." in path.rsplit("/", 1)[-1]:
+                # a missing file (script, image...) is a 404, never the app page
+                return JSONResponse({"detail": "not found"}, status_code=404)
         index = root / "index.html"
         if index.exists():
             return FileResponse(index, headers={"Cache-Control": "no-cache"})

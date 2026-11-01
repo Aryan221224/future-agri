@@ -171,3 +171,10 @@ def test_lost_remote_worker_fails_its_job(tmp_path):
     jm._watchdog()
     d = st.get_job(j["id"])
     assert d["status"] == "failed" and "worker" in d["error"]
+
+
+def test_missing_asset_is_404_not_the_app(tmp_path):
+    app = create_app(_settings(tmp_path), start_workers=False)
+    with TestClient(app) as c:
+        assert c.get("/sw-missing.js").status_code == 404
+        assert c.get("/farms/x").status_code == 200
