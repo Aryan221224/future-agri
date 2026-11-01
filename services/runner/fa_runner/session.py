@@ -181,6 +181,8 @@ class SeasonSession:
     # ------------------------------------------------------------------ bookkeeping
     def _log(self, action: str, params: dict) -> dict:
         entry = {"action": action, "params": params}
+        if hasattr(self.world, "horizon"):          # live data: remember what had arrived
+            entry["obs_until"] = self.world.last_observed().isoformat()
         self.actions.append(entry)
         return entry
 
@@ -336,37 +338,40 @@ class SeasonSession:
             self.windy_days += 1
             self._event("no_fly", f"{op.product}: not flyable ({'; '.join(res.reasons)})", op=op.id)
             return False
-        frac = res.dose_l_ha / flight.rate_l_ha
-        self.world.apply(AsApplied(d, op.product, frac, res.kpis["off_target_frac"] * res.kpis["litres"],
-                                   res.kpis["litres"]))
+        self._account(d, op, flight, res.kpis, res.dose_l_ha, res.warnings, res.track)
+        self._event("flight", f"{op.product} flown: {res.kpis['litres']:.1f} L in {res.kpis['time_min']:.0f} min, "
+                              f"{res.kpis['sorties']} sorties", op=op.id, kpis=dict(res.kpis))
+        return True
+
+    def _account(self, d: dt.date, op: Operation, flight: MissionSettings, kpis: dict, dose_l_ha: np.ndarray,
+                 warnings: list, track: list) -> None:
+        """What a flight deposited lands on the world; costs, logs and the twin follow."""
+        frac = dose_l_ha / flight.rate_l_ha
+        self.world.apply(AsApplied(d, op.product, frac, kpis["off_target_frac"] * kpis["litres"], kpis["litres"]))
         self.last_aa = frac.round(3).tolist()
         econ = self.econ
         prod_ha = econ.fungicide_product_ha if op.product == "fungicide" else econ.herbicide_product_ha
         field_ha = self.grid.area_ha
         # product at label concentration for the litres actually sprayed
-        self.costs[f"{op.product}_product"] += prod_ha * res.kpis["litres"] / (flight.rate_l_ha * field_ha)
-        self.costs["application"] += (res.kpis["time_min"] / 60) * REF_HA_PER_H * econ.drone_service_ha / field_ha
+        self.costs[f"{op.product}_product"] += prod_ha * kpis["litres"] / (flight.rate_l_ha * field_ha)
+        self.costs["application"] += (kpis["time_min"] / 60) * REF_HA_PER_H * econ.drone_service_ha / field_ha
         st = self.st
-        st["litres"] += res.kpis["litres"]
-        st["sorties"] += res.kpis["sorties"]
-        st["swaps"] += res.kpis["battery_swaps"]
-        st["time"] += res.kpis["time_min"]
-        st["off"] += res.kpis["off_target_frac"] * res.kpis["litres"]
-        self._cvs.append(res.kpis["cv_pct"])
-        self._skips.append(res.kpis["skipped_frac"])
-        self.missions_log.append({"day": d.isoformat(), "product": op.product, **res.kpis,
-                                  "warnings": res.warnings})
+        st["litres"] += kpis["litres"]
+        st["sorties"] += kpis["sorties"]
+        st["swaps"] += kpis["battery_swaps"]
+        st["time"] += kpis["time_min"]
+        st["off"] += kpis["off_target_frac"] * kpis["litres"]
+        self._cvs.append(kpis["cv_pct"])
+        self._skips.append(kpis["skipped_frac"])
+        self.missions_log.append({"day": d.isoformat(), "product": op.product, **kpis, "warnings": warnings})
         if op.product == "fungicide":
             st["fung"] += 1
             if self.twin is not None:
                 self.twin.record_spray(d)
-        self.dose_cum[op.product] += res.dose_l_ha
-        op.status, op.result = "flown", dict(res.kpis)
-        if self.keep_tracks:
-            self.flight_tracks[op.id] = res.track
-        self._event("flight", f"{op.product} flown: {res.kpis['litres']:.1f} L in {res.kpis['time_min']:.0f} min, "
-                              f"{res.kpis['sorties']} sorties", op=op.id, kpis=dict(res.kpis))
-        return True
+        self.dose_cum[op.product] += dose_l_ha
+        op.status, op.result = "flown", dict(kpis)
+        if self.keep_tracks and track:
+            self.flight_tracks[op.id] = track
 
     def _end_day(self) -> None:
         d = self.day
@@ -562,12 +567,17 @@ class SeasonSession:
         if obs is None and not getattr(self.world, "has_truth", True):
             raise ValueError("upload the camera-drone scan for a live field")
         entry = self._log("scan_now", {"gsd_m": gsd_m, "ref": ref})
+        d = self.day
         try:
             self._ensure_flights_phase()
+        except WaitingForData:
+            if getattr(self.world, "has_truth", True):
+                self._unlog(entry)
+                raise
+            d = self.day - DAY              # live field waiting for weather: the last day with data
         except Exception:
             self._unlog(entry)
             raise
-        d = self.day
         if obs is None:
             obs = self.world.scan(d, gsd_m or self.scan_gsd_m, self.camera, self.rng, self.archetype.crop)
         herb = bool(self.archetype.weeds) and not any(o.product == "herbicide" and o.status in OPEN
@@ -577,6 +587,67 @@ class SeasonSession:
                 o.status = "flown"
         self._ingest(d, obs, herbicide=herb, purpose="operator" if ref is None else "upload")
         return {"day": d.isoformat(), "events": self.events[-3:]}
+
+    def record_flight(self, op_id: str, record: dict) -> dict:
+        """A job flown with the real aircraft (live field). The job record's litres, the
+        flight settings and the weather at the time give the as-applied map: the drone
+        twin flies the same job and its deposition is scaled to the litres recorded."""
+        from fa_drone.mission import Weather
+        op = self._op(op_id)
+        if op.product == "scan" or op.status not in (*OPEN, "dropped"):
+            raise ValueError(f"operation {op_id} is {op.status}")
+        try:
+            d = _date(record["day"])
+            litres = float(record["litres"])
+        except (KeyError, TypeError, ValueError) as e:
+            raise ValueError("a flight record needs 'day' (YYYY-MM-DD) and 'litres'") from e
+        if not 0 < litres <= 100_000:
+            raise ValueError("litres must be positive")
+        if not self.world.sowing <= d <= self.world.harvest + dt.timedelta(days=30):
+            raise ValueError(f"flight day {d} is outside the season")
+        base = op.settings or asdict(self.flight)
+        flight = MissionSettings(**{**base, **(record.get("settings") or {})})
+        wind = float(record.get("wind_ms", 1.5))
+        gust = float(record.get("gust_ms", 1.6 * wind))
+        self._log("record_flight", {"op_id": op_id, "record": record})
+        notes = []
+        fc = self.spec.fc
+        if wind >= fc.wind_continuous_ms or gust >= fc.wind_gust_ms:
+            notes.append(f"recorded wind {wind:.1f} m/s (gust {gust:.1f}) beyond the aircraft's rating: "
+                         "deposition modelled at the rating")
+        w = Weather(min(wind, fc.wind_continuous_ms - 0.01), float(record.get("wind_dir_deg", 270.0)),
+                    min(gust, fc.wind_gust_ms - 0.01), float(record.get("temp_c", 20.0)))
+        res = simulate_mission(self.grid, self.spec, flight, w, targets=op.targets,
+                               seed=self.seed * 97 + len(self.missions_log), rules=None, power=self.pm,
+                               spray=self.sm, record_track=self.keep_tracks)
+        tmask = np.ones(self.grid.n_cells, bool) if op.targets is None else np.asarray(op.targets, bool)
+        area = float(record.get("area_ha") or tmask.sum() * self.grid.cell_m ** 2 / 1e4)
+        if res.feasible and res.kpis["litres"] > 0:
+            dose = res.dose_l_ha * (litres / res.kpis["litres"])
+            kpis = dict(res.kpis)
+        else:
+            notes.append("no flyable pattern for these settings: dose spread evenly over the treated area")
+            dose = np.where(tmask, litres / max(area, 1e-6), 0.0)
+            kpis = {k: 0.0 for k in ("time_min", "flight_min", "energy_wh", "cv_pct", "skipped_frac",
+                                     "overdosed_frac", "off_target_frac", "ha_per_hour")}
+            kpis.update(sorties=0, battery_swaps=0, refills=0)
+        kpis.update(litres=round(litres, 2), area_ha=round(area, 3), source="record",
+                    time_min=float(record.get("duration_min", kpis.get("time_min", 0.0))))
+        self._account(d, op, flight, kpis, dose, notes, res.track if res.feasible else [])
+        self._event("flight", f"{op.product} flight recorded on {d}: {litres:.1f} L over {area:.2f} ha",
+                    op=op.id, kpis=kpis, notes=notes)
+        return op.as_dict()
+
+    def report_scouting(self, severity: float | None = None) -> dict:
+        """The result of a field check for blight on a live field (None = not seen)."""
+        if self.twin is None:
+            raise ValueError("this plan has no twin to inform")
+        if severity is not None and not 0.0 <= float(severity) <= 1.0:
+            raise ValueError("severity is a fraction between 0 and 1")
+        self._log("report_scouting", {"severity": severity})
+        self.twin.record_scouting(self.day, None if severity is None else float(severity))
+        self._event("scouting", "blight seen" if severity else "no blight seen", severity=severity)
+        return {"day": self.day.isoformat(), "severity": severity}
 
     def finish(self) -> SeasonResult:
         if not self.done:
@@ -625,7 +696,10 @@ class SeasonSession:
     def restore(cls, kwargs: dict, actions: list[dict], resolver=None) -> "SeasonSession":
         """Rebuild a session by replaying its logged actions (deterministic)."""
         s = cls(**kwargs)
+        live = hasattr(s.world, "horizon")
         for a in actions:
+            if live:
+                s.world.horizon = _date(a["obs_until"]) if a.get("obs_until") else None
             p = dict(a.get("params") or {})
             if a["action"] == "scan_now" and p.get("ref") is not None:
                 if resolver is None:
@@ -635,6 +709,8 @@ class SeasonSession:
                 getattr(s, a["action"])(**p)
             except WaitingForData:
                 pass
+        if live:
+            s.world.horizon = None
         return s
 
 

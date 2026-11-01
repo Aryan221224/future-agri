@@ -84,3 +84,68 @@ class VirtualWorld:
 
     def inoculum_alert(self) -> bool | None:
         return self.truth.blight_infection_day is not None
+
+
+class RealWorld:
+    """A live field: observed weather as it is published, scans uploaded by the
+    operator, flights recorded from the aircraft's job records. No truth, no scoring."""
+
+    has_truth = False
+
+    def __init__(self, ff, extra_weather: list[dict] | None = None, inoculum: bool | None = None):
+        from fa_farm.archetypes import season_dates
+        from fa_farm.grid import FarmGrid
+        a = ff.spec.archetype
+        self.ff = ff
+        self.grid = FarmGrid.from_wgs84(ff.spec.polygon_wgs84, ff.spec.cell_m)
+        self.sowing, self.harvest = season_dates(a, ff.spec.year)
+        self.blight_modelled = a.crop == "potato" and "late_blight" in a.diseases
+        self._by_day = {r["DAY"]: r for r in ff.observed}
+        #: replay sees only the data that had arrived when each action was taken
+        self.horizon: dt.date | None = None
+        self.extend(extra_weather or [])
+        self.applied: list[AsApplied] = []
+        self._inoc = inoculum
+
+    def extend(self, records: list[dict]) -> int:
+        """Append newly published days (only those continuing the record)."""
+        n = 0
+        for r in sorted(records, key=lambda r: r["DAY"]):
+            last = self._last()
+            if r["DAY"] == last + dt.timedelta(days=1):
+                self._by_day[r["DAY"]] = r
+                n += 1
+        return n
+
+    def _last(self) -> dt.date:
+        return max(self._by_day) if self._by_day else self.sowing - dt.timedelta(days=61)
+
+    def weather(self, d: dt.date) -> dict | None:
+        if self.horizon is not None and d > self.horizon:
+            return None
+        return self._by_day.get(d)
+
+    def last_observed(self) -> dt.date:
+        last = self._last()
+        return min(last, self.horizon) if self.horizon is not None else last
+
+    def pre_sowing(self) -> list[dict]:
+        return [self._by_day[d] for d in sorted(self._by_day) if d < self.sowing]
+
+    def advance_to(self, d: dt.date) -> None:
+        pass
+
+    def scan(self, d, gsd_m, camera, rng, crop):
+        return None                         # a live scan arrives as an upload
+
+    def apply(self, aa: AsApplied) -> None:
+        self.applied.append(aa)
+
+    def truth_state(self):
+        return None
+
+    def harvest_result(self):
+        return None
+
+    def inoculum_alert(self) -> bool | None:
+        return self._inoc

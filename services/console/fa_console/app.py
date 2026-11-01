@@ -43,6 +43,15 @@ def create_app(settings: Settings | None = None, start_workers: bool = True) -> 
                   docs_url="/api/docs", openapi_url="/api/openapi.json", redoc_url=None)
     app.state.settings, app.state.store, app.state.jobs = settings, store, jobs
     _errors(app)
+    limit = int(settings.max_upload_mb) * 1024 * 1024
+
+    @app.middleware("http")
+    async def size_guard(request: Request, call_next):
+        n = request.headers.get("content-length")
+        if n and n.isdigit() and int(n) > limit:
+            return JSONResponse({"detail": f"upload larger than {settings.max_upload_mb} MB"}, status_code=413)
+        return await call_next(request)
+
     from .routes import ROUTERS
     for mod in ROUTERS:
         mod.init(app) if hasattr(mod, "init") else None
@@ -62,6 +71,8 @@ def _errors(app: FastAPI) -> None:
             return JSONResponse(body, status_code=code)
         return handler
 
+    from fa_runner.world import WaitingForData
+    app.add_exception_handler(WaitingForData, h(409))
     app.add_exception_handler(TooLarge, h(413))
     app.add_exception_handler(ValueError, h(422))
     app.add_exception_handler(Busy, h(409))
