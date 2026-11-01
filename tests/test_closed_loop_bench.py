@@ -34,3 +34,16 @@ def test_bench_runs_and_reports_paired_differences(tmp_path):
         assert {"litres_diff_mean", "litres_diff_ci95", "net_diff_mean", "weeds_after_diff_mean"} <= set(arms[a])
         assert arms[a]["n"] == 2
     assert (tmp_path / "closed_loop.md").exists()
+
+
+def test_a_template_that_cannot_be_simulated_is_skipped_not_fatal(tmp_path):
+    from closed_loop_bench import run_bench
+
+    def factory(t):
+        if t == "broken":
+            raise ValueError("archetype broken not supported")
+        return _factory(t)
+    r = run_bench(["broken", "synthetic"], [0], tmp_path, workers=1, farm_factory=factory, finish=False)
+    skipped = [x for x in r["rows"] if x.get("skipped")]
+    assert len(skipped) == 1 and "not supported" in skipped[0]["skipped"] and skipped[0]["template"] == "broken"
+    assert r["summary"]["closed"]["n"] == 1

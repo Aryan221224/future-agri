@@ -78,6 +78,15 @@ def _to_job(vf, seed: int):
 
 
 def run_one(args) -> list[dict]:
+    """All arms of one farm and seed; a run that cannot be simulated is a skipped row, never
+    the end of the benchmark."""
+    try:
+        return _run_one(args)
+    except Exception as e:  # noqa: BLE001 -- recorded and reported, the other runs go on
+        return [{"template": args[0], "seed": args[1], "arm": None, "skipped": f"{type(e).__name__}: {e}"[:300]}]
+
+
+def _run_one(args) -> list[dict]:
     template, seed, finish, factory = args
     import copy
 
