@@ -157,3 +157,86 @@ def test_iterate_to_approved_plan_exports(page, console):
         r = page.request.get(console["base"] + f"/api/farms/{fid}/export/{path}")
         assert r.status == 200, path
     assert not page.errors, page.errors
+
+
+def test_today_language_switch(page, console):
+    import re
+    from conftest import make_farm
+    fid = make_farm(console, "Today field")
+    page.goto(console["base"] + f"/#/today/{fid}")
+    page.get_by_role("heading", name="Today on Today field").wait_for(timeout=30_000)
+    advice = page.get_by_test_id("advice")
+    advice.wait_for()
+    assert advice.inner_text().strip()
+    shot(page, "12_today_en")
+    page.get_by_label("Language").select_option("hi")
+    page.get_by_role("heading", name="Today field पर आज").wait_for(timeout=10_000)
+    assert re.search("[ऀ-ॿ]", advice.inner_text()), advice.inner_text()
+    shot(page, "13_today_hi")
+    page.set_viewport_size({"width": 390, "height": 844})      # the farmer's phone
+    page.wait_for_timeout(300)
+    assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
+    shot(page, "13b_today_phone")
+    page.get_by_role("button", name="टीम").click()          # back to the team console
+    page.wait_for_url("**/#/f/*/mission", timeout=10_000)
+    page.get_by_role("heading", name="Mission", exact=True).wait_for(timeout=20_000)
+    assert not page.errors, page.errors
+
+
+def test_live_page_handles_unavailable(page, console, monkeypatch):
+    import fa_console.live as live
+    from fa_farm.sources.base import DataUnavailable
+
+    def boom(self, *a, **k):
+        raise DataUnavailable("forecast", "no network in the test")
+    monkeypatch.setattr(live.LiveService, "_forecast_members", boom)
+    from conftest import make_farm
+    fid = make_farm(console, "Live field")
+    page.goto(console["base"] + f"/#/f/{fid}/live")
+    page.get_by_role("heading", name="Live", exact=True).wait_for(timeout=30_000)
+    page.get_by_text("Spray outlook unavailable").wait_for(timeout=20_000)
+    page.get_by_text("no network in the test").first.wait_for()
+    page.get_by_role("heading", name="Observed weather").wait_for()
+    page.get_by_role("button", name="Add a device").click()
+    page.get_by_label("Device name").fill("Probe 1")
+    page.get_by_role("button", name="Create device").click()
+    page.get_by_text("Copy this token now").wait_for(timeout=10_000)
+    shot(page, "14_live")
+    page.get_by_role("button", name="Done").click()
+    page.locator("tr", has_text="Probe 1").wait_for()
+    assert not page.errors, page.errors
+
+
+def test_system_shows_worker_token_and_sources(page, console):
+    page.goto(console["base"] + "/#/system")
+    page.get_by_role("heading", name="System", exact=True).wait_for(timeout=30_000)
+    tok = console["app"].state.jobs.worker_token()
+    page.get_by_role("button", name="Show token").click()
+    page.get_by_text(tok).first.wait_for()
+    page.get_by_text("Connect-GPU-Server").first.wait_for()
+    page.get_by_role("link", name="SoilGrids 2.0, ISRIC").wait_for()
+    page.get_by_role("button", name="Light", exact=True).click()
+    page.wait_for_function("document.documentElement.dataset.theme === 'light'")
+    page.get_by_role("button", name="Dark", exact=True).click()
+    page.wait_for_function("document.documentElement.dataset.theme === 'dark'")
+    shot(page, "15_system")
+    assert not page.errors, page.errors
+
+
+def test_records_manual_entry_shows_missing_fields(page, console):
+    from conftest import make_farm
+    fid = make_farm(console, "Records field")
+    page.goto(console["base"] + f"/#/f/{fid}/records")
+    page.get_by_role("heading", name="Records", exact=True).wait_for(timeout=30_000)
+    page.get_by_role("button", name="Add a record").click()
+    page.get_by_label("Product").select_option("fungicide")
+    page.get_by_label("Litres sprayed").fill("15")
+    page.get_by_label("Area sprayed (ha)").fill("1")
+    page.get_by_role("button", name="Save record").click()
+    row = page.locator("tbody tr", has_text="fungicide")
+    row.wait_for(timeout=10_000)
+    row.get_by_text("missing", exact=False).first.wait_for()
+    shot(page, "16_records")
+    r = page.request.get(console["base"] + f"/api/farms/{fid}/export/records.csv")
+    assert r.status == 200 and "fungicide" in r.text()
+    assert not page.errors, page.errors

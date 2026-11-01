@@ -237,6 +237,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .field > label, .field > span { font-size: var(--fs-s); color: var(--ink-2); font-weight: 500; }
 .field small { color: var(--ink-3); font-size: var(--fs-xs); }
+.field > .seg { align-self: flex-start; max-width: 100%; }
 .input, select.input, textarea.input {
   min-height: 40px; padding: 7px 10px;
   border: 1px solid var(--rule-strong); border-radius: var(--radius-s);
@@ -422,3 +423,38 @@ input[type="range"] { accent-color: var(--canopy); width: 100%; }
 .run-bar .btn-l { min-width: 220px; }
 @media (max-width: 1100px) { .run-bar { grid-template-columns: 1fr 1fr; } .run-bar > :nth-child(n+3) { grid-column: 1 / -1; } }
 .table td.plan-col { min-width: 230px; }
+
+/* ---------------------------------------------------------------- farmer Today: phone first, one decision */
+.farmer { min-height: 100vh; background: var(--paper); }
+.farmer-top { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--rule); background: var(--surface); flex-wrap: wrap; }
+.farmer-top .brand { width: auto; }
+.farmer-top .spacer { flex: 1; }
+.farmer-main { max-width: 640px; margin: 0 auto; padding: 20px 16px 48px; display: flex; flex-direction: column; gap: 18px; }
+.farmer-main h1 { font-size: var(--fs-xl); }
+.advice { border-radius: var(--radius-m); padding: 22px 20px; border: 2px solid var(--rule-strong); background: var(--surface); display: flex; gap: 16px; align-items: flex-start; }
+.advice .advice-icon { flex: none; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--paper-2); color: var(--ink); }
+.advice h2 { font-size: 1.6rem; line-height: 1.2; }
+.advice p { margin-top: 6px; color: var(--ink-2); font-size: var(--fs-m); }
+.advice.spray { border-color: var(--survey); background: var(--survey-soft); }
+.advice.spray .advice-icon { background: var(--survey); color: var(--survey-ink); }
+.advice.wait { border-color: var(--amber); background: var(--amber-soft); }
+.advice.wait .advice-icon { background: var(--amber); color: var(--paper); }
+.advice.scan { border-color: var(--sky); background: var(--sky-soft); }
+.advice.scan .advice-icon { background: var(--sky); color: var(--paper); }
+.advice.none { border-color: var(--canopy); background: var(--canopy-soft); }
+.advice.none .advice-icon { background: var(--canopy); color: var(--canopy-ink); }
+.days { display: grid; grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); gap: 8px; }
+.day { border: 1px solid var(--rule); border-radius: var(--radius-s); padding: 8px 6px 10px; text-align: center; background: var(--surface); }
+.day b { display: block; font-family: var(--font-cond); font-size: var(--fs-s); }
+.day .meter { height: 6px; border-radius: 3px; background: var(--paper-2); margin: 8px 4px 6px; overflow: hidden; }
+.day .meter i { display: block; height: 100%; background: var(--canopy); }
+.day.poor .meter i { background: var(--amber); }
+.day.bad .meter i { background: var(--alarm); }
+.day span { font-family: var(--font-cond); font-variant-numeric: tabular-nums; font-size: var(--fs-l); font-weight: 600; }
+.day small { display: block; color: var(--ink-3); font-size: var(--fs-xs); }
+.farm-pick { display: flex; flex-direction: column; gap: 10px; }
+.farm-pick a { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 18px; border: 1px solid var(--rule); border-radius: var(--radius-m); background: var(--surface); color: var(--ink); text-decoration: none; font-size: var(--fs-l); font-weight: 600; min-height: 56px; }
+.farm-pick a:hover { border-color: var(--canopy); }
+code, .code { font-family: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+code { font-size: 0.92em; background: var(--paper-2); padding: 1px 5px; border-radius: 4px; }
+.code { font-size: var(--fs-s); background: var(--paper-2); border: 1px solid var(--rule); border-radius: var(--radius-s); padding: 10px 12px; color: var(--ink); margin: 0; overflow-x: auto; }

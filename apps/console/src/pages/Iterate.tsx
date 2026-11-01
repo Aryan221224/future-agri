@@ -181,7 +181,7 @@ export default function Iterate() {
         {jobs.length ? (
           <div className="table-wrap"><table className="table"><tbody>{jobs.slice(0, 8).map((j) => (
             <tr key={j.id}><td className="num" style={{ whiteSpace: 'nowrap' }}>{fmt.time(j.created_at)}</td><td><Badge kind={STATUS_KIND[j.status]}>{j.status}</Badge></td>
-              <td className="small">{j.worker ? `on ${j.worker}` : j.target === 'remote' ? 'GPU server' : 'this computer'}</td>
+              <td className="small">{j.worker && !j.worker.startsWith('local') ? `on ${j.worker}` : j.target === 'remote' ? 'GPU server' : 'this computer'}</td>
               <td className="small">{j.result ? `Best: ${planName(String(j.result.best))}` : j.error ? <span style={{ color: 'var(--alarm)' }}>{j.error.slice(0, 80)}</span> : j.message}</td></tr>
           ))}</tbody></table></div>
         ) : <p className="small muted">None yet.</p>}

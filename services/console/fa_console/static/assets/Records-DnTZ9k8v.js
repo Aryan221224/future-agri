@@ -1,1 +1,0 @@
-import{_ as e}from"./index-PE_IYCX1.js";var t=e();function n(e){return(0,t.jsx)(`div`,{className:`page`,children:(0,t.jsx)(`h1`,{children:`Records`})})}export{n as default};
