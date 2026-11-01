@@ -120,37 +120,65 @@ def _run_one(args) -> list[dict]:
     return rows
 
 
-def _paired(rows: list[dict], arm: str, metric: str) -> tuple[float | None, list | None, int]:
-    by = {(r["template"], r["seed"], r["arm"]): r for r in rows if r.get("arm")}
-    d = [by[(t, s, arm)][metric] - by[(t, s, "open")][metric] for (t, s, a) in by
-         if a == arm and (t, s, "open") in by and metric in by[(t, s, arm)] and metric in by[(t, s, "open")]]
+POOLED = ("litres", "sorties", "time_min", "weeds_after_m2", "yield_t_ha")     # no money: currencies differ
+
+
+def _key(metric: str) -> str:
+    return metric.replace("_m2", "").replace("_t_ha", "").replace("_ha", "")
+
+
+def _ci(d: list[float]) -> tuple[float | None, list | None]:
     if not d:
-        return None, None, 0
+        return None, None
     m = sum(d) / len(d)
     if len(d) < 2:
-        return m, None, 1
+        return m, None
     sd = math.sqrt(sum((x - m) ** 2 for x in d) / (len(d) - 1))
     h = 1.96 * sd / math.sqrt(len(d))
-    return m, [m - h, m + h], len(d)
+    return m, [m - h, m + h]
+
+
+def _pairs(rows: list[dict], arm: str, metric: str) -> list[tuple[float, float]]:
+    by = {(r["template"], r["seed"], r["arm"]): r for r in rows if r.get("arm")}
+    return [(by[(t, s, "open")][metric], by[(t, s, arm)][metric]) for (t, s, a) in by
+            if a == arm and (t, s, "open") in by and metric in by[(t, s, arm)] and metric in by[(t, s, "open")]]
+
+
+def _arm_block(rows: list[dict], arm: str, metrics, absolute: bool) -> dict:
+    rs = [r for r in rows if r.get("arm") == arm]
+    a: dict = {"n": len(rs)}
+    for k in metrics:
+        v = [r[k] for r in rs if k in r]
+        if v and absolute:
+            m = sum(v) / len(v)
+            a[f"{k}_mean"] = round(m, 3)
+            a[f"{k}_sd"] = round(math.sqrt(sum((x - m) ** 2 for x in v) / (len(v) - 1)), 3) if len(v) > 1 else None
+        if arm == "open":
+            continue
+        pr = _pairs(rows, arm, k)
+        if absolute:
+            dm, ci = _ci([c - o for o, c in pr])
+            a[f"{_key(k)}_diff_mean"] = None if dm is None else round(dm, 3)
+            a[f"{_key(k)}_diff_ci95"] = None if ci is None else [round(x, 3) for x in ci]
+        pm, pci = _ci([100.0 * (c - o) / abs(o) for o, c in pr if o])
+        a[f"{_key(k)}_pct_diff_mean"] = None if pm is None else round(pm, 2)
+        a[f"{_key(k)}_pct_diff_ci95"] = None if pci is None else [round(x, 2) for x in pci]
+    return a
 
 
 def summarise(rows: list[dict]) -> dict:
-    out = {}
-    for arm in ARMS:
-        rs = [r for r in rows if r.get("arm") == arm]
-        a = {"n": len(rs)}
-        for k in METRICS:
-            v = [r[k] for r in rs if k in r]
-            if v:
-                m = sum(v) / len(v)
-                a[f"{k}_mean"] = round(m, 3)
-                a[f"{k}_sd"] = round(math.sqrt(sum((x - m) ** 2 for x in v) / (len(v) - 1)), 3) if len(v) > 1 else None
-            if arm != "open":
-                dm, ci, _ = _paired(rows, arm, k)
-                key = k.replace("_m2", "").replace("_t_ha", "").replace("_ha", "")
-                a[f"{key}_diff_mean"] = None if dm is None else round(dm, 3)
-                a[f"{key}_diff_ci95"] = None if ci is None else [round(x, 3) for x in ci]
-        out[arm] = a
+    """Per template: absolute means and paired differences vs open (money in that farm's
+    currency). Pooled over templates: relative (%) paired differences only for money, and
+    plain means for the physical quantities."""
+    out: dict = {arm: _arm_block(rows, arm, POOLED, absolute=True) for arm in ARMS}
+    for arm in ARMS[1:]:
+        out[arm].update({k: v for k, v in _arm_block(rows, arm, ("net_ha",), absolute=False).items() if k != "n"})
+    by: dict = {}
+    for t in sorted({r["template"] for r in rows if r.get("arm")}):
+        rt = [r for r in rows if r["template"] == t]
+        by[t] = {arm: _arm_block(rt, arm, METRICS, absolute=True) for arm in ARMS}
+        by[t]["currency"] = next((r["currency"] for r in rt if r.get("currency")), None)
+    out["by_template"] = by
     return out
 
 
@@ -159,18 +187,30 @@ def _md(summary: dict, rows: list[dict]) -> str:
         return "–" if v is None else (f"{v:.3g}" if isinstance(v, float) else str(v))
 
     def ci(v):
-        return "–" if not v else f"[{v[0]:.3g}, {v[1]:.3g}]"
+        return "" if not v else f" [{v[0]:.3g}, {v[1]:.3g}]"
     lines = ["# Closed-loop benchmark", "",
              f"{len({(r['template'], r['seed']) for r in rows})} farm-seeds; "
-             f"{sum(1 for r in rows if r.get('skipped'))} skipped rows.", "",
-             "| arm | n | litres | weeds 7 d after (m⁻²) | yield t/ha | net/ha | Δ litres vs open (95 % CI) | "
-             "Δ weeds vs open | Δ net vs open |", "|---|---|---|---|---|---|---|---|---|"]
-    for arm, a in summary.items():
-        lines.append(f"| {arm} | {a['n']} | {f(a.get('litres_mean'))} | {f(a.get('weeds_after_m2_mean'))} | "
-                     f"{f(a.get('yield_t_ha_mean'))} | {f(a.get('net_ha_mean'))} | "
-                     f"{f(a.get('litres_diff_mean'))} {ci(a.get('litres_diff_ci95'))} | "
-                     f"{f(a.get('weeds_after_diff_mean'))} {ci(a.get('weeds_after_diff_ci95'))} | "
-                     f"{f(a.get('net_diff_mean'))} {ci(a.get('net_diff_ci95'))} |")
+             f"{sum(1 for r in rows if r.get('skipped'))} skipped rows. Differences are paired against the "
+             "open-loop flight of the same job on the same farm and seed (mean and 95 % interval).", "",
+             "## All templates (relative to open loop)", "",
+             "| arm | n | Δ litres % | Δ weeds 7 d after % | Δ yield % | Δ net % |", "|---|---|---|---|---|---|"]
+    for arm in ARMS[1:]:
+        a = summary[arm]
+        lines.append(f"| {arm} | {a['n']} | {f(a.get('litres_pct_diff_mean'))}{ci(a.get('litres_pct_diff_ci95'))} | "
+                     f"{f(a.get('weeds_after_pct_diff_mean'))}{ci(a.get('weeds_after_pct_diff_ci95'))} | "
+                     f"{f(a.get('yield_pct_diff_mean'))}{ci(a.get('yield_pct_diff_ci95'))} | "
+                     f"{f(a.get('net_pct_diff_mean'))}{ci(a.get('net_pct_diff_ci95'))} |")
+    lines += ["", "## Per template", "",
+              "| template | arm | n | litres | sorties | weeds 7 d after (m⁻²) | yield t/ha | net/ha | "
+              "Δ litres | Δ weeds | Δ net |", "|---|---|---|---|---|---|---|---|---|---|---|"]
+    for t, blk in summary["by_template"].items():
+        cur = blk.get("currency") or ""
+        for arm in ARMS:
+            a = blk[arm]
+            lines.append(f"| {t} | {arm} | {a['n']} | {f(a.get('litres_mean'))} | {f(a.get('sorties_mean'))} | "
+                         f"{f(a.get('weeds_after_m2_mean'))} | {f(a.get('yield_t_ha_mean'))} | "
+                         f"{f(a.get('net_ha_mean'))} {cur} | {f(a.get('litres_diff_mean'))} | "
+                         f"{f(a.get('weeds_after_diff_mean'))} | {f(a.get('net_diff_mean'))} |")
     skipped = [r for r in rows if r.get("skipped")]
     if skipped:
         lines += ["", "Skipped:", *[f"- {r['template']} seed {r['seed']} {r.get('arm') or ''}: {r['skipped']}"
