@@ -581,6 +581,7 @@ def test_today_codes_cover_states(tmp_path):         # spray/wait/scan/none reac
 - **`worker.main(argv)`:** `--server --token --kinds perfect,season,detect --once`.
   - It claims a job, downloads `farm.pkl`, runs the registered job function and completes it.
 - **Connect script:** one `ssh` command: `-R 18099:127.0.0.1:8099`, the code bundle piped over stdin, and the worker started remotely. The user types the password.
+- **`detect` kind** is advertised only when `FA_DETECTOR_WEIGHTS` points at an RF-DETR checkpoint and `rfdetr` imports. It tiles the uploaded orthomosaic and writes detections GeoJSON, which the console ingests via `import_scan`. Test: `test_detect_not_advertised_without_weights`.
 
 - [ ] **Step 1:** `test_worker_claims_and_completes_quick_job` (a uvicorn thread plus `worker.main([... "--once"])` on a test job kind).
 - [ ] **Step 2:** Run. Expected: FAIL.
