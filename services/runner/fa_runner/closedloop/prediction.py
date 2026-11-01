@@ -33,6 +33,7 @@ class Prediction:
     time_min: float
     litres: float
     made_at: str
+    rate_l_ha: float = 15.0                 # prescribed rate: dose deviation is against this (spec)
 
     def to_json(self) -> dict:
         def arr(a, d=3):
@@ -41,7 +42,7 @@ class Prediction:
                 "weeds_sd": arr(self.weeds_sd), "cc_mean": round(self.cc_mean, 3), "cc_sd": self.cc_sd,
                 "targets": np.where(self.targets)[0].tolist(), "dose_l_ha": arr(self.dose_l_ha, 2),
                 "sorties": int(self.sorties), "time_min": round(self.time_min, 1),
-                "litres": round(self.litres, 2), "made_at": self.made_at}
+                "litres": round(self.litres, 2), "made_at": self.made_at, "rate_l_ha": self.rate_l_ha}
 
 
 @dataclass
@@ -79,14 +80,14 @@ def deviation_weeds(pred: Prediction, obs_est: np.ndarray, obs_sd: np.ndarray, o
 
 
 def deviation_dose(pred: Prediction, dose_cum: np.ndarray, flown: np.ndarray) -> Deviation:
-    planned = np.asarray(pred.dose_l_ha, float)
-    sel = np.asarray(flown, bool) & np.asarray(pred.targets, bool) & (planned > 0)
+    """As-applied vs prescribed (the rate) on the flown target cells."""
+    sel = np.asarray(flown, bool) & np.asarray(pred.targets, bool)
     idx = np.where(sel)[0]
-    ratio = np.asarray(dose_cum, float)[idx] / planned[idx]
+    ratio = np.asarray(dose_cum, float)[idx] / pred.rate_l_ha
     low = ratio < DONE_SHARE
     sig = enough(int(low.sum()), len(idx))
     summary = (f"{int(low.sum())} of {len(idx)} flown target cells got under {DONE_SHARE:.0%} of the "
-               "planned dose" if len(idx) else "no flown target cell yet")
+               f"prescribed {pred.rate_l_ha:g} L/ha" if len(idx) else "no flown target cell yet")
     return Deviation("dose", idx[low], ratio[low], sig, summary, "re-fly under-dosed cells" if sig else "")
 
 
@@ -140,4 +141,5 @@ def freeze_prediction(session, op) -> Prediction:
     dose = res.dose_l_ha if res.feasible else np.where(targets, flight.rate_l_ha, 0.0)
     return Prediction(op.id, op.product, wm, wsd, _twin_cc(session), CC_SD, targets, np.asarray(dose, float),
                       int(k["sorties"]), float(k["time_min"]), float(k["litres"]),
-                      session.day.isoformat() if isinstance(session.day, dt.date) else str(session.day))
+                      session.day.isoformat() if isinstance(session.day, dt.date) else str(session.day),
+                      float(flight.rate_l_ha))

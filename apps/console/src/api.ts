@@ -72,6 +72,20 @@ export interface Job {
   detail?: JobDetail | null
 }
 
+export interface LiveRunSortie { n: number; cells_sprayed: number; cells_seen: number; litres: number; time_min: number; correction: string; remaining: number }
+export interface LiveRunAudit { sortie?: number; batch?: number; t?: string; channel: string; correction: string; reason: string }
+export interface LiveRunState {
+  run_id: string; source: 'simulated camera' | 'aircraft'; op_id: string; product: string
+  mode: 'closed loop' | 'open loop'; status: 'running' | 'done' | 'not flown' | 'finished'; valve: boolean
+  planned: { litres: number; sorties: number; time_min: number } | null
+  flown: { litres: number; sorties: number; time_min: number } | null
+  sorties: LiveRunSortie[]; audit: LiveRunAudit[]; batches: number; cells_seen: number
+  drone: { x: number; y: number; z: number } | null; footprint_m: number
+  track?: { x: number; y: number; z: number }[] | null
+  detections: { cell: number; est: number }[]; deviation: Record<string, number[]>; remaining: number[]
+  reason?: string | null; stopped?: string | null
+}
+
 /** The current sub-part of a job, for the smaller loader under the main one. */
 export interface JobDetail {
   step?: string | null; started?: string | null; label?: string

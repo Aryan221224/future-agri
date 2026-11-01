@@ -12,7 +12,7 @@ def _pred(n=None, **kw):
     n = n or len(next(v for v in kw.values() if isinstance(v, np.ndarray)))
     base = dict(op_id="op", product="herbicide", weeds_mean=np.zeros(n), weeds_sd=np.full(n, np.inf),
                 cc_mean=0.5, cc_sd=0.08, targets=np.ones(n, bool), dose_l_ha=np.full(n, 20.0),
-                sorties=1, time_min=10.0, litres=10.0, made_at="2025-06-04")
+                sorties=1, time_min=10.0, litres=10.0, made_at="2025-06-04", rate_l_ha=20.0)
     base.update(kw)
     return Prediction(**base)
 
@@ -58,6 +58,14 @@ def test_unobserved_cells_are_not_scored():
 def test_no_map_means_no_deviation():
     pred = _pred(weeds_mean=np.zeros(50), weeds_sd=np.full(50, np.inf))
     assert not deviation_weeds(pred, np.full(50, 99.0), np.ones(50), np.ones(50, bool)).significant
+
+
+def test_dose_deviation_is_against_the_prescribed_rate_not_the_planned_pattern():
+    """Spec: as-applied vs prescribed. A plan that itself under-doses (pattern edge) still
+    counts as a deviation when the cell gets under 90 % of the rate."""
+    pred = _pred(targets=np.ones(100, bool), dose_l_ha=np.full(100, 10.0))      # the plan's own pattern: 50 %
+    d = deviation_dose(pred, np.full(100, 10.0), flown=np.ones(100, bool))
+    assert d.significant and len(d.cells) == 100
 
 
 def test_underdosed_flown_cells_are_a_dose_deviation():

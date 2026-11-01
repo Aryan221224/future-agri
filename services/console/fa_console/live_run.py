@@ -235,7 +235,7 @@ class LiveRunService:
         from fa_runner.closedloop.prediction import CC_SD, Prediction
         return Prediction(r["op_id"], r["product"], r["pred_mean"], r["pred_sd"], float("nan"), CC_SD,
                           r["orig_targets"], r["pred_dose"], r["planned"]["sorties"], r["planned"]["time_min"],
-                          r["planned"]["litres"], r["day"])
+                          r["planned"]["litres"], r["day"], r["rate"])
 
     # ---------------------------------------------------------------- operator
     def freeze(self, fid: str) -> dict:

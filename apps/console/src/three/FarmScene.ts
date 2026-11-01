@@ -39,6 +39,9 @@ export class FarmScene {
   private rings!: THREE.InstancedMesh<THREE.TorusGeometry, THREE.MeshBasicMaterial>
   private highlight!: THREE.LineSegments
   private route: THREE.Line | null = null
+  private markers: THREE.InstancedMesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial> | null = null
+  private foot: THREE.LineLoop | null = null
+  private droneMark: THREE.Group | null = null
   private sun!: THREE.DirectionalLight
   private snap: Snapshot | null = null
   private layer: Layer = 'zone'
@@ -379,6 +382,68 @@ export class FarmScene {
     const pts = points.map((p) => new THREE.Vector3(this.X(p.x), this.groundAt(p.x, p.y) * this.exag + p.z, this.Z(p.y)))
     this.route = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xf25c05 }))
     this.scene.add(this.route)
+  }
+
+  // ---------------------------------------------------------------- live run overlays
+  /** Coloured squares over cells, one group per meaning (e.g. detections, deviation, remaining
+   * targets), drawn in order so later groups sit on top. */
+  setMarkers(groups: { cells: number[]; color: string; lift: number; size?: number }[]) {
+    if (this.markers) { this.scene.remove(this.markers); this.markers.geometry.dispose(); this.markers.material.dispose(); this.markers = null }
+    const total = groups.reduce((n, g) => n + g.cells.length, 0)
+    if (!total) return
+    const c = this.data.cells.cell_m
+    const geo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2)
+    const mat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide })
+    const m = new THREE.InstancedMesh(geo, mat, total)
+    const mx = new THREE.Matrix4(), col = new THREE.Color(), v = new THREE.Vector3()
+    let k = 0
+    for (const g of groups) {
+      col.set(g.color)
+      const sz = c * (g.size ?? 0.8)
+      for (const i of g.cells) {
+        if (i < 0 || i >= this.cellX.length) continue
+        this.world(this.cellX[i], this.cellY[i], g.lift, v)
+        mx.makeScale(sz, 1, sz).setPosition(v)
+        m.setMatrixAt(k, mx)
+        m.setColorAt(k, col)
+        k++
+      }
+    }
+    m.count = k
+    m.renderOrder = 3
+    this.markers = m
+    this.scene.add(m)
+  }
+
+  /** The camera footprint (a square of ``size`` metres) under the drone. */
+  showFootprint(p: { x: number; y: number } | null, size: number) {
+    if (this.foot) { this.scene.remove(this.foot); this.foot.geometry.dispose(); this.foot = null }
+    if (!p) return
+    const h = size / 2
+    const pts = [[-h, -h], [h, -h], [h, h], [-h, h]].map(([dx, dy]) => this.world(p.x + dx, p.y + dy, 0.4))
+    this.foot = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0x2b6cb0 }))
+    this.scene.add(this.foot)
+  }
+
+  /** A marker for the aircraft at its last reported position (local metres, z above ground). */
+  showDroneAt(p: { x: number; y: number; z: number } | null) {
+    if (!p) { if (this.droneMark) this.droneMark.visible = false; return }
+    if (!this.droneMark) {
+      const g = new THREE.Group()
+      const body = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.6, 4), new THREE.MeshStandardMaterial({ color: 0xf25c05 }))
+      body.rotation.x = Math.PI
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1, 6), new THREE.MeshBasicMaterial({ color: 0xf25c05 }))
+      stem.name = 'stem'
+      g.add(body, stem)
+      this.droneMark = g
+      this.scene.add(g)
+    }
+    const z = Math.max(1, p.z) * this.exag
+    this.world(p.x, p.y, z, this.droneMark.position)
+    const stem = this.droneMark.getObjectByName('stem') as THREE.Mesh
+    stem.scale.y = z
+    stem.position.y = -z / 2
+    this.droneMark.visible = true
   }
 
   // ---------------------------------------------------------------- picking

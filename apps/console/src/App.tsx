@@ -16,6 +16,7 @@ const Iterate = lazy(() => import('./pages/Iterate'))
 const PlanPage = lazy(() => import('./pages/Plan'))
 const Live = lazy(() => import('./pages/Live'))
 const Records = lazy(() => import('./pages/Records'))
+const LiveRun = lazy(() => import('./pages/LiveRun'))
 const System = lazy(() => import('./pages/System'))
 const Today = lazy(() => import('./pages/Today'))
 
@@ -74,7 +75,7 @@ function FarmPage({ route }: { route: Extract<Route, { name: 'farm' }> }) {
   if (farm.status !== 'ready') return <div className="page"><BuildState /></div>
   const pages: Record<Page, ReactNode> = {
     mission: <Mission />, twin: <Twin3D />, drone: <Drone />, season: <Season />, iterate: <Iterate />,
-    plan: <PlanPage />, live: <Live />, records: <Records />,
+    plan: <PlanPage />, live: <Live />, records: <Records />, 'live-run': <LiveRun />,
   }
   return <Suspense fallback={<Loading />}>{pages[route.page]}</Suspense>
 }

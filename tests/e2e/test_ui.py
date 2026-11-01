@@ -333,3 +333,59 @@ def test_build_shows_sub_loader_with_rate(page, console, tmp_path):
         release.set()
         app.state.farms.builder = fake_builder
     assert not page.errors, page.errors
+
+
+def _farm_with_herbicide_op(console):
+    """A virtual farm paused on a flyable day with a proposed spot-herbicide job."""
+    import dataclasses
+
+    from conftest import make_farm
+    from fa_runner.scenarios import flight_record
+    from test_console_farms import fake_builder
+    app = console["app"]
+
+    def weedy(*a, **k):
+        vf = fake_builder(*a, **k)
+        vf.spec = dataclasses.replace(vf.spec, weed_mean_m2=25.0)
+        return vf
+    app.state.farms.builder = weedy
+    try:
+        fid = make_farm(console, "Closed-loop field")
+    finally:
+        app.state.farms.builder = fake_builder
+    svc = app.state.sessions
+    op = None
+    for _ in range(200):
+        svc.act(fid, "run_until", {"stop_on_decision": True})
+        s = svc.get(fid)
+        props = [o for o in s.ops.values() if o.status == "proposed"]
+        op = next((o for o in props if o.product == "herbicide"), None)
+        if op:
+            break
+        for o in props:
+            svc.act(fid, "approve", {"op_id": o.id})
+    for _ in range(40):
+        rec = s.world.weather(s.day)
+        if rec is not None and s.window.ok(flight_record(rec)):
+            break
+        svc.act(fid, "step", {})
+    return fid, op.id
+
+
+def test_closed_loop_live_view(page, console):
+    fid, op = _farm_with_herbicide_op(console)
+    page.goto(console["base"] + f"/#/f/{fid}/mission")
+    page.get_by_role("button", name="Fly closed loop").first.click()
+    page.wait_for_url("**/live-run", timeout=20_000)
+    page.get_by_role("heading", name="Live run").wait_for()
+    page.get_by_role("table", name="Sortie log").get_by_role("row").nth(1).wait_for(timeout=60_000)
+    page.get_by_text("Job complete", exact=False).first.wait_for(timeout=60_000)
+    for t in ("Planned", "Flown", "Freeze plan (open loop)", "Download next sortie (KML)"):
+        assert page.get_by_text(t, exact=False).first.is_visible(), t
+    page.wait_for_timeout(800)
+    assert _canvas_variance(page) > 5
+    shot(page, "14_live_run")
+    page.get_by_role("button", name="Light").click()
+    page.wait_for_timeout(500)
+    shot(page, "14_live_run_light")
+    assert not page.errors, page.errors

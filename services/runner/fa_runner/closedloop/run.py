@@ -152,7 +152,12 @@ def fly_closed_loop(session, op, valve: bool = False, camera: SprayerCamera | No
                           "reason": f"{int(given_up.sum())} cells still under 90 % of the rate after "
                                     f"{MAX_PASSES} passes: the boom cannot reach them at these settings"})
         sig = [d for d in devs if d.significant]
-        correction = "; ".join(d.correction for d in sig) if sig else "none needed"
+        if sig:
+            correction = "; ".join(d.correction for d in sig)
+        elif new_targets.any():
+            correction = f"continue the plan: {int(new_targets.sum())} cells left"
+        else:
+            correction = "none needed"
         for d in sig:
             audit.append({"sortie": k, "channel": d.channel, "correction": d.correction,
                           "reason": f"{d.summary}; {why}"})

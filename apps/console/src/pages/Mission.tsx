@@ -68,6 +68,16 @@ export default function Mission() {
     }
   }
 
+  const liveRun = async (opId: string) => {
+    if (!fid) return
+    try {
+      await api.post(`/api/farms/${fid}/live-run`, { op_id: opId })
+      location.hash = href.farm(fid, 'live-run')
+    } catch (e) {
+      toast((e as Error).message, 'bad')
+    }
+  }
+
   if (!farm) return null
   if (sessionError) return <Notice kind="bad">The mission could not start: {sessionError}</Notice>
   if (!session) return <div className="page" style={{ maxWidth: 420 }}><JobBar job={{ status: 'running', progress: 0, message: 'Loading the mission (replaying its log)' }} /></div>
@@ -143,6 +153,7 @@ export default function Mission() {
                     onReject={() => act('reject', { op_id: o.id, reason: 'operator decision' }, `${o.product} rejected`)}
                     onDefer={(d) => act('defer', { op_id: o.id, days: d }, `Deferred ${d} days`)}
                     onFly={() => act('fly', { op_id: o.id }, 'Flight attempted')}
+                    onLiveRun={() => liveRun(o.id)}
                     onRecord={() => setRecord(o)} onUpload={() => setUpload(true)} />
                 ))}
               </div>
@@ -222,9 +233,9 @@ function LoopTrack({ s, iterDone, field }: { s: SessionState; iterDone: boolean 
   )
 }
 
-function OpCard({ op, field, busy, fid, onApprove, onReject, onDefer, onFly, onRecord, onUpload }: {
+function OpCard({ op, field, busy, fid, onApprove, onReject, onDefer, onFly, onRecord, onUpload, onLiveRun }: {
   op: Op; field: boolean; busy: boolean; fid: string; onApprove: () => void; onReject: () => void; onDefer: (d: number) => void
-  onFly: () => void; onRecord: () => void; onUpload: () => void
+  onFly: () => void; onRecord: () => void; onUpload: () => void; onLiveRun: () => void
 }) {
   const { t } = useApp()
   const pct = Math.round(op.targets_frac * 100)
@@ -251,15 +262,23 @@ function OpCard({ op, field, busy, fid, onApprove, onReject, onDefer, onFly, onR
               <option value="">{t('act.defer')}…</option><option value="1">1 day</option><option value="3">3 days</option><option value="7">7 days</option>
             </select>
             <button className="btn btn-quiet btn-s" disabled={busy} onClick={onReject}>{t('act.reject')}</button>
+            <button className="btn btn-fly btn-s" disabled={busy} onClick={onLiveRun}
+              title={field ? 'Fly with the aircraft; its camera corrects the rest of the job between sorties' : 'Fly sortie by sortie; the sprayer camera corrects the rest of the job'}>
+              <Icon name="drone" size={16} />{field ? 'Start live run' : 'Fly closed loop'}
+            </button>
           </>
         ) : field ? (
           <>
             <a className="btn btn-s" href={`/api/farms/${fid}/export/kml?op=${op.id}`}><Icon name="download" size={16} />KML</a>
             <a className="btn btn-s" href={`/api/farms/${fid}/export/settings`} target="_blank" rel="noreferrer">Settings</a>
             <button className="btn btn-fly btn-s" disabled={busy} onClick={onRecord}>{t('act.record')}</button>
+            <button className="btn btn-s" disabled={busy} onClick={onLiveRun}>Start live run</button>
           </>
         ) : (
-          <button className="btn btn-fly btn-s" disabled={busy} onClick={onFly}><Icon name="drone" size={16} />{t('act.fly')}</button>
+          <>
+            <button className="btn btn-fly btn-s" disabled={busy} onClick={onFly}><Icon name="drone" size={16} />{t('act.fly')}</button>
+            <button className="btn btn-s" disabled={busy} onClick={onLiveRun}>Fly closed loop</button>
+          </>
         )}
       </div>
     </div>
