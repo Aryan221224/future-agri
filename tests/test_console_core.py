@@ -195,3 +195,39 @@ def test_language_is_english_only(tmp_path):
         app.state.store.set_setting("language", "hi")           # a value saved by an older version
         assert c.get("/api/settings").json()["language"] == "en"
         assert c.post("/api/settings", json={"theme": "light"}).json()["theme"] == "light"
+
+
+def test_rebinding_host_is_refused(tmp_path):
+    """No login, so only loopback host names reach the console (DNS rebinding)."""
+    app = create_app(_settings(tmp_path), start_workers=False)
+    with TestClient(app, base_url="http://evil.example") as c:
+        assert c.get("/api/health").status_code == 400
+    with TestClient(app, base_url="http://127.0.0.1:8099") as c:
+        assert c.get("/api/health").status_code == 200
+    with TestClient(app, base_url="http://localhost:8099") as c:
+        assert c.get("/api/health").status_code == 200
+    lan = create_app(_settings(tmp_path / "lan", bind="0.0.0.0"), start_workers=False)
+    with TestClient(lan, base_url="http://192.168.1.20:8099") as c:     # exposed on purpose: any host
+        assert c.get("/api/health").status_code == 200
+
+
+def test_cross_site_writes_are_refused(tmp_path):
+    app = create_app(_settings(tmp_path), start_workers=False)
+    with TestClient(app) as c:
+        r = c.post("/api/settings", json={"theme": "light"}, headers={"Origin": "http://evil.example"})
+        assert r.status_code == 403
+        assert c.get("/api/settings").json()["theme"] == "dark"
+        assert c.post("/api/settings", json={"theme": "light"}, headers={"Origin": "http://testserver"}).status_code == 200
+        assert c.post("/api/settings", json={"theme": "dark"}).status_code == 200            # devices send no Origin
+        assert c.get("/api/settings", headers={"Origin": "http://evil.example"}).status_code == 200
+
+
+def test_farm_dir_rejects_unsafe_ids(tmp_path):
+    st = Store(tmp_path / "db.sqlite")
+    for bad in ("..", "a/b", "", "x" * 80, "f_1\\x"):
+        try:
+            st.farm_dir(bad)
+        except ValueError:
+            continue
+        raise AssertionError(f"farm_dir accepted {bad!r}")
+    assert st.farm_dir("f_abc123").is_dir()

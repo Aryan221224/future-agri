@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import re
 import shutil
 import sqlite3
 import threading
@@ -55,6 +56,9 @@ def now() -> str:
     return dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
 
 
+SAFE_ID = re.compile(r"[A-Za-z0-9_-]{1,64}")      # farm and job ids: never a path
+
+
 def new_id(prefix: str = "") -> str:
     return prefix + uuid.uuid4().hex[:12]
 
@@ -98,6 +102,8 @@ class Store:
         return json.dumps(v, default=str) if k in JSON_COLS and v is not None else v
 
     def farm_dir(self, fid: str) -> Path:
+        if not isinstance(fid, str) or not SAFE_ID.fullmatch(fid):
+            raise ValueError(f"bad farm id {fid!r}")
         p = self.home / "farms" / fid
         p.mkdir(parents=True, exist_ok=True)
         return p

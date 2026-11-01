@@ -5,6 +5,8 @@ from pathlib import Path
 
 # The API persists the review queue; keep tests out of the user's home directory.
 os.environ.setdefault("FA_STATE_DIR", tempfile.mkdtemp(prefix="fa_state_"))
+# Starlette's TestClient sends Host: testserver; the console accepts only loopback hosts.
+os.environ.setdefault("FA_ALLOWED_HOSTS", "testserver")
 
 ROOT = Path(__file__).resolve().parents[1]
 for p in ("packages/fa_core", "services/twin", "services/planner",

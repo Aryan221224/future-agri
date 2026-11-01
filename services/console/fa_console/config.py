@@ -20,6 +20,9 @@ class Settings:
     max_upload_mb: int = 50
     max_ortho_mb: int = field(default_factory=lambda: int(os.environ.get("FA_MAX_ORTHO_MB", "4096")))
     offline: bool = field(default_factory=lambda: os.environ.get("FA_OFFLINE", "") == "1")
+    #: extra host names accepted when bound to loopback (the console has no login)
+    allowed_hosts: tuple = field(default_factory=lambda: tuple(
+        h.strip().lower() for h in os.environ.get("FA_ALLOWED_HOSTS", "").split(",") if h.strip()))
 
     def __post_init__(self):
         self.home = Path(self.home)

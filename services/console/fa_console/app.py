@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from . import _paths  # noqa: F401  (service packages on sys.path)
 from fastapi import FastAPI, Request  # noqa: E402
@@ -14,6 +15,13 @@ from .config import Settings  # noqa: E402
 from .errors import Busy, NotFound, TooLarge  # noqa: E402
 
 WORKER_RESULT_MB = 512
+
+
+def _hostname(host: str) -> str:
+    """'127.0.0.1:8099' -> '127.0.0.1', '[::1]:8099' -> '::1'."""
+    if host.startswith("["):
+        return host[1:host.find("]")] if "]" in host else host
+    return host.rsplit(":", 1)[0] if host.count(":") == 1 else host
 from .jobs import JobManager  # noqa: E402
 from .store import Store  # noqa: E402
 
@@ -60,6 +68,22 @@ def create_app(settings: Settings | None = None, start_workers: bool = True) -> 
             cap, mb = limit, settings.max_upload_mb
         if n and n.isdigit() and int(n) > cap:
             return JSONResponse({"detail": f"upload larger than {mb} MB"}, status_code=413)
+        return await call_next(request)
+
+    allowed = {"127.0.0.1", "localhost", "::1", *settings.allowed_hosts}
+
+    @app.middleware("http")
+    async def origin_guard(request: Request, call_next):
+        """No login, so: on loopback only loopback host names (defeats DNS rebinding), and
+        no state-changing request from another origin (a web page posting to the console)."""
+        host_hdr = request.headers.get("host", "").lower()
+        if not settings.lan_exposed and _hostname(host_hdr) not in allowed:
+            return JSONResponse({"detail": f"unexpected host: open the console at http://127.0.0.1:{settings.port}/"},
+                                status_code=400)
+        if request.method not in ("GET", "HEAD", "OPTIONS"):
+            origin = request.headers.get("origin")
+            if origin is not None and (origin == "null" or urlsplit(origin).netloc.lower() != host_hdr):
+                return JSONResponse({"detail": "cross-site request refused"}, status_code=403)
         return await call_next(request)
 
     from .routes import ROUTERS
