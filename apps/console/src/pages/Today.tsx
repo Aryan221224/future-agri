@@ -1,17 +1,18 @@
-// The farmer's screen: one decision for today, in the farmer's language, on a phone.
+// The farmer's screen: one decision for today, in plain words, on a phone.
 import { useCallback, useEffect, useState } from 'react'
-import { api, type Lang, type Outlook, type Today as TodayCard } from '../api'
-import { LANG_NAMES } from '../i18n'
+import { api, type Outlook, type Today as TodayCard } from '../api'
+import { LOCALE } from '../i18n'
 import { go, href } from '../router'
 import { useApp } from '../state'
 import { Icon } from '../ui/icons'
 import { Notice } from '../ui/core'
+import { ThemeToggle } from '../ui/ThemeToggle'
 
 const ICON: Record<string, string> = { spray: 'droplet', wait: 'clock', scan: 'satellite', none: 'leaf' }
 const REFRESH_MS = 60_000
 
 export default function Today({ fid }: { fid?: string }) {
-  const { farms, lang, setLang, setMode, t, online } = useApp()
+  const { farms, setMode, t, online } = useApp()
   const [card, setCard] = useState<TodayCard | null>(null)
   const [outlook, setOutlook] = useState<Outlook | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -41,8 +42,8 @@ export default function Today({ fid }: { fid?: string }) {
     return () => window.clearInterval(h)
   }, [load])
 
-  const date = (s: string) => new Date(s.length === 10 ? s + 'T12:00:00' : s).toLocaleDateString(lang, { weekday: 'long', day: 'numeric', month: 'long' })
-  const dayShort = (s: string) => new Date(s + 'T12:00:00').toLocaleDateString(lang, { weekday: 'short', day: 'numeric' })
+  const date = (s: string) => new Date(s.length === 10 ? s + 'T12:00:00' : s).toLocaleDateString(LOCALE, { weekday: 'long', day: 'numeric', month: 'long' })
+  const dayShort = (s: string) => new Date(s + 'T12:00:00').toLocaleDateString(LOCALE, { weekday: 'short', day: 'numeric' })
   const params = (p: Record<string, unknown>) => ({
     ...p,
     p: typeof p.p === 'number' ? Math.round(p.p * 100) : p.p,
@@ -62,10 +63,7 @@ export default function Today({ fid }: { fid?: string }) {
       <header className="farmer-top">
         <a className="brand" href={href.today(id)}><img src="/icon.svg" alt="" />Future Agri</a>
         <span className="spacer" />
-        <label className="small muted" htmlFor="farmer-lang">{t('today.language')}</label>
-        <select id="farmer-lang" className="input" style={{ width: 'auto', minHeight: 40 }} value={lang} onChange={(e) => setLang(e.target.value as Lang)}>
-          {(Object.keys(LANG_NAMES) as Lang[]).map((l) => <option key={l} value={l}>{LANG_NAMES[l]}</option>)}
-        </select>
+        <ThemeToggle />
         <button type="button" className="btn" onClick={toTeam}>{t('mode.team')}</button>
       </header>
 
@@ -145,7 +143,7 @@ export default function Today({ fid }: { fid?: string }) {
                 </div>
               ) : <p className="muted small">{t('today.no_alerts')}</p>}
             </section>
-            {updated ? <p className="xs faint">{t('today.updated', { time: updated.toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' }) })}</p> : null}
+            {updated ? <p className="xs faint">{t('today.updated', { time: updated.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' }) })}</p> : null}
           </>
         )}
       </main>

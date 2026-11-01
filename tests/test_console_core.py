@@ -186,3 +186,12 @@ def test_default_theme_is_dark(tmp_path):
         assert c.get("/api/settings").json()["theme"] == "dark"
         html = c.get("/").text
         assert 'data-theme="dark"' in html or "UI not built" in html or "has not been built" in html
+
+
+def test_language_is_english_only(tmp_path):
+    app = create_app(_settings(tmp_path), start_workers=False)
+    with TestClient(app) as c:
+        assert c.post("/api/settings", json={"language": "hi"}).status_code == 422
+        app.state.store.set_setting("language", "hi")           # a value saved by an older version
+        assert c.get("/api/settings").json()["language"] == "en"
+        assert c.post("/api/settings", json={"theme": "light"}).json()["theme"] == "light"

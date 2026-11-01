@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
+import { LOCALE } from '../i18n'
 import {
   BarController, BarElement, CategoryScale, Chart, Filler, LinearScale, LineController, LineElement, PointElement, Tooltip,
   type ChartConfiguration, type Plugin,
 } from 'chart.js'
 
 Chart.register(LineController, LineElement, PointElement, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Filler)
+Chart.defaults.locale = LOCALE            // English numbers on every axis, whatever the browser language
 
 // The validated categorical order (light / dark); fixed, never cycled.
 const SERIES_LIGHT = ['#2a78d6', '#1baf7a', '#eda100', '#6250d6', '#e87ba4']

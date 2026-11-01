@@ -159,7 +159,7 @@ def test_iterate_to_approved_plan_exports(page, console):
     assert not page.errors, page.errors
 
 
-def test_today_language_switch(page, console):
+def test_today_is_english_with_theme_toggle(page, console):
     import re
     from conftest import make_farm
     fid = make_farm(console, "Today field")
@@ -168,18 +168,42 @@ def test_today_language_switch(page, console):
     advice = page.get_by_test_id("advice")
     advice.wait_for()
     assert advice.inner_text().strip()
-    shot(page, "12_today_en")
-    page.get_by_label("Language").select_option("hi")
-    page.get_by_role("heading", name="Today field पर आज").wait_for(timeout=10_000)
-    assert re.search("[ऀ-ॿ]", advice.inner_text()), advice.inner_text()
-    shot(page, "13_today_hi")
+    assert page.get_by_label("Language").count() == 0                  # English only: no language picker
+    assert not re.search("[\u0900-\u097F]", page.locator("body").inner_text())
+    shot(page, "12_today")
+    toggle = page.get_by_role("group", name="Colour theme")
+    toggle.get_by_role("button", name="Light").click()
+    page.wait_for_function("document.documentElement.dataset.theme === 'light'")
+    shot(page, "13_today_light")
+    toggle.get_by_role("button", name="Dark").click()
+    page.wait_for_function("document.documentElement.dataset.theme === 'dark'")
     page.set_viewport_size({"width": 390, "height": 844})      # the farmer's phone
     page.wait_for_timeout(300)
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
     shot(page, "13b_today_phone")
-    page.get_by_role("button", name="टीम").click()          # back to the team console
+    page.get_by_role("button", name="Team").click()          # back to the team console
     page.wait_for_url("**/#/f/*/mission", timeout=10_000)
     page.get_by_role("heading", name="Mission", exact=True).wait_for(timeout=20_000)
+    assert not page.errors, page.errors
+
+
+def test_theme_toggle_in_header_persists(page, console):
+    from conftest import make_farm
+    fid = make_farm(console, "Theme field")
+    page.goto(console["base"] + f"/#/f/{fid}/season")
+    page.get_by_role("heading", name="Season", exact=True).wait_for(timeout=30_000)
+    toggle = page.get_by_role("group", name="Colour theme")
+    assert toggle.get_by_role("button", name="Dark").get_attribute("aria-pressed") == "true"
+    toggle.get_by_role("button", name="Light").click()
+    page.wait_for_function("document.documentElement.dataset.theme === 'light'")
+    page.get_by_role("heading", name="Season", exact=True).wait_for()   # the page redraws in the new colours
+    shot(page, "18_season_light")
+    page.reload()
+    page.get_by_role("heading", name="Season", exact=True).wait_for(timeout=30_000)
+    assert page.evaluate("document.documentElement.dataset.theme") == "light"      # remembered
+    page.get_by_role("group", name="Colour theme").get_by_role("button", name="Dark").click()
+    page.wait_for_function("document.documentElement.dataset.theme === 'dark'")
+    assert console["app"].state.store.settings().get("theme") == "dark"
     assert not page.errors, page.errors
 
 
@@ -215,9 +239,10 @@ def test_system_shows_worker_token_and_sources(page, console):
     page.get_by_text(tok).first.wait_for()
     page.get_by_text("Connect-GPU-Server").first.wait_for()
     page.get_by_role("link", name="SoilGrids 2.0, ISRIC").wait_for()
-    page.get_by_role("button", name="Light", exact=True).click()
+    seg = page.get_by_role("group", name="Theme", exact=True)          # the System setting, not the header toggle
+    seg.get_by_role("button", name="Light", exact=True).click()
     page.wait_for_function("document.documentElement.dataset.theme === 'light'")
-    page.get_by_role("button", name="Dark", exact=True).click()
+    seg.get_by_role("button", name="Dark", exact=True).click()
     page.wait_for_function("document.documentElement.dataset.theme === 'dark'")
     shot(page, "15_system")
     assert not page.errors, page.errors
@@ -240,3 +265,35 @@ def test_records_manual_entry_shows_missing_fields(page, console):
     r = page.request.get(console["base"] + f"/api/farms/{fid}/export/records.csv")
     assert r.status == 200 and "fungicide" in r.text()
     assert not page.errors, page.errors
+
+
+def test_ortho_upload_needs_gpu_server(page, console):
+    import datetime as dt
+    import time
+    import urllib.request
+    from conftest import square
+    from fa_farm.archetypes import season_dates
+    from test_console_session import _fake_field
+    farms = console["app"].state.farms
+    old = farms.field_builder, farms.today
+    farms.field_builder, farms.today = _fake_field(50), (lambda: dt.date(2025, 6, 15))
+    try:
+        sow, _ = season_dates(farms.template("A5"), 2025)
+        body = json.dumps({"name": "Ortho field", "mode": "field", "template": "A5", "polygon": square(),
+                           "sowing": sow.isoformat()}).encode()
+        req = urllib.request.Request(console["base"] + "/api/farms", data=body, headers={"Content-Type": "application/json"})
+        fid = json.loads(urllib.request.urlopen(req).read())["farm"]["id"]
+        for _ in range(300):
+            if json.loads(urllib.request.urlopen(console["base"] + f"/api/farms/{fid}").read())["status"] == "ready":
+                break
+            time.sleep(0.2)
+        page.goto(console["base"] + f"/#/f/{fid}/mission")
+        page.get_by_role("heading", name="Mission", exact=True).wait_for(timeout=30_000)
+        page.get_by_role("button", name="Upload a scan").click()
+        page.get_by_role("button", name="Orthomosaic (GeoTIFF)").click()
+        page.get_by_text("No GPU server with the weed detector is connected").wait_for(timeout=10_000)
+        assert page.get_by_role("button", name="Detect weeds").is_disabled()
+        shot(page, "17_ortho_upload")
+        assert not page.errors, page.errors
+    finally:
+        farms.field_builder, farms.today = old

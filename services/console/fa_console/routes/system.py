@@ -7,7 +7,7 @@ from .. import __version__
 from ..store import now
 
 router = APIRouter(prefix="/api", tags=["system"])
-SETTING_CHOICES = {"area_unit": ("ha", "acre", "mu"), "language": ("en", "hi", "es", "pt"),
+SETTING_CHOICES = {"area_unit": ("ha", "acre", "mu"), "language": ("en",),          # English only
                    "theme": ("auto", "light", "dark")}
 SETTING_TEXT = ("operator", "default_region", "aircraft_id")
 DEFAULTS = {"area_unit": "ha", "language": "en", "theme": "dark", "operator": "", "default_region": "",
@@ -74,7 +74,8 @@ def meta(request: Request) -> dict:
 
 @router.get("/settings")
 def get_settings(request: Request) -> dict:
-    stored = {k: v for k, v in request.app.state.store.settings().items() if k in DEFAULTS}
+    stored = {k: v for k, v in request.app.state.store.settings().items()
+              if k in DEFAULTS and (k not in SETTING_CHOICES or v in SETTING_CHOICES[k])}   # drops retired values
     return {**DEFAULTS, **stored}
 
 

@@ -1,7 +1,6 @@
 """The farmer's Today card: one decision, the reason, what comes next.
 
-Language-neutral: ``code`` and ``params`` are translated by the app (en, hi, es,
-pt). Codes: spray_today, wait_weather, wait_approval, scan_due, waiting_data,
+``code`` and ``params`` are turned into sentences by the app. Codes: spray_today, wait_weather, wait_approval, scan_due, waiting_data,
 no_action, season_over."""
 from __future__ import annotations
 

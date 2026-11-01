@@ -1,9 +1,10 @@
+import { LOCALE } from '../i18n'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api, type GeoJSON, type Job, type Op, type Outlook, type SessionEvent, type SessionState, type TraceRow } from '../api'
 import { useApp, useFarm } from '../state'
 import { href } from '../router'
 import { Icon } from '../ui/icons'
-import { Badge, Dialog, Field, fmt, JobBar, Notice, STATUS_KIND, useJob } from '../ui/core'
+import { Badge, Dialog, Field, fmt, JobBar, Notice, Progress, Segmented, STATUS_KIND, useJob } from '../ui/core'
 
 type Act = { result: unknown; state: SessionState }
 const STAGES: [string, number][] = [['emergence', 0.05], ['vegetative', 1.0], ['flowering', 1.3], ['filling', 2.0], ['mature', 9]]
@@ -184,7 +185,7 @@ export default function Mission() {
         </aside>
       </div>
       {record ? <RecordDialog op={record} onClose={() => setRecord(null)} onSave={(rec) => { act('record', { op_id: record.id, record: rec }, 'Flight recorded'); setRecord(null) }} day={s.day} /> : null}
-      {upload ? <UploadDialog onClose={() => setUpload(false)} onUpload={async (gj, gsd) => {
+      {upload ? <UploadDialog fid={farm.id} onDetected={refresh} onClose={() => setUpload(false)} onUpload={async (gj, gsd) => {
         setUpload(false)
         try {
           const r = await api.post<{ report: { points: number; weeds: number; disease: number; outside: number; bad: number }; state: SessionState }>(`/api/farms/${farm.id}/session/upload-scan`, { geojson: gj, gsd_m: gsd })
@@ -315,7 +316,7 @@ function TwinPanel({ s }: { s: SessionState }) {
         <div className="stats">
           <div className="stat"><b>{tw.lai !== null ? tw.lai.toFixed(2) : '–'}</b><span>Leaf area index</span></div>
           <div className="stat"><b>{stage ? t(`stage.${stage}`) : '–'}</b><span>Stage</span><small className="num">DVS {tw.dvs?.toFixed(2) ?? '–'}</small></div>
-          <div className="stat"><b>{tw.twso !== null ? Math.round(tw.twso).toLocaleString() : '–'}</b><span>Yield so far</span><small>kg dry matter/ha</small></div>
+          <div className="stat"><b>{tw.twso !== null ? Math.round(tw.twso).toLocaleString(LOCALE) : '–'}</b><span>Yield so far</span><small>kg dry matter/ha</small></div>
         </div>
       ) : <p className="small muted">This plan runs without the twin ({s.policy}).</p>}
       {tw ? <p className="xs faint" style={{ marginTop: 6 }}>Herbicide decision: {tw.herbicide_option}; scans ingested: {tw.scans}.</p> : null}
@@ -361,8 +362,8 @@ function ScoreCard({ r }: { r: Record<string, unknown> }) {
   const n = (k: string) => Number(r[k] ?? 0)
   return (
     <div className="stats" style={{ marginTop: 12 }}>
-      <div className="stat"><b>{Math.round(n('yield_marketed_kg_ha')).toLocaleString()}</b><span>Yield (kg/ha marketed)</span></div>
-      <div className="stat"><b>{Math.round(n('net_ha')).toLocaleString()}</b><span>Net {String(r.currency)}/ha</span></div>
+      <div className="stat"><b>{Math.round(n('yield_marketed_kg_ha')).toLocaleString(LOCALE)}</b><span>Yield (kg/ha marketed)</span></div>
+      <div className="stat"><b>{Math.round(n('net_ha')).toLocaleString(LOCALE)}</b><span>Net {String(r.currency)}/ha</span></div>
       <div className="stat"><b>{n('fungicide_sprays')}</b><span>Fungicide sprays</span></div>
       <div className="stat"><b>{fmt.n(n('weed_loss_pct'), 1)}%</b><span>Yield lost to weeds</span></div>
     </div>
@@ -390,26 +391,82 @@ function RecordDialog({ op, onClose, onSave, day }: { op: Op; onClose: () => voi
   )
 }
 
-function UploadDialog({ onClose, onUpload }: { onClose: () => void; onUpload: (gj: GeoJSON, gsd: number) => void }) {
+function UploadDialog({ fid, onClose, onUpload, onDetected }: {
+  fid: string; onClose: () => void; onUpload: (gj: GeoJSON, gsd: number) => void; onDetected: () => void
+}) {
+  const { toast } = useApp()
+  const [kind, setKind] = useState<'geojson' | 'ortho'>('geojson')
   const [gj, setGj] = useState<GeoJSON | null>(null)
   const [gsd, setGsd] = useState('5')
   const [err, setErr] = useState<string | null>(null)
+  const [tif, setTif] = useState<File | null>(null)
+  const [sent, setSent] = useState<number | null>(null)
+  const [jobId, setJobId] = useState<string | null>(null)
+  const [gpu, setGpu] = useState<boolean | null>(null)
+  useEffect(() => {
+    api.get<{ remote: { alive: boolean; kinds: string[] }[] }>('/api/workers')
+      .then((w) => setGpu(w.remote.some((x) => x.alive && x.kinds.includes('detect')))).catch(() => setGpu(false))
+  }, [])
+  const job = useJob(jobId, (j) => {
+    if (j.status === 'done') { toast(j.message || 'Weed detections imported'); onDetected() }
+    else if (j.status === 'failed') toast(j.error ?? 'Weed detection failed', 'bad')
+  })
+  const sendOrtho = () => {
+    if (!tif) return
+    const fd = new FormData()
+    fd.append('file', tif)
+    const xhr = new XMLHttpRequest()               // fetch cannot report upload progress
+    xhr.open('POST', `/api/farms/${fid}/session/ortho`)
+    xhr.upload.onprogress = (e) => { if (e.lengthComputable) setSent(e.loaded / e.total) }
+    xhr.onload = () => {
+      let body: { job?: Job; detail?: string } = {}
+      try { body = JSON.parse(xhr.responseText) } catch { /* not JSON */ }
+      if (xhr.status === 200 && body.job) { setJobId(body.job.id); setSent(1) }
+      else { setSent(null); setErr(body.detail ?? `upload failed (HTTP ${xhr.status})`) }
+    }
+    xhr.onerror = () => { setSent(null); setErr('upload failed: the console did not answer') }
+    setErr(null)
+    setSent(0)
+    xhr.send(fd)
+  }
+  const busy = sent !== null && !jobId
+  const actions = kind === 'geojson'
+    ? <><button className="btn" onClick={onClose}>Cancel</button><button className="btn btn-primary" disabled={!gj} onClick={() => gj && onUpload(gj, Number(gsd) / 1000)}>Ingest the scan</button></>
+    : jobId
+      ? <button className="btn btn-primary" onClick={onClose}>{job?.status === 'done' || job?.status === 'failed' ? 'Close' : 'Keep working (it continues)'}</button>
+      : <><button className="btn" onClick={onClose}>Cancel</button><button className="btn btn-primary" disabled={!tif || busy || gpu === false} onClick={sendOrtho}>Detect weeds</button></>
   return (
-    <Dialog title="Upload a camera-drone scan" onClose={onClose}
-      actions={<><button className="btn" onClick={onClose}>Cancel</button><button className="btn btn-primary" disabled={!gj} onClick={() => gj && onUpload(gj, Number(gsd) / 1000)}>Ingest the scan</button></>}>
-      <p className="small muted">GeoJSON points from the detector (class <code>weed</code> or <code>disease</code>, optional <code>confidence</code> and <code>severity</code>). Counts are corrected with the detector's measured recall at this ground sampling distance.</p>
-      <Field label="Detections file (GeoJSON)">
-        <input className="input" type="file" accept=".geojson,.json" onChange={async (e) => {
-          const f = e.target.files?.[0]
-          if (!f) return
-          try {
-            const j = JSON.parse(await f.text())
-            if (j.type !== 'FeatureCollection' && j.type !== 'Feature') throw new Error('not a GeoJSON FeatureCollection')
-            setGj(j); setErr(null)
-          } catch (x) { setErr((x as Error).message); setGj(null) }
-        }} />
-      </Field>
-      <Field label="Ground sampling distance (mm per pixel)"><input className="input num" type="number" min={1} max={100} value={gsd} onChange={(e) => setGsd(e.target.value)} /></Field>
+    <Dialog title="Upload a camera-drone scan" onClose={onClose} actions={actions}>
+      <Segmented label="What you have" value={kind} onChange={(v) => { setKind(v); setErr(null) }}
+        options={[{ value: 'geojson', label: 'Detections (GeoJSON)' }, { value: 'ortho', label: 'Orthomosaic (GeoTIFF)' }]} />
+      {kind === 'geojson' ? (
+        <>
+          <p className="small muted">GeoJSON points from the detector (class <code>weed</code> or <code>disease</code>, optional <code>confidence</code> and <code>severity</code>). Counts are corrected with the detector's measured recall at this ground sampling distance.</p>
+          <Field label="Detections file (GeoJSON)">
+            <input className="input" type="file" accept=".geojson,.json" onChange={async (e) => {
+              const f = e.target.files?.[0]
+              if (!f) return
+              try {
+                const j = JSON.parse(await f.text())
+                if (j.type !== 'FeatureCollection' && j.type !== 'Feature') throw new Error('not a GeoJSON FeatureCollection')
+                setGj(j); setErr(null)
+              } catch (x) { setErr((x as Error).message); setGj(null) }
+            }} />
+          </Field>
+          <Field label="Ground sampling distance (mm per pixel)"><input className="input num" type="number" min={1} max={100} value={gsd} onChange={(e) => setGsd(e.target.value)} /></Field>
+        </>
+      ) : (
+        <>
+          <p className="small muted">The stitched orthomosaic from the survey flight (DJI Terra, WebODM, Pix4D…), exported as a GeoTIFF with its coordinates.
+            The trained RF-DETR finds the weeds on the GPU server; the detections are imported into the mission when it finishes.</p>
+          {gpu === false ? <Notice kind="warn">No GPU server with the weed detector is connected. Connect it from System, then upload.</Notice> : null}
+          <Field label="Orthomosaic (GeoTIFF)" hint={tif ? `${(tif.size / 1e6).toFixed(0)} MB` : undefined}>
+            <input className="input" type="file" accept=".tif,.tiff" disabled={busy || !!jobId} onChange={(e) => { setTif(e.target.files?.[0] ?? null); setErr(null) }} />
+          </Field>
+          {sent !== null && !jobId ? <div><Progress value={sent} /><p className="xs muted" style={{ marginTop: 4 }}>Uploading {Math.round(sent * 100)}%</p></div> : null}
+          {job ? <JobBar job={job} label="Weed detection" /> : null}
+        </>
+      )}
       {err ? <Notice kind="bad">{err}</Notice> : null}
     </Dialog>
   )

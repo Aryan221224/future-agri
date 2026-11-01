@@ -1,8 +1,9 @@
-// Translations. The farmer's Today screen is fully translated; the team console
-// translates its navigation and common actions.
-import type { Lang } from './api'
-
+// UI strings, in English. One table so the wording stays consistent across the app
+// (the farmer's Today screen builds its sentences from these with {placeholders}).
 type Dict = Record<string, string>
+
+/** Dates and numbers are always formatted in English, whatever the browser's language. */
+export const LOCALE = 'en'
 
 const en: Dict = {
   'nav.farms': 'Farms', 'nav.mission': 'Mission', 'nav.twin': '3D farm', 'nav.drone': 'Drone twin',
@@ -34,7 +35,7 @@ const en: Dict = {
   'today.season_over': 'The season is complete', 'today.season_over.detail': 'Harvest results are in the team view.',
   'today.next': 'Next: {product} around {due}', 'today.health': 'Field health', 'today.stage': 'Growth stage',
   'today.leaf_area': 'Leaf area index', 'today.alerts': 'Alerts', 'today.no_alerts': 'No alerts',
-  'today.pick_farm': 'Choose your field', 'today.language': 'Language', 'today.no_farms': 'No fields yet. Ask your operator to add your field.',
+  'today.pick_farm': 'Choose your field', 'today.no_farms': 'No fields yet. Ask your operator to add your field.',
   'stage.emergence': 'Emerging', 'stage.vegetative': 'Growing leaves', 'stage.flowering': 'Flowering',
   'stage.filling': 'Filling', 'stage.mature': 'Mature',
   'today.outlook': 'Spray weather, next days', 'today.flyable': '{p}% of forecasts allow flying', 'today.no_outlook': 'No forecast available right now',
@@ -48,147 +49,11 @@ const en: Dict = {
   'alert.session_unavailable': 'The mission has not started yet',
 }
 
-const hi: Dict = {
-  'nav.farms': 'खेत', 'nav.mission': 'मिशन', 'nav.twin': '3D खेत', 'nav.drone': 'ड्रोन ट्विन',
-  'nav.season': 'सीज़न', 'nav.iterate': 'पुनरावृत्तियाँ', 'nav.plan': 'योजना', 'nav.live': 'लाइव',
-  'nav.records': 'रिकॉर्ड', 'nav.system': 'सिस्टम', 'nav.today': 'आज', 'nav.more': 'और',
-  'mode.team': 'टीम', 'mode.farmer': 'किसान',
-  'clock.day': '{total} में से दिन {das}', 'clock.morning': 'सुबह', 'clock.flights': 'उड़ानें बाकी',
-  'clock.done': 'सीज़न पूरा', 'clock.waiting': 'डेटा का इंतज़ार',
-  'act.approve': 'स्वीकार करें', 'act.defer': 'टालें', 'act.reject': 'अस्वीकार करें', 'act.fly': 'अभी उड़ाएँ',
-  'act.record': 'उड़ान दर्ज करें', 'act.close': 'बंद करें', 'act.cancel': 'रद्द करें', 'act.save': 'सहेजें',
-  'act.retry': 'फिर कोशिश करें', 'act.add_farm': 'खेत जोड़ें', 'act.open': 'खोलें',
-  'product.herbicide': 'खरपतवारनाशी', 'product.fungicide': 'फफूंदनाशी', 'product.scan': 'स्कैन',
-  'status.proposed': 'स्वीकृति का इंतज़ार', 'status.approved': 'स्वीकृत', 'status.flown': 'हो गया',
-  'status.dropped': 'छोड़ा गया', 'status.rejected': 'अस्वीकृत',
-  'mode.sim': 'वर्चुअल परीक्षण खेत', 'mode.field': 'असली खेत',
-  'offline': 'ऑफ़लाइन: सहेजा हुआ डेटा दिख रहा है', 'stale': '{time} का डेटा दिख रहा है; नया अपडेट नहीं आ सका।',
-  'today.title': '{farm} पर आज', 'today.day': '{date}, सीज़न का दिन {das}',
-  'today.spray_today': 'आज {product} का छिड़काव करें',
-  'today.spray_today.detail': 'खेत का {targets_pct}%। सुबह हवा लगभग {wind} मी/से; {p}% पूर्वानुमान उड़ान की अनुमति देते हैं।',
-  'today.wait_weather': 'रुकें: आज मौसम छिड़काव के लिए ठीक नहीं है',
-  'today.wait_weather.detail': '{product} का समय है, पर आज हवा या बारिश सुरक्षित सीमा से बाहर है।',
-  'today.wait_approval': 'टीम की पुष्टि का इंतज़ार करें',
-  'today.wait_approval.detail': 'ट्विन {due} से {product} की सलाह देता है। ऑपरेटर पुष्टि करेगा।',
-  'today.scan_due': 'खेत का स्कैन करना है',
-  'today.scan_due.detail': 'कैमरा ड्रोन को खेत पर उड़ाएँ और नतीजा अपलोड करें।',
-  'today.waiting_data': 'नए मौसम डेटा का इंतज़ार',
-  'today.waiting_data.detail': 'मौसम का नवीनतम डेटा {last} का है। नया डेटा आने पर सलाह बदलेगी।',
-  'today.no_action': 'आज कोई काम नहीं', 'today.no_action.detail': 'फसल ठीक चल रही है।',
-  'today.season_over': 'सीज़न पूरा हुआ', 'today.season_over.detail': 'कटाई के नतीजे टीम व्यू में हैं।',
-  'today.next': 'अगला: {due} के आसपास {product}', 'today.health': 'खेत की सेहत', 'today.stage': 'बढ़वार की अवस्था',
-  'today.leaf_area': 'पत्ती क्षेत्र सूचकांक', 'today.alerts': 'चेतावनियाँ', 'today.no_alerts': 'कोई चेतावनी नहीं',
-  'today.pick_farm': 'अपना खेत चुनें', 'today.language': 'भाषा', 'today.no_farms': 'अभी कोई खेत नहीं। अपने ऑपरेटर से अपना खेत जोड़ने को कहें।',
-  'stage.emergence': 'अंकुरण', 'stage.vegetative': 'पत्तियाँ बढ़ रही हैं', 'stage.flowering': 'फूल आ रहे हैं',
-  'stage.filling': 'दाना/कंद भराव', 'stage.mature': 'पकी फसल',
-  'today.outlook': 'अगले दिनों में छिड़काव का मौसम', 'today.flyable': '{p}% पूर्वानुमानों में उड़ान संभव', 'today.no_outlook': 'अभी कोई पूर्वानुमान उपलब्ध नहीं',
-  'today.error': 'सलाह लोड नहीं हो सकी', 'today.updated': '{time} पर अपडेट', 'today.wind': 'हवा {wind} मी/से', 'today.rain': 'बारिश {rain} मिमी',
-  'alert.proposal_waiting': '{due} के लिए {product} प्रस्तावित', 'alert.scan_due': '{due} को स्कैन करना है',
-  'alert.spray_window': 'छिड़काव का संभावित दिन: {day}', 'alert.no_window': 'पूर्वानुमान में छिड़काव का कोई दिन नहीं',
-  'alert.blight_risk': 'झुलसा रोग का खतरा: इस हफ़्ते फफूंदनाशी फ़ायदेमंद रहेगा',
-  'alert.weather_lag': 'मौसम डेटा कुछ दिन पीछे है', 'alert.device_silent': '{name} से एक दिन से कोई रिपोर्ट नहीं',
-  'alert.region_derogation': 'यहाँ हवाई छिड़काव के लिए अनुमति चाहिए',
-  'alert.region_unverified': 'स्थानीय ड्रोन नियम सत्यापित नहीं: उड़ाने से पहले जाँच लें',
-  'alert.session_unavailable': 'मिशन अभी शुरू नहीं हुआ',
-}
-
-const es: Dict = {
-  'nav.farms': 'Campos', 'nav.mission': 'Misión', 'nav.twin': 'Campo 3D', 'nav.drone': 'Gemelo del dron',
-  'nav.season': 'Temporada', 'nav.iterate': 'Iteraciones', 'nav.plan': 'Plan', 'nav.live': 'En vivo',
-  'nav.records': 'Registros', 'nav.system': 'Sistema', 'nav.today': 'Hoy', 'nav.more': 'Más',
-  'mode.team': 'Equipo', 'mode.farmer': 'Agricultor',
-  'clock.day': 'Día {das} de {total}', 'clock.morning': 'mañana', 'clock.flights': 'vuelos pendientes',
-  'clock.done': 'temporada completa', 'clock.waiting': 'esperando datos',
-  'act.approve': 'Aprobar', 'act.defer': 'Posponer', 'act.reject': 'Rechazar', 'act.fly': 'Volar ahora',
-  'act.record': 'Registrar vuelo', 'act.close': 'Cerrar', 'act.cancel': 'Cancelar', 'act.save': 'Guardar',
-  'act.retry': 'Reintentar', 'act.add_farm': 'Añadir un campo', 'act.open': 'Abrir',
-  'product.herbicide': 'herbicida', 'product.fungicide': 'fungicida', 'product.scan': 'escaneo',
-  'status.proposed': 'pendiente de aprobación', 'status.approved': 'aprobado', 'status.flown': 'volado',
-  'status.dropped': 'descartado', 'status.rejected': 'rechazado',
-  'mode.sim': 'Campo virtual de prueba', 'mode.field': 'Campo real',
-  'offline': 'Sin conexión: mostrando datos guardados', 'stale': 'Datos de {time}; la última actualización falló.',
-  'today.title': 'Hoy en {farm}', 'today.day': '{date}, día {das} de la temporada',
-  'today.spray_today': 'Aplicar {product} hoy',
-  'today.spray_today.detail': '{targets_pct}% del campo. Viento al amanecer de unos {wind} m/s; {p}% de los pronósticos permiten volar.',
-  'today.wait_weather': 'Espere: el tiempo no es apto para aplicar',
-  'today.wait_weather.detail': 'Toca aplicar {product}, pero hoy el viento o la lluvia están fuera de los límites seguros.',
-  'today.wait_approval': 'Espere la confirmación del equipo',
-  'today.wait_approval.detail': 'El gemelo recomienda {product} desde el {due}. El operador lo confirmará.',
-  'today.scan_due': 'Toca escanear el campo',
-  'today.scan_due.detail': 'Vuele el dron con cámara sobre el campo y suba el resultado.',
-  'today.waiting_data': 'Esperando nuevos datos del tiempo',
-  'today.waiting_data.detail': 'Los últimos datos del tiempo son del {last}. El consejo se actualizará cuando lleguen datos nuevos.',
-  'today.no_action': 'Hoy no hace falta hacer nada', 'today.no_action.detail': 'El cultivo va bien.',
-  'today.season_over': 'La temporada ha terminado', 'today.season_over.detail': 'Los resultados de la cosecha están en la vista del equipo.',
-  'today.next': 'Siguiente: {product} hacia el {due}', 'today.health': 'Salud del campo', 'today.stage': 'Etapa de crecimiento',
-  'today.leaf_area': 'Índice de área foliar', 'today.alerts': 'Avisos', 'today.no_alerts': 'Sin avisos',
-  'today.pick_farm': 'Elija su campo', 'today.language': 'Idioma', 'today.no_farms': 'Aún no hay campos. Pida a su operador que añada su campo.',
-  'stage.emergence': 'Emergencia', 'stage.vegetative': 'Crecimiento vegetativo', 'stage.flowering': 'Floración',
-  'stage.filling': 'Llenado', 'stage.mature': 'Madurez',
-  'today.outlook': 'Tiempo para aplicar, próximos días', 'today.flyable': '{p}% de los pronósticos permiten volar', 'today.no_outlook': 'No hay pronóstico disponible ahora',
-  'today.error': 'No se pudo cargar el consejo', 'today.updated': 'Actualizado {time}', 'today.wind': 'viento {wind} m/s', 'today.rain': 'lluvia {rain} mm',
-  'alert.proposal_waiting': '{product} propuesto para el {due}', 'alert.scan_due': 'Escaneo previsto el {due}',
-  'alert.spray_window': 'Ventana probable de aplicación: {day}', 'alert.no_window': 'Sin ventana de aplicación en el pronóstico',
-  'alert.blight_risk': 'Riesgo de tizón: un fungicida probablemente compense esta semana',
-  'alert.weather_lag': 'Los datos del tiempo llevan unos días de retraso', 'alert.device_silent': '{name} no informa desde hace un día',
-  'alert.region_derogation': 'La aplicación aérea necesita un permiso aquí',
-  'alert.region_unverified': 'Normas locales de drones sin verificar: compruébelas antes de volar',
-  'alert.session_unavailable': 'La misión aún no ha empezado',
-}
-
-const pt: Dict = {
-  'nav.farms': 'Talhões', 'nav.mission': 'Missão', 'nav.twin': 'Talhão 3D', 'nav.drone': 'Gêmeo do drone',
-  'nav.season': 'Safra', 'nav.iterate': 'Iterações', 'nav.plan': 'Plano', 'nav.live': 'Ao vivo',
-  'nav.records': 'Registros', 'nav.system': 'Sistema', 'nav.today': 'Hoje', 'nav.more': 'Mais',
-  'mode.team': 'Equipe', 'mode.farmer': 'Produtor',
-  'clock.day': 'Dia {das} de {total}', 'clock.morning': 'manhã', 'clock.flights': 'voos pendentes',
-  'clock.done': 'safra concluída', 'clock.waiting': 'aguardando dados',
-  'act.approve': 'Aprovar', 'act.defer': 'Adiar', 'act.reject': 'Rejeitar', 'act.fly': 'Voar agora',
-  'act.record': 'Registrar voo', 'act.close': 'Fechar', 'act.cancel': 'Cancelar', 'act.save': 'Salvar',
-  'act.retry': 'Tentar de novo', 'act.add_farm': 'Adicionar talhão', 'act.open': 'Abrir',
-  'product.herbicide': 'herbicida', 'product.fungicide': 'fungicida', 'product.scan': 'escaneamento',
-  'status.proposed': 'aguardando aprovação', 'status.approved': 'aprovado', 'status.flown': 'voado',
-  'status.dropped': 'descartado', 'status.rejected': 'rejeitado',
-  'mode.sim': 'Talhão virtual de teste', 'mode.field': 'Talhão real',
-  'offline': 'Sem conexão: mostrando dados salvos', 'stale': 'Dados de {time}; a última atualização falhou.',
-  'today.title': 'Hoje em {farm}', 'today.day': '{date}, dia {das} da safra',
-  'today.spray_today': 'Aplicar {product} hoje',
-  'today.spray_today.detail': '{targets_pct}% do talhão. Vento ao amanhecer de cerca de {wind} m/s; {p}% das previsões permitem voar.',
-  'today.wait_weather': 'Aguarde: o tempo não está bom para aplicar',
-  'today.wait_weather.detail': 'É hora de aplicar {product}, mas hoje o vento ou a chuva estão fora dos limites seguros.',
-  'today.wait_approval': 'Aguarde a confirmação da equipe',
-  'today.wait_approval.detail': 'O gêmeo recomenda {product} a partir de {due}. O operador vai confirmar.',
-  'today.scan_due': 'Hora de escanear o talhão',
-  'today.scan_due.detail': 'Voe o drone com câmera sobre o talhão e envie o resultado.',
-  'today.waiting_data': 'Aguardando novos dados do tempo',
-  'today.waiting_data.detail': 'Os dados mais recentes do tempo são de {last}. A recomendação será atualizada quando chegarem dados novos.',
-  'today.no_action': 'Nada a fazer hoje', 'today.no_action.detail': 'A lavoura está no caminho certo.',
-  'today.season_over': 'A safra terminou', 'today.season_over.detail': 'Os resultados da colheita estão na visão da equipe.',
-  'today.next': 'Próximo: {product} por volta de {due}', 'today.health': 'Saúde do talhão', 'today.stage': 'Estádio de desenvolvimento',
-  'today.leaf_area': 'Índice de área foliar', 'today.alerts': 'Alertas', 'today.no_alerts': 'Nenhum alerta',
-  'today.pick_farm': 'Escolha o seu talhão', 'today.language': 'Idioma', 'today.no_farms': 'Ainda não há talhões. Peça ao operador para adicionar o seu.',
-  'stage.emergence': 'Emergência', 'stage.vegetative': 'Vegetativo', 'stage.flowering': 'Floração',
-  'stage.filling': 'Enchimento', 'stage.mature': 'Maturação',
-  'today.outlook': 'Tempo para aplicação, próximos dias', 'today.flyable': '{p}% das previsões permitem voar', 'today.no_outlook': 'Nenhuma previsão disponível agora',
-  'today.error': 'Não foi possível carregar a recomendação', 'today.updated': 'Atualizado {time}', 'today.wind': 'vento {wind} m/s', 'today.rain': 'chuva {rain} mm',
-  'alert.proposal_waiting': '{product} proposto para {due}', 'alert.scan_due': 'Escaneamento previsto para {due}',
-  'alert.spray_window': 'Janela provável de aplicação: {day}', 'alert.no_window': 'Sem janela de aplicação na previsão',
-  'alert.blight_risk': 'Risco de requeima: um fungicida deve compensar nesta semana',
-  'alert.weather_lag': 'Os dados do tempo estão alguns dias atrasados', 'alert.device_silent': '{name} não envia dados há um dia',
-  'alert.region_derogation': 'A aplicação aérea precisa de autorização aqui',
-  'alert.region_unverified': 'Regras locais de drones não verificadas: confira antes de voar',
-  'alert.session_unavailable': 'A missão ainda não começou',
-}
-
-export const DICTS: Record<Lang, Dict> = { en, hi, es, pt }
-export const LANG_NAMES: Record<Lang, string> = { en: 'English', hi: 'हिन्दी', es: 'Español', pt: 'Português' }
-
-export function translate(lang: Lang, key: string, params?: Record<string, unknown>): string {
-  let s = DICTS[lang]?.[key] ?? en[key] ?? key
+export function translate(key: string, params?: Record<string, unknown>): string {
+  let s = en[key] ?? key
   if (params) {
     for (const [k, v] of Object.entries(params)) {
-      let val = v
-      if (typeof v === 'string' && DICTS[lang][`product.${v}`]) val = DICTS[lang][`product.${v}`]
+      const val = typeof v === 'string' && en[`product.${v}`] ? en[`product.${v}`] : v
       s = s.replaceAll(`{${k}}`, val === null || val === undefined ? '–' : String(val))
     }
   }

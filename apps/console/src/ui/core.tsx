@@ -1,3 +1,4 @@
+import { LOCALE } from '../i18n'
 import { cloneElement, isValidElement, useEffect, useId, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import { watchJob, type Job } from '../api'
 import { Icon } from './icons'
@@ -127,20 +128,20 @@ export function JobBar({ job, label }: { job: Partial<Job> | null; label?: strin
 
 // ------------------------------------------------------------------ formatting
 export const fmt = {
-  n: (v: number | null | undefined, d = 1) => (v === null || v === undefined || Number.isNaN(v) ? '–' : v.toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: 0 })),
-  money: (v: number | null | undefined, cur: string) => (v === null || v === undefined ? '–' : `${Math.round(v).toLocaleString()} ${cur}`),
+  n: (v: number | null | undefined, d = 1) => (v === null || v === undefined || Number.isNaN(v) ? '–' : v.toLocaleString(LOCALE, { maximumFractionDigits: d, minimumFractionDigits: 0 })),
+  money: (v: number | null | undefined, cur: string) => (v === null || v === undefined ? '–' : `${Math.round(v).toLocaleString(LOCALE)} ${cur}`),
   pct: (v: number | null | undefined, d = 0) => (v === null || v === undefined ? '–' : `${(v * 100).toFixed(d)}%`),
   date: (s: string | null | undefined) => {
     if (!s) return '–'
     const d = new Date(s.length === 10 ? s + 'T12:00:00' : s)
-    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+    return d.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short', year: 'numeric' })
   },
   short: (s: string | null | undefined) => {
     if (!s) return '–'
     const d = new Date(s.length === 10 ? s + 'T12:00:00' : s)
-    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+    return d.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short' })
   },
-  time: (s: string | null | undefined) => (s ? new Date(s).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '–'),
+  time: (s: string | null | undefined) => (s ? new Date(s).toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' }) : '–'),
   minutes: (m: number | null | undefined) => {
     if (m === null || m === undefined) return '–'
     if (m < 60) return `${Math.round(m)} min`

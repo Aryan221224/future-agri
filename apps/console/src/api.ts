@@ -53,7 +53,7 @@ export interface Region {
 }
 export interface Meta { version: string; templates: Template[]; regions: Region[]; job_kinds: string[]; drone: string; lan_exposed: boolean }
 export interface Settings { area_unit: 'ha' | 'acre' | 'mu'; language: Lang; theme: 'auto' | 'light' | 'dark'; operator: string; default_region: string; aircraft_id: string }
-export type Lang = 'en' | 'hi' | 'es' | 'pt'
+export type Lang = 'en'
 
 export interface Farm {
   id: string; name: string; mode: Mode; template: string; crop: string; region: string; country: string | null

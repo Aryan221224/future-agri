@@ -1,9 +1,9 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { LANG_NAMES } from './i18n'
-import type { Lang } from './api'
+import { LOCALE } from './i18n'
 import { FarmProvider, useApp, useFarm, AppProvider } from './state'
 import { go, href, useRoute, type Page, type Route } from './router'
 import { Icon } from './ui/icons'
+import { ThemeToggle } from './ui/ThemeToggle'
 import { Empty, Progress } from './ui/core'
 import { Farms } from './pages/Farms'
 
@@ -99,7 +99,7 @@ function BuildState() {
 }
 
 function Shell({ route, children }: { route: Route; children: ReactNode }) {
-  const { t, meta, farms, online } = useApp()
+  const { t, meta, farms, online, resolvedTheme } = useApp()
   const fid = route.name === 'farm' ? route.fid : null
   const wide = route.name === 'farm' && (route.page === 'twin' || route.page === 'drone')
   return (
@@ -107,7 +107,7 @@ function Shell({ route, children }: { route: Route; children: ReactNode }) {
       <header className="clock">
         <a className="brand" href={href.farms}><img src="/icon.svg" alt="" /><span>Future Agri</span></a>
         <div className="clock-farm">{fid ? <FarmSwitch fid={fid} page={route.name === 'farm' ? route.page : 'mission'} /> : null}{fid ? <MissionClock /> : null}</div>
-        <div className="clock-tools"><ModeSwitch /><LangSwitch /></div>
+        <div className="clock-tools"><ThemeToggle /><ModeSwitch /></div>
       </header>
       {meta?.lan_exposed ? <div className="banner">No login: anyone who can reach this computer on the network can operate this console.</div> : null}
       {!online ? <div className="banner">{t('offline')}</div> : null}
@@ -127,7 +127,8 @@ function Shell({ route, children }: { route: Route; children: ReactNode }) {
         <a href={href.system} aria-current={route.name === 'system' ? 'page' : undefined}><Icon name="gear" />{t('nav.system')}</a>
       </nav>
       <main className="main" id="main">
-        <div className={wide ? 'page-wide' : 'page'}>{children}</div>
+        {/* remount on a theme change so 3D views and charts redraw in the new colours */}
+        <div className={wide ? 'page-wide' : 'page'} key={resolvedTheme}>{children}</div>
       </main>
       <nav className="bottom-nav" aria-label="Main">
         {fid ? NAV.filter((n) => ['mission', 'twin', 'drone', 'live'].includes(n.page)).map((n) => (
@@ -157,7 +158,7 @@ function MissionClock() {
   const phase = session.done ? t('clock.done') : session.world.waiting ? t('clock.waiting') : session.phase === 'flights' ? t('clock.flights') : t('clock.morning')
   return (
     <span className="clock-day num">
-      {new Date(session.day + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+      {new Date(session.day + 'T12:00:00').toLocaleDateString(LOCALE, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
       {' — '}{t('clock.day', { das: Math.min(session.das, total), total })}{', '}{phase}
     </span>
   )
@@ -170,16 +171,6 @@ function ModeSwitch() {
       <button type="button" aria-pressed={mode === 'team'} onClick={() => setMode('team')}>{t('mode.team')}</button>
       <button type="button" aria-pressed={mode === 'farmer'} onClick={() => setMode('farmer')}>{t('mode.farmer')}</button>
     </div>
-  )
-}
-
-function LangSwitch() {
-  const { lang, setLang } = useApp()
-  return (
-    <select className="input" style={{ width: 'auto', minHeight: 34, padding: '4px 8px' }} aria-label="Language" value={lang}
-      onChange={(e) => setLang(e.target.value as Lang)}>
-      {(Object.keys(LANG_NAMES) as Lang[]).map((l) => <option key={l} value={l}>{LANG_NAMES[l]}</option>)}
-    </select>
   )
 }
 

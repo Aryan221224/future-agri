@@ -1,7 +1,6 @@
 // System: the GPU server connection, operator settings, jobs, data sources and the audit log.
 import { useCallback, useEffect, useState } from 'react'
-import { api, type Job, type Lang, type Settings } from '../api'
-import { LANG_NAMES } from '../i18n'
+import { api, type Job, type Settings } from '../api'
 import { useApp } from '../state'
 import { Icon } from '../ui/icons'
 import { Badge, Dialog, Field, fmt, Notice, Segmented, STATUS_KIND } from '../ui/core'
@@ -170,11 +169,6 @@ export default function System() {
                 options={[{ value: 'ha', label: 'hectare' }, { value: 'acre', label: 'acre' }, { value: 'mu', label: 'mu' }]} />
             </div>
             <div className="grid-form" style={{ gridTemplateColumns: '1fr', marginTop: 12 }}>
-              <Field label="Default language for new devices">
-                <select className="input" value={settings.language} onChange={(e) => save({ language: e.target.value as Lang })}>
-                  {(Object.keys(LANG_NAMES) as Lang[]).map((l) => <option key={l} value={l}>{LANG_NAMES[l]}</option>)}
-                </select>
-              </Field>
               <Field label="Operator name" hint="Written into spray records.">
                 <input className="input" maxLength={80} value={form.operator} onChange={(e) => setForm({ ...form, operator: e.target.value })} />
               </Field>
