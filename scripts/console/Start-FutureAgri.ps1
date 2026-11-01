@@ -62,8 +62,9 @@ $want = (Get-FileHash $Req).Hash + (Get-FileHash $ReqWorker).Hash
 $have = if (Test-Path $stamp) { (Get-Content $stamp -Raw).Trim() } else { '' }
 if ($have -ne $want) {
   Say 'Installing packages...' Cyan
-  & $VenvPy -m pip install -q --disable-pip-version-check -r $Req
-  if ($LASTEXITCODE -ne 0) { Say 'Package installation failed: check the internet connection and run this again.' Red; exit 1 }
+  # --no-cache-dir: a locked or stale entry in pip's own cache otherwise fails the install
+  & $VenvPy -m pip install -q --disable-pip-version-check --no-cache-dir -r $Req
+  if ($LASTEXITCODE -ne 0) { Say 'Package installation failed (the reason is above). Fix that, then run this again.' Red; exit 1 }
   Set-Content -Path $stamp -Value $want -Encoding ascii
 }
 

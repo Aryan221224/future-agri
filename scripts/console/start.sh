@@ -14,7 +14,7 @@ fi
 STAMP="$VENV/.fa-requirements"
 WANT="$(cat "$REQ" "$ROOT/scripts/console/requirements-worker.txt" | cksum)"
 if [ "$(cat "$STAMP" 2>/dev/null)" != "$WANT" ]; then
-  "$VENV/bin/pip" install -q --disable-pip-version-check -r "$REQ"
+  "$VENV/bin/pip" install -q --disable-pip-version-check --no-cache-dir -r "$REQ"
   echo "$WANT" > "$STAMP"
 fi
 [ -d "$ROOT/data_cache" ] && export FA_DATA_CACHE="${FA_DATA_CACHE:-$ROOT/data_cache}"
