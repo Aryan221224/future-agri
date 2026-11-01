@@ -70,6 +70,16 @@ services:
       - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on: [api]
 
+  console:
+    # The Mission Console (standalone: SQLite inside the /data volume, no db/mqtt needed).
+    # Published on the host's loopback only -- it has no login.
+    build: {context: ., dockerfile: deploy/console.Dockerfile}
+    ports: ["127.0.0.1:8099:8099"]
+    volumes:
+      - consoledata:/data
+    profiles: ["console"]
+
 volumes:
   pgdata:
   mqttdata:
+  consoledata:

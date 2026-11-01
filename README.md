@@ -3,18 +3,34 @@
 A global crop digital twin that tells a farmer, every week, whether to **irrigate,
 spray fungicide, spray herbicide, or wait** — and how sure it is. A WOFOST crop
 model kept in step with the field by one camera pass and ensemble data
-assimilation, a forecast-ensemble planner scored in ₹/ha, a calibrated
+assimilation, a forecast-ensemble planner scored in the farm's own currency, a calibrated
 crop/weed detector whose uncertain calls go to a person, and drone missions
 routed within battery and tank limits. Runs end to end with no hardware.
 
 ```bash
 pip install -r requirements.txt
 make demo          # the whole loop, ~45 s, no drone, no GPU, no network
-make test          # 224 tests (+6 live-data tests: make test-network)
+make test          # 330+ tests (+ live-data tests: make test-network; browser tests: make test-browser)
 make bench         # reproduces every number quoted below
 make twin-ui       # then open http://localhost:8099/twin.html
 make perfect ARCH=A5 YEAR=2025   # perfect run for one farm type on real data -> runs/
 ```
+
+## The Mission Console
+
+The software the project runs on: build a field's digital twin from real data, see
+it in 3D with the K3-A Pro twin flying over it, rehearse the season to choose and
+approve a plan with timings, then run the season day by day with live weather,
+approvals, flights, scans and records — and a one-screen phone view for farmers.
+Heavy jobs go to the H200 through one SSH session whose password only you type.
+
+```bash
+scripts\console\Start-FutureAgri.cmd       # Windows: sets itself up, opens http://127.0.0.1:8099
+scripts/console/start.sh                    # Linux / macOS
+docker compose --profile console up console # Docker (loopback only)
+```
+
+Operator guide: [docs/console.md](docs/console.md) · design: [ADR 0017](docs/adr/0017-mission-console.md)
 
 ---
 

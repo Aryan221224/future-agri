@@ -1,0 +1,9 @@
+# The Mission Console (python -m fa_console): the simulation stack plus the web server.
+-r ../../scripts/console/requirements-worker.txt
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9      # uploads (scans, orthomosaics, aircraft records)
+reportlab>=4.0               # the plan PDF (BSD)
+pillow>=10.0
+duckdb>=1.0                  # field boundaries (Fields of The World)
+pyarrow>=15

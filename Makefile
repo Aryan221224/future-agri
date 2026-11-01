@@ -1,4 +1,4 @@
-.PHONY: help install demo test bench bench-quick gate-eval twin-ui lint licences up down clean sitl ml-smoke farm perfect archetypes test-network
+.PHONY: help install demo test bench bench-quick gate-eval twin-ui lint licences up down clean sitl ml-smoke farm perfect archetypes test-network console console-build console-up test-browser worker
 .DEFAULT_GOAL := help
 
 PY ?= python3
@@ -33,6 +33,21 @@ bench-quick: ## Smaller versions of the headline benchmarks (~5 min)
 
 twin-ui: ## Serve the API + web pages locally (open http://localhost:8099/twin.html)
 	$(PY) scripts/dev_server.py
+
+console:  ## Run the Mission Console (http://127.0.0.1:8099; install: pip install -r services/console/requirements.txt)
+	PYTHONPATH=services/console $(PY) -m fa_console --open
+
+console-build:  ## Rebuild the console UI into services/console/fa_console/static (needs Node 20+)
+	cd apps/console && npm ci && npm run build
+
+console-up:  ## Run the Mission Console in Docker (loopback only)
+	docker compose --profile console up --build console
+
+test-browser:  ## Browser tests of the built console (Playwright + Chromium)
+	FA_E2E=1 $(PY) -m pytest tests/e2e -q -p no:warnings
+
+worker:  ## Run a GPU worker here against a console tunnelled to 127.0.0.1:18099 (TOKEN=...)
+	PYTHONPATH=services/console $(PY) -m fa_console.worker --server http://127.0.0.1:18099 --token $(TOKEN)
 
 gate-eval: ## Compare conformal gates on the real detector's cached scores (needs the H200 files)
 	$(PY) ml/gate_eval.py --run ml/runs/wg-medium
