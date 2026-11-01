@@ -73,3 +73,20 @@ def simulate(vf, settings: MissionSettings, weather: dict, targets=None, seed: i
             "home": home, "settings": {k: getattr(res.settings or settings, k)
                                        for k in MissionSettings.__dataclass_fields__},
             "weather": weather, "targets_frac": 1.0 if mask is None else round(float(mask.mean()), 4)}
+
+
+def mission_job_factory(state):
+    """The ``mission`` job, shared by the console and the remote GPU worker: ``state``
+    needs ``farms.load(fid)`` and ``store.get_farm(fid)``."""
+
+    def job(job: dict, ctx) -> dict:
+        p = job["params"]
+        ctx.progress(0.1, "flying the mission")
+        vf = state.farms.load(job["farm_id"])
+        farm = state.store.get_farm(job["farm_id"])
+        out = simulate(vf, MissionSettings(**p["settings"]), p["weather"], p.get("targets"), p.get("seed", 0),
+                       farm["region"], tuple(p["home"]) if p.get("home") else None)
+        return {"summary": {"feasible": out["feasible"], **{k: out["kpis"].get(k) for k in ("time_min", "sorties")}},
+                **out}
+
+    return job

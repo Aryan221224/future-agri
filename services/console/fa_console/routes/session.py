@@ -1,10 +1,13 @@
 """The mission session: the closed loop, day by day, with operator decisions."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, File, Request, UploadFile
 from pydantic import BaseModel, Field
 
+from ..detect import TIFF_MAGIC, console_ortho_path, detect_job_factory, ingest_detections, weights_dir
+from ..errors import TooLarge
 from ..sessions import SessionService
+from ..store import new_id
 
 router = APIRouter(prefix="/api/farms/{fid}/session", tags=["mission"])
 
@@ -12,6 +15,8 @@ router = APIRouter(prefix="/api/farms/{fid}/session", tags=["mission"])
 def init(app) -> None:
     s = app.state
     s.sessions = SessionService(s.store, s.settings, s.farms, s.jobs)
+    s.jobs.register("detect", detect_job_factory(s, lambda job: console_ortho_path(s.store, job)), remote=True,
+                    on_done=lambda job, result: ingest_detections(s.sessions, job, result))
 
 
 class OpIn(BaseModel):
@@ -101,6 +106,41 @@ def scan(fid: str, body: ScanIn, request: Request) -> dict:
 @router.post("/upload-scan")
 def upload_scan(fid: str, body: UploadIn, request: Request) -> dict:
     return _svc(request).upload_scan(fid, body.geojson, body.gsd_m)
+
+
+@router.post("/ortho")
+async def ortho(fid: str, request: Request, file: UploadFile = File(...)) -> dict:
+    """An orthomosaic (GeoTIFF) for weed detection: stored with the farm, then detected on
+    the GPU server; the detections are imported into the mission when the job finishes."""
+    s = request.app.state
+    farm = s.farms.get(fid)
+    name = file.filename or "orthomosaic.tif"
+    if not name.lower().endswith((".tif", ".tiff")):
+        raise ValueError("upload the orthomosaic as a GeoTIFF (.tif) exported with its coordinates")
+    if not (s.jobs._remote_alive("detect") or weights_dir()):
+        raise ValueError("weed detection runs on the GPU server: connect it from System, then upload again")
+    head = await file.read(4)
+    if head not in TIFF_MAGIC:
+        raise ValueError(f"{name} is not a TIFF file")
+    d = s.store.farm_dir(fid) / "ortho"
+    d.mkdir(parents=True, exist_ok=True)
+    out = d / f"{new_id('o_')}.tif"
+    limit, n = int(s.settings.max_ortho_mb) * 1024 * 1024, len(head)
+    try:
+        with open(out, "wb") as fh:
+            fh.write(head)
+            while chunk := await file.read(1 << 20):
+                n += len(chunk)
+                if n > limit:
+                    raise TooLarge(f"orthomosaic larger than {s.settings.max_ortho_mb} MB")
+                fh.write(chunk)
+    except BaseException:
+        out.unlink(missing_ok=True)
+        raise
+    job = s.jobs.submit("detect", fid, {"ortho": out.name, "file": name[:120], "mb": round(n / 1e6, 1)})
+    s.store.add_event(fid, "ortho_uploaded", {"file": name[:120], "mb": round(n / 1e6, 1), "job": job["id"],
+                                              "farm": farm["name"]})
+    return {"job": job}
 
 
 @router.post("/record")

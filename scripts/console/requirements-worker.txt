@@ -1,0 +1,22 @@
+# The remote GPU worker (python -m fa_console.worker): the simulation stack from
+# requirements.txt without the web server. Installed on the GPU server by worker_remote.sh.
+pcse==6.0.13                 # EUPL-1.2 -- documented exception, ADR 0005/0009
+pandas>=2.2,<3
+numpy>=1.26,<3
+scipy>=1.11
+shapely>=2.0,<3
+pyproj>=3.6,<4
+ortools>=9.12
+pydantic>=2.7,<3
+PyYAML>=6.0
+requests>=2.31
+# Archived ECMWF / GEFS ensembles (dynamical.org). Without these the iterations quietly
+# fall back to climatology analogs, so they are required, not optional.
+xarray>=2025.1
+zarr>=3.0,<4
+icechunk>=2.0,<3
+fsspec>=2025.1
+s3fs>=2025.1
+# Sentinel-2 and orthomosaics (weed detection)
+rasterio>=1.3
+pystac-client>=0.8

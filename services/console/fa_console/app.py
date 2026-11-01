@@ -12,6 +12,8 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse  # noqa: 
 from . import __version__  # noqa: E402
 from .config import Settings  # noqa: E402
 from .errors import Busy, NotFound, TooLarge  # noqa: E402
+
+WORKER_RESULT_MB = 512
 from .jobs import JobManager  # noqa: E402
 from .store import Store  # noqa: E402
 
@@ -44,12 +46,20 @@ def create_app(settings: Settings | None = None, start_workers: bool = True) -> 
     app.state.settings, app.state.store, app.state.jobs = settings, store, jobs
     _errors(app)
     limit = int(settings.max_upload_mb) * 1024 * 1024
+    ortho_limit = int(settings.max_ortho_mb) * 1024 * 1024
 
     @app.middleware("http")
     async def size_guard(request: Request, call_next):
         n = request.headers.get("content-length")
-        if n and n.isdigit() and int(n) > limit:
-            return JSONResponse({"detail": f"upload larger than {settings.max_upload_mb} MB"}, status_code=413)
+        path = request.url.path
+        if path.endswith("/session/ortho"):                        # orthomosaics are large; streamed to disk
+            cap, mb = ortho_limit, settings.max_ortho_mb
+        elif path.startswith("/api/workers/"):                     # results from the GPU worker (token-checked)
+            cap, mb = WORKER_RESULT_MB * 1024 * 1024, WORKER_RESULT_MB
+        else:
+            cap, mb = limit, settings.max_upload_mb
+        if n and n.isdigit() and int(n) > cap:
+            return JSONResponse({"detail": f"upload larger than {mb} MB"}, status_code=413)
         return await call_next(request)
 
     from .routes import ROUTERS

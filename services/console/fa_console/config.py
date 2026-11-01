@@ -18,6 +18,7 @@ class Settings:
     port: int = field(default_factory=lambda: int(os.environ.get("FA_PORT", "8099")))
     local_workers: int = field(default_factory=lambda: int(os.environ.get("FA_LOCAL_WORKERS", "1")))
     max_upload_mb: int = 50
+    max_ortho_mb: int = field(default_factory=lambda: int(os.environ.get("FA_MAX_ORTHO_MB", "4096")))
     offline: bool = field(default_factory=lambda: os.environ.get("FA_OFFLINE", "") == "1")
 
     def __post_init__(self):

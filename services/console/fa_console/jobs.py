@@ -55,6 +55,7 @@ class JobManager:
         self.store, self.settings = store, settings
         self._fns: dict[str, callable] = {}
         self._remote_kinds: set[str] = set()
+        self._on_done: dict[str, callable] = {}
         self._cancel: set[str] = set()
         self._stop = threading.Event()
         self._threads: list[threading.Thread] = []
@@ -65,10 +66,14 @@ class JobManager:
                              finished_at=now())
 
     # ---------------------------------------------------------------- registration and submission
-    def register(self, kind: str, fn, remote: bool = False) -> None:
+    def register(self, kind: str, fn, remote: bool = False, on_done=None) -> None:
+        """``on_done(job, result) -> str | None`` runs in the console after a job of this
+        kind finishes (locally or on a remote worker); its text becomes the job message."""
         self._fns[kind] = fn
         if remote:
             self._remote_kinds.add(kind)
+        if on_done is not None:
+            self._on_done[kind] = on_done
 
     def kinds(self) -> list[str]:
         return sorted(self._fns)
@@ -153,6 +158,15 @@ class JobManager:
         self.store.update_job(jid, status="done", progress=1.0, result=summary, finished_at=now())
         job = self.store.get_job(jid)
         self.store.add_event(job["farm_id"], "job_done", {"job": jid, "kind": job["kind"]})
+        hook = self._on_done.get(job["kind"])
+        if hook is not None:
+            try:
+                msg = hook(job, result)
+            except Exception as e:  # noqa: BLE001 -- the result is kept; say why it was not used
+                log.error("on_done for %s failed\n%s", jid, traceback.format_exc())
+                msg = f"finished, but the result was not used: {type(e).__name__}: {e}"
+            if msg:
+                self.store.update_job(jid, message=str(msg)[:500])
 
     def result(self, jid: str) -> dict | None:
         p = self.settings.jobs_dir / f"{jid}.json"

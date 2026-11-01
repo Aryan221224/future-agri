@@ -6,26 +6,14 @@ from pydantic import BaseModel, Field
 
 from fa_drone.mission import MissionSettings
 
-from ..dronesvc import drone_spec_payload, simulate
+from ..dronesvc import drone_spec_payload, mission_job_factory, simulate
 
 router = APIRouter(prefix="/api", tags=["drone"])
 SYNC_MAX_HA = 60.0
 
 
 def init(app) -> None:
-    jobs = app.state.jobs
-
-    def mission_job(job, ctx):
-        p = job["params"]
-        ctx.progress(0.1, "flying the mission")
-        vf = app.state.farms.load(job["farm_id"])
-        farm = app.state.store.get_farm(job["farm_id"])
-        out = simulate(vf, MissionSettings(**p["settings"]), p["weather"], p.get("targets"), p.get("seed", 0),
-                       farm["region"], p.get("home"))
-        return {"summary": {"feasible": out["feasible"], **{k: out["kpis"].get(k) for k in ("time_min", "sorties")}},
-                **out}
-
-    jobs.register("mission", mission_job, remote=True)
+    app.state.jobs.register("mission", mission_job_factory(app.state), remote=True)
 
 
 class FlightIn(BaseModel):
