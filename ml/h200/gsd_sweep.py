@@ -30,10 +30,11 @@ def canvases(coco: dict, img_dir: Path, k: int, size: int = 600):
     classes, gts, _ = load_gts(coco)
     ims = sorted(coco["images"], key=lambda x: x["id"])
     per = k * k
-    for s in range(0, len(ims) - per + 1, per):
+    for s in range(0, len(ims), per):              # the last canvas may be partial: every image is used
         canvas = Image.new("RGB", (size, size))
         boxes = []
-        for j, im in enumerate(ims[s:s + per]):
+        chunk = ims[s:s + per]
+        for j, im in enumerate(chunk):
             r, c = divmod(j, k)
             tile = Image.open(img_dir / im["file_name"]).convert("RGB")
             w, h = tile.size
@@ -42,7 +43,11 @@ def canvases(coco: dict, img_dir: Path, k: int, size: int = 600):
             canvas.paste(small, (ox, oy))
             for x1, y1, x2, y2, nm in gts.get(im["id"], []):
                 boxes.append((x1 / k + ox, y1 / k + oy, x2 / k + ox, y2 / k + oy, nm))
-        yield np.asarray(canvas), boxes, size * size
+        yield np.asarray(canvas), boxes, len(chunk) * (size // k) ** 2     # imaged area only
+
+
+def fmt(v) -> str:
+    return "n/a" if v is None else f"{v:.3f}"
 
 
 def main() -> int:
@@ -70,9 +75,9 @@ def main() -> int:
         st["canvases"] = len(imgs)
         res["by_factor"][str(k)] = st
         print(f"k={k} gsd={GSD_REF_M * k * 1000:.1f} mm canvases={len(imgs)} weed recall="
-              f"{st['weed']['overall_recall_right_group']:.3f} precision={st['weed_precision']:.3f}", flush=True)
-    a.out.parent.mkdir(parents=True, exist_ok=True)
-    a.out.write_text(json.dumps(res, indent=1))
+              f"{fmt(st['weed']['overall_recall_right_group'])} precision={fmt(st['weed_precision'])}", flush=True)
+        a.out.parent.mkdir(parents=True, exist_ok=True)
+        a.out.write_text(json.dumps(res, indent=1))           # after every factor: a later failure keeps these
     print("GSD_SWEEP_DONE", a.out)
     return 0
 

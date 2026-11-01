@@ -8,15 +8,15 @@
   "torch-fp32": {
    "backend": "torch",
    "forward": {
-    "median_ms": 8.119,
-    "p90_ms": 8.165,
-    "fps": 123.2,
+    "median_ms": 8.272,
+    "p90_ms": 8.586,
+    "fps": 120.9,
     "iters": 200
    },
    "end_to_end": {
-    "median_ms": 31.015,
-    "p90_ms": 31.485,
-    "fps": 32.2,
+    "median_ms": 34.046,
+    "p90_ms": 34.555,
+    "fps": 29.4,
     "iters": 50
    },
    "parity": "reference"
@@ -24,15 +24,15 @@
   "torch-fp16": {
    "backend": "torch-fp16",
    "forward": {
-    "median_ms": 10.976,
-    "p90_ms": 11.022,
-    "fps": 91.1,
+    "median_ms": 10.911,
+    "p90_ms": 11.179,
+    "fps": 91.6,
     "iters": 200
    },
    "end_to_end": {
-    "median_ms": 34.76,
-    "p90_ms": 35.384,
-    "fps": 28.8,
+    "median_ms": 35.855,
+    "p90_ms": 36.21,
+    "fps": 27.9,
     "iters": 50
    },
    "parity": {
@@ -40,21 +40,25 @@
     "mean_max_abs_dprob": 0.57343,
     "max_box_err_px": 594.321,
     "images_with_identical_decisions": "7/20",
-    "kept_detections_ref": 1416
+    "kept_detections_ref": 1416,
+    "matched_recall": 0.9951,
+    "matched_precision": 0.9965,
+    "matched_f1": 0.9958,
+    "class_agreement_matched": 0.9922
    }
   },
   "onnx": {
    "backend": "onnxruntime-cpu",
    "forward": {
-    "median_ms": 121.91,
-    "p90_ms": 187.795,
-    "fps": 8.2,
+    "median_ms": 118.038,
+    "p90_ms": 127.813,
+    "fps": 8.5,
     "iters": 200
    },
    "end_to_end": {
-    "median_ms": 171.05,
-    "p90_ms": 210.921,
-    "fps": 5.8,
+    "median_ms": 169.308,
+    "p90_ms": 176.633,
+    "fps": 5.9,
     "iters": 50
    },
    "parity": {
@@ -62,15 +66,19 @@
     "mean_max_abs_dprob": 0.4808,
     "max_box_err_px": 592.999,
     "images_with_identical_decisions": "11/20",
-    "kept_detections_ref": 1416
+    "kept_detections_ref": 1416,
+    "matched_recall": 0.9951,
+    "matched_precision": 0.9958,
+    "matched_f1": 0.9954,
+    "class_agreement_matched": 0.995
    }
   }
  },
  "env": {
-  "utc": "2026-10-31T04:24:28+00:00",
+  "utc": "2026-11-01T12:06:51+00:00",
   "python": "3.12.3",
   "os": "Linux 6.8.0-117-generic",
-  "machine": "09e74e541f19",
+  "machine": "cc904e67be46",
   "git": "unknown",
   "torch": "2.12.0a0+0291f960b6.nv26.04.48445190",
   "cuda": "13.2",

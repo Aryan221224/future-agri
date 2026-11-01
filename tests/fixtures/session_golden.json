@@ -2,18 +2,18 @@
  "blight_twin": {
   "policy": "twin",
   "seed": 0,
-  "yield_dry_kg_ha": 5290.0,
-  "yield_marketed_kg_ha": 26450.0,
-  "revenue_ha": 3967.5,
+  "yield_dry_kg_ha": 5308.1,
+  "yield_marketed_kg_ha": 26540.3,
+  "revenue_ha": 3981.05,
   "costs_ha": {
-   "fungicide_product": 160.32,
+   "fungicide_product": 200.4,
    "herbicide_product": 0.0,
-   "application": 102.33,
+   "application": 127.91,
    "scans": 16.0
   },
-  "net_ha": 3688.85,
+  "net_ha": 3636.74,
   "currency": "EUR",
-  "fungicide_sprays": 4,
+  "fungicide_sprays": 5,
   "herbicide": "none",
   "herbicide_treated_frac": 0.0,
   "missions": [
@@ -40,15 +40,21 @@
     "fungicide",
     15.03,
     12.53
+   ],
+   [
+    "2025-07-23",
+    "fungicide",
+    15.03,
+    12.53
    ]
   ],
-  "litres": 60.12,
-  "sorties": 8,
+  "litres": 75.15,
+  "sorties": 10,
   "battery_swaps": 3,
-  "drone_time_min": 50.1,
-  "off_target_l": 6.31,
-  "mean_cv_pct": 12.2,
-  "mean_skipped_frac": 0.0075,
+  "drone_time_min": 62.6,
+  "off_target_l": 5.89,
+  "mean_cv_pct": 10.9,
+  "mean_skipped_frac": 0.004,
   "scans": 2,
   "blight_infection_day": "2025-05-20",
   "final_blight_severity": 0.999,
@@ -76,7 +82,7 @@
    "prices/costs for EU are illustrative assumptions"
   ],
   "n_decisions": 41,
-  "as_applied_last_sum": 86.869
+  "as_applied_last_sum": 96.893
  },
  "blight_calendar": {
   "policy": "calendar",
@@ -269,9 +275,9 @@
   "sorties": 14,
   "battery_swaps": 5,
   "drone_time_min": 87.7,
-  "off_target_l": 10.26,
-  "mean_cv_pct": 12.7,
-  "mean_skipped_frac": 0.0143,
+  "off_target_l": 9.61,
+  "mean_cv_pct": 11.8,
+  "mean_skipped_frac": 0.0157,
   "scans": 6,
   "blight_infection_day": null,
   "final_blight_severity": 0.0,
@@ -299,7 +305,7 @@
    "prices/costs for EU are illustrative assumptions"
   ],
   "n_decisions": 49,
-  "as_applied_last_sum": 93.791
+  "as_applied_last_sum": 90.973
  },
  "clean_calendar": {
   "policy": "calendar",

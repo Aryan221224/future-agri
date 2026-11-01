@@ -1,5 +1,8 @@
 """Fixed season cases for the SeasonSession refactor: the golden values were recorded
-from ``run_season`` BEFORE its loop moved into ``SeasonSession`` (2026-11-01).
+from ``run_season`` BEFORE its loop moved into ``SeasonSession`` (2026-11-01), and
+re-recorded the same day after one deliberate model change: the weed detector's
+recall and false positives now come from the measured H200 GSD sweep. Only the twin
+cases moved (blight_twin: 4 -> 5 fungicide sprays, net -52/ha); calendar cases did not.
 
     python tests/session_cases.py     # regenerate tests/fixtures/session_golden.json
 """

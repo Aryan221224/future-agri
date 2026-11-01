@@ -88,13 +88,17 @@ def test_import_scan_counts_outside_and_bad_features():
 def test_import_scan_densities_are_recall_corrected():
     g, (lon, lat, dlon, dlat) = _grid()
     feats = [_pt(lon + 0.05 * dlon, lat + 0.05 * dlat, "weed") for _ in range(20)]
-    obs, _ = import_scan({"type": "FeatureCollection", "features": feats}, g, gsd_m=0.02, day_index=10,
-                         fp_per_m2=0.0)
+    fc = {"type": "FeatureCollection", "features": feats}
+    obs, _ = import_scan(fc, g, gsd_m=0.005, day_index=10, fp_per_m2=0.0)
     i = int(np.argmax(obs.weed_detections))
     assert obs.weed_detections[i] == 20
-    assert 0 < obs.weed_recall_used < 1
+    assert 0.05 < obs.weed_recall_used < 1
     assert obs.weed_density_est[i] == pytest.approx(20 / obs.weed_recall_used / g.cell_m ** 2)
     assert obs.weed_density_est[i] > 20 / g.cell_m ** 2
+    # at 20 mm the H200 sweep measured ~0 recall for small weeds: no density is claimed
+    coarse, _ = import_scan(fc, g, gsd_m=0.02, day_index=10, fp_per_m2=0.0)
+    assert coarse.weed_recall_used < 0.05
+    assert not coarse.weed_density_est.any() and np.isinf(coarse.weed_density_sd).all()
 
 
 def test_import_scan_without_cover_is_uninformative():

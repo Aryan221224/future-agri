@@ -54,7 +54,7 @@ def import_scan(geojson: dict, grid, gsd_m: float, day_index: int,
     else:
         raise ValueError("scan must be a GeoJSON FeatureCollection of points")
     det = detector or DetectorModel.load()
-    fp = det.weed_fp_per_m2 if fp_per_m2 is None else float(fp_per_m2)
+    fp = det.fp_per_m2(gsd_m) if fp_per_m2 is None else float(fp_per_m2)
     n, cell_m2 = grid.n_cells, grid.cell_m ** 2
     rep = {"points": 0, "weeds": 0, "disease": 0, "outside": 0, "bad": 0, "errors": []}
     pts, kinds, sev = [], [], []

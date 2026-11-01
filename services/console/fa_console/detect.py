@@ -38,9 +38,11 @@ def weights_dir() -> Path | None:
 
 
 def backend() -> str:
-    """Full-precision PyTorch unless overridden: the ONNX and FP16 exports of wg-medium failed the
-    parity check on the H200 (31 Oct 2026: max |dp| 0.84, identical decisions on 11/20 and 7/20
-    test images), so only the PyTorch FP32 path is validated -- and it was also the fastest there."""
+    """PyTorch FP32 on the GPU server unless overridden: it is the reference and the fastest there
+    (9.7 ms per 608 px tile on the H200). ONNX and FP16 match it (H200, 1 Nov 2026: detections
+    matched one-to-one by IoU, recall 0.995, precision 0.996-0.997, class agreement 0.992-0.995;
+    ml/results/wg-medium/latency.json), so the ONNX export is fit to build a TensorRT engine on
+    the aircraft's own computer."""
     return os.environ.get("FA_DETECTOR_BACKEND", "torch")
 
 

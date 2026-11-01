@@ -11,7 +11,8 @@ case "$REPO" in "$HOME"/*) ;; *) echo "Repo must be inside $HOME"; exit 2;; esac
 if docker ps --format '{{.Names}}' | grep -qx "fa-gsd-$NAME"; then echo "Started. (already running)"; exit 0; fi
 read -r GPU USED UTIL < <(nvidia-smi --query-gpu=index,memory.used,utilization.gpu --format=csv,noheader,nounits \
     | tr -d ' ' | awk -F, '{print $1, $2, $3}' | sort -k2,2n | head -1)
-if [ "${USED:-999999}" -gt 4000 ] || [ "${UTIL:-100}" -gt 40 ]; then echo "No idle GPU (best GPU $GPU: ${USED} MiB, ${UTIL}%)"; exit 3; fi
+# the GPUs are shared and partly reserved: take one under 40 % load with at most 12 GB in use
+if [ "${USED:-999999}" -gt 12000 ] || [ "${UTIL:-100}" -gt 40 ]; then echo "No idle GPU (best GPU $GPU: ${USED} MiB, ${UTIL}%)"; exit 3; fi
 rm -f "$RUN/gsd_log.txt"
 mkdir -p "$HOME/.fa_home" "$HOME/.fa_pyuser" "$HOME/.fa_cache"
 docker run -d --rm --name "fa-gsd-$NAME" --gpus "device=$GPU" --shm-size=8g \
