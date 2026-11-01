@@ -294,3 +294,54 @@ def season_members(forecast: list[list[dict]], history: list[dict], end: dt.date
                                    seed=seed * 1000 + i, exclude_year=last.year)[0]
         out.append(list(mem) + tail)
     return out
+
+
+def _ttl_cache(seconds: float):
+    """Memoise per argument tuple for ``seconds`` (the archive grows once a day)."""
+    import time
+
+    def deco(fn):
+        store: dict = {}
+
+        @functools.wraps(fn)
+        def wrapper(*args):
+            hit = store.get(args)
+            if hit is not None and time.time() - hit[0] < seconds:
+                return hit[1]
+            val = fn(*args)
+            store[args] = (time.time(), val)
+            return val
+
+        wrapper.cache_clear = store.clear
+        return wrapper
+    return deco
+
+
+@_ttl_cache(3600.0)
+def latest_issue(source: ForecastSource) -> dt.date:
+    """Newest 00 UTC initialisation in the archive. The repository is re-opened (at
+    most hourly) because an open session does not see issues appended later."""
+    if hasattr(_dataset, "cache_clear"):
+        _dataset.cache_clear()
+    try:
+        t = np.asarray(_dataset(source).init_time.values).max()
+    except Exception as e:  # noqa: BLE001
+        raise DataUnavailable(f"forecast {source.value}", str(e)) from e
+    return dt.date.fromisoformat(str(np.datetime_as_string(t, unit="D")))
+
+
+def latest_forecast(lat: float, lon: float, cache: Cache, n_members: int = 20,
+                    sources: list[ForecastSource] | None = None
+                    ) -> tuple[list[list[dict]], ForecastSource, dt.date, Provenance]:
+    """The most recent real ensemble forecast at a point (no climatology fallback:
+    the caller decides how to label a missing forecast)."""
+    errors = []
+    for src in (sources or (ForecastSource.IFS_ENS, ForecastSource.GEFS, ForecastSource.AIFS_ENS)):
+        try:
+            issue = latest_issue(src)
+            mem, used, prov = ensemble_forecast(lat, lon, issue, cache, None, sources=[src],
+                                                n_members=n_members)
+            return mem, used, issue, prov
+        except DataUnavailable as e:
+            errors.append(str(e))
+    raise DataUnavailable("forecast", "; ".join(errors) or "no forecast source reachable")

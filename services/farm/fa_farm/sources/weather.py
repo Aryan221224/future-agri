@@ -11,7 +11,8 @@ import datetime as dt
 import math
 from collections import defaultdict
 
-from .base import Cache, Provenance, fetch_json, today
+from .base import Cache, DataUnavailable, Provenance, fetch_json, today
+from .base import today as today_str
 
 POWER_URL = "https://power.larc.nasa.gov/api/temporal/daily/point"
 POWER_PARAMS = "T2M_MAX,T2M_MIN,T2M,PRECTOTCORR,ALLSKY_SFC_SW_DWN,WS2M,T2MDEW,RH2M"
@@ -24,9 +25,11 @@ def es_hpa(t_c: float) -> float:
     return 6.108 * math.exp(17.27 * t_c / (t_c + 237.3))
 
 
-def parse_power(raw: dict) -> tuple[list[dict], float]:
+def parse_power(raw: dict, trailing_ok: bool = False) -> tuple[list[dict], float]:
     """POWER daily JSON -> (records, elevation_m). Days with any missing value are
-    linearly filled when the gap is <= 3 days; longer gaps raise."""
+    linearly filled when the gap is <= 3 days; longer gaps raise. With
+    ``trailing_ok`` the most recent days that POWER has not yet published are
+    dropped instead (near-real-time use)."""
     fill = float(raw.get("header", {}).get("fill_value", -999.0))
     par = raw["properties"]["parameter"]
     coords = raw.get("geometry", {}).get("coordinates", [None, None, 0.0])
@@ -44,6 +47,12 @@ def parse_power(raw: dict) -> tuple[list[dict], float]:
             "VAP": None if g("T2MDEW") is None else es_hpa(g("T2MDEW")),
             "WIND": g("WS2M"), "RH": g("RH2M"),
         })
+    if trailing_ok:
+        core = ("TMAX", "TMIN", "RAIN", "IRRAD", "VAP", "WIND")
+        while rows and any(rows[-1][k] is None for k in core):
+            rows.pop()
+        if not rows:
+            return rows, elev
     _fill_gaps(rows)
     for r in rows:
         if r["TMIN"] > r["TMAX"]:
@@ -92,6 +101,26 @@ def power_daily(lat: float, lon: float, start: dt.date, end: dt.date,
     recs = [r for r in recs if start <= r["DAY"] <= end]
     prov = Provenance("NASA POWER daily (AG, MERRA-2/CERES based)", POWER_URL,
                       "NASA open data (no restrictions)", today(), POWER_ATTRIB, True)
+    return recs, prov, elev
+
+
+def power_recent(lat: float, lon: float, start: dt.date, cache: Cache,
+                 today: dt.date | None = None) -> tuple[list[dict], Provenance, float]:
+    """Observed daily records from ``start`` up to the last day NASA POWER has
+    published (typically 2-4 days behind today). One request per calendar day."""
+    end = today or dt.date.today()
+    params = dict(parameters=POWER_PARAMS, community="AG", longitude=round(lon, 4),
+                  latitude=round(lat, 4), start=start.strftime("%Y%m%d"),
+                  end=end.strftime("%Y%m%d"), format="JSON")
+    raw = fetch_json(POWER_URL, params, cache, layer="weather", timeout=120)
+    recs, elev = parse_power(raw, trailing_ok=True)
+    recs = [r for r in recs if start <= r["DAY"] <= end]
+    if not recs:
+        raise DataUnavailable("weather", f"NASA POWER has no complete day from {start} to {end}")
+    lag = (end - recs[-1]["DAY"]).days
+    prov = Provenance("NASA POWER daily (AG, MERRA-2/CERES based), near real time", POWER_URL,
+                      "NASA open data (no restrictions)", today_str(), POWER_ATTRIB, True,
+                      f"published through {recs[-1]['DAY']} (lag {lag} days)")
     return recs, prov, elev
 
 
