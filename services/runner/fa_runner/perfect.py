@@ -110,7 +110,8 @@ def cvar_low(v, q: float = 0.2) -> float:
 
 def perfect_run(vf, seeds=(0, 1, 2), lam: float = 0.5, workers: int | None = None,
                 plan_members: int = 10, n_winds: int = 6, flight_grid: dict | None = None,
-                sources=None, cache_root: str | None = None, progress=print) -> PerfectRun:
+                sources=None, cache_root: str | None = None, progress=print,
+                season_done=None) -> PerfectRun:
     t0 = time.time()
     spec = load_spec()
     a = vf.spec.archetype
@@ -161,14 +162,20 @@ def perfect_run(vf, seeds=(0, 1, 2), lam: float = 0.5, workers: int | None = Non
     jobs = [(vf, p, s, plan_members, sources, cache_root) for p in plans for s in seeds]
     workers = workers or max(1, (os.cpu_count() or 2))
     seasons: dict = {p.name: [] for p in plans}
+    def done(name, r):
+        seasons[name].append(r)
+        if season_done is not None:
+            season_done(sum(len(v) for v in seasons.values()), len(jobs), name, r)
+
     if workers > 1:
-        with ProcessPoolExecutor(max_workers=workers) as ex:
+        import multiprocessing as mp
+        # spawn: safe when called from a threaded server (fork can inherit held locks)
+        with ProcessPoolExecutor(max_workers=workers, mp_context=mp.get_context("spawn")) as ex:
             for name, r in ex.map(_job, jobs):
-                seasons[name].append(r)
+                done(name, r)
     else:
         for j in jobs:
-            name, r = _job(j)
-            seasons[name].append(r)
+            done(*_job(j))
     t2 = time.time()
     progress(f"[perfect] stage 2: {len(jobs)} closed-loop seasons in {t2 - t1:.0f} s")
 

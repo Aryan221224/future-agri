@@ -18,12 +18,16 @@ import pytest  # noqa: E402
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "network: needs internet; run with FA_NETWORK=1")
+    config.addinivalue_line("markers", "slow: minutes of compute; run with FA_SLOW=1")
+    config.addinivalue_line("markers", "e2e: browser tests against the built console; run with FA_E2E=1")
 
 
 def pytest_collection_modifyitems(config, items):
-    if os.environ.get("FA_NETWORK") == "1":
-        return
-    skip = pytest.mark.skip(reason="network test; set FA_NETWORK=1")
-    for item in items:
-        if "network" in item.keywords:
-            item.add_marker(skip)
+    gates = {"network": "FA_NETWORK", "slow": "FA_SLOW", "e2e": "FA_E2E"}
+    for mark, env in gates.items():
+        if os.environ.get(env) == "1":
+            continue
+        skip = pytest.mark.skip(reason=f"{mark} test; set {env}=1")
+        for item in items:
+            if mark in item.keywords:
+                item.add_marker(skip)

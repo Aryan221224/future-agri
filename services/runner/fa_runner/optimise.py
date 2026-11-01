@@ -85,7 +85,8 @@ def optimise_flight(grid, spec, region, econ, winds, value_at_risk_ha: float, em
         scores, kps, brk, flyable = [], [], [], 0
         for i, (ws, wd, wg, tc) in enumerate(winds):
             res = simulate_mission(grid, spec, s, Weather(ws, wd, wg, tc), targets=targets,
-                                   seed=seed + i, rules=region.rules, power=pm, spray=sm)
+                                   seed=seed + i, rules=region.rules, power=pm, spray=sm,
+                                   record_track=False)
             if not res.feasible:
                 continue
             flyable += 1
@@ -119,7 +120,8 @@ def logistics_sensitivity(grid, spec, region, settings: MissionSettings, winds,
         ks = []
         for i, (ws, wd, wg, tc) in enumerate(winds):
             res = simulate_mission(grid, spec, s, Weather(ws, wd, wg, tc), seed=seed + i,
-                                   rules=region.rules, power=pm, spray=sm)
+                                   rules=region.rules, power=pm, spray=sm,
+                                   record_track=False)
             if res.feasible:
                 ks.append(res.kpis)
         if not ks:
