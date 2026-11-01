@@ -71,3 +71,26 @@ def test_twin3d_renders_and_picks(page, console):
     page.get_by_text("Cell", exact=False).first.wait_for(timeout=5000)
     shot(page, "04_twin3d")
     assert not page.errors, page.errors
+
+
+def test_drone_playback(page, console):
+    from conftest import make_farm
+    fid = make_farm(console, "Drone field")
+    page.goto(console["base"] + f"/#/f/{fid}/drone")
+    page.get_by_text("JIYI K3-A Pro").first.wait_for(timeout=30_000)
+    page.locator("canvas").first.wait_for()
+    page.wait_for_timeout(800)
+    assert _canvas_variance(page) > 5                       # the aircraft is drawn
+    shot(page, "05_drone_studio")
+    page.get_by_label("Speed (m/s)").fill("6")
+    page.get_by_role("button", name="Simulate mission").click()
+    page.get_by_text("Sorties").first.wait_for(timeout=30_000)
+    elapsed = page.get_by_test_id("gauge-elapsed")
+    before = elapsed.inner_text()
+    page.get_by_role("button", name="Play the flight").click()
+    page.wait_for_timeout(2500)
+    assert elapsed.inner_text() != before
+    sorties = int(page.get_by_test_id("kpi-sorties").inner_text())
+    assert sorties >= 1
+    shot(page, "06_drone_playback")
+    assert not page.errors, page.errors

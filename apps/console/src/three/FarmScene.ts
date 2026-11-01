@@ -54,6 +54,10 @@ export class FarmScene {
   private down: { x: number; y: number } | null = null
   private cellIndex = new Map<string, number>()
   onPick: (c: CellInfo | null) => void = () => undefined
+  /** called every frame with the time step (s); used by the drone playback */
+  readonly frameHooks = new Set<(dt: number) => void>()
+  private lastT = performance.now()
+  private followTarget: THREE.Object3D | null = null
 
   constructor(canvas: HTMLCanvasElement, data: Scene, opts: { crop: string; imageryUrl?: string | null; dark: boolean; bg: string }) {
     this.canvas = canvas
@@ -250,6 +254,12 @@ export class FarmScene {
     this.applyLayer()
   }
 
+  /** Hide the per-cell crop (e.g. for the flight view before the crop has grown). */
+  setCanopyVisible(on: boolean) {
+    this.canopy.visible = on
+    if (!on) { this.pins.visible = false; this.rings.visible = false }
+  }
+
   setCanopyScale(k: number) {
     this.canopyScale = k
     this.applyLayer()
@@ -433,9 +443,32 @@ export class FarmScene {
     this.camera.updateProjectionMatrix()
   }
 
+  /** Scene position of a point given in the farm's local metres, ``z`` above the ground. */
+  world(x: number, y: number, z = 0, out = new THREE.Vector3()): THREE.Vector3 {
+    return out.set(this.X(x), this.groundAt(x, y) * this.exag + z, this.Z(y))
+  }
+
+  add(o: THREE.Object3D) { this.scene.add(o) }
+
+  remove(o: THREE.Object3D) { this.scene.remove(o) }
+
+  follow(o: THREE.Object3D | null) { this.followTarget = o }
+
+  get fieldExtent(): number { return this.extent }
+
   private loop = () => {
     if (this.disposed) return
     this.raf = requestAnimationFrame(this.loop)
+    const now = performance.now()
+    const dt = Math.min(0.1, (now - this.lastT) / 1000)
+    this.lastT = now
+    this.frameHooks.forEach((h) => h(dt))
+    if (this.followTarget) {
+      const p = this.followTarget.position
+      const d = p.clone().sub(this.controls.target)
+      this.controls.target.add(d.multiplyScalar(0.08))
+      this.camera.position.add(d)
+    }
     this.controls.update()
     if (!this.reduceMotion && this.rings.count) this.rings.material.opacity = 0.6 + 0.3 * Math.sin(performance.now() / 450)
     this.renderer.render(this.scene, this.camera)
