@@ -10,7 +10,7 @@ router = APIRouter(prefix="/api", tags=["system"])
 SETTING_CHOICES = {"area_unit": ("ha", "acre", "mu"), "language": ("en", "hi", "es", "pt"),
                    "theme": ("auto", "light", "dark")}
 SETTING_TEXT = ("operator", "default_region", "aircraft_id")
-DEFAULTS = {"area_unit": "ha", "language": "en", "theme": "auto", "operator": "", "default_region": "",
+DEFAULTS = {"area_unit": "ha", "language": "en", "theme": "dark", "operator": "", "default_region": "",
             "aircraft_id": "K3A-01"}
 
 SOURCES = [

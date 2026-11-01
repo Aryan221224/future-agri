@@ -178,3 +178,11 @@ def test_missing_asset_is_404_not_the_app(tmp_path):
     with TestClient(app) as c:
         assert c.get("/sw-missing.js").status_code == 404
         assert c.get("/farms/x").status_code == 200
+
+
+def test_default_theme_is_dark(tmp_path):
+    app = create_app(_settings(tmp_path), start_workers=False)
+    with TestClient(app) as c:
+        assert c.get("/api/settings").json()["theme"] == "dark"
+        html = c.get("/").text
+        assert 'data-theme="dark"' in html or "UI not built" in html or "has not been built" in html

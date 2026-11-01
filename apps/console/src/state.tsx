@@ -22,7 +22,7 @@ interface AppValue {
   online: boolean
 }
 
-const DEFAULT_SETTINGS: Settings = { area_unit: 'ha', language: 'en', theme: 'auto', operator: '', default_region: '', aircraft_id: 'K3A-01' }
+const DEFAULT_SETTINGS: Settings = { area_unit: 'ha', language: 'en', theme: 'dark', operator: '', default_region: '', aircraft_id: 'K3A-01' }
 const AppCtx = createContext<AppValue | null>(null)
 
 export function useApp(): AppValue {

@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { f16, f32, type Scene } from '../api'
-import { RAMPS, ZONES_DARK, ZONES_LIGHT, rampColor } from './ramps'
+import { RAMPS as RAMPS_LIGHT, RAMPS_DARK, ZONES_DARK, ZONES_LIGHT, rampColor } from './ramps'
 
 export type Layer = 'canopy' | 'lai' | 'weeds' | 'blight' | 'dose' | 'zone' | 'twi'
 export interface Snapshot {
@@ -46,6 +46,7 @@ export class FarmScene {
   private canopyScale = 4
   private cropH: number
   private dark: boolean
+  private R: typeof RAMPS_LIGHT | typeof RAMPS_DARK = RAMPS_LIGHT
   private picked = -1
   private raf = 0
   private ro: ResizeObserver
@@ -63,6 +64,7 @@ export class FarmScene {
     this.canvas = canvas
     this.data = data
     this.dark = opts.dark
+    this.R = opts.dark ? RAMPS_DARK : RAMPS_LIGHT
     this.cropH = CROP_H[opts.crop] ?? 0.8
     const [minx, miny, maxx, maxy] = data.bounds
     this.cx = (minx + maxx) / 2
@@ -299,11 +301,11 @@ export class FarmScene {
         const pal = this.dark ? ZONES_DARK : ZONES_LIGHT
         return { kind: 'cats', label: 'Zones', items: Array.from({ length: k }, (_, i) => ({ color: pal[i % pal.length], label: `Zone ${i + 1}` })) }
       }
-      case 'weeds': return { kind: 'ramp', ramp: RAMPS.rust, min: 0, max: s ? Math.max(5, this.maxOf(s.weeds)) : 5, unit: 'plants/m²', label: 'Weed density' }
-      case 'blight': return { kind: 'ramp', ramp: RAMPS.purple, min: 0, max: s ? Math.max(0.05, this.maxOf(s.blight, 0.995)) : 0.05, unit: 'severity', label: 'Late blight' }
-      case 'dose': return { kind: 'ramp', ramp: RAMPS.blue, min: 0, max: s ? Math.max(5, this.maxOf(new Float32Array(Array.from(s.dose_fungicide, (v, i) => v + s.dose_herbicide[i])))) : 20, unit: 'L/ha', label: 'Sprayed so far' }
-      case 'twi': return { kind: 'ramp', ramp: RAMPS.teal, min: this.twi ? Math.min(...Array.from(this.twi)) : 0, max: this.twi ? this.maxOf(this.twi) : 1, unit: 'index', label: 'Terrain wetness' }
-      default: return { kind: 'ramp', ramp: RAMPS.green, min: 0, max: 6, unit: 'm²/m²', label: this.layer === 'canopy' ? 'Crop canopy (leaf area index)' : 'Leaf area index' }
+      case 'weeds': return { kind: 'ramp', ramp: this.R.rust, min: 0, max: s ? Math.max(5, this.maxOf(s.weeds)) : 5, unit: 'plants/m²', label: 'Weed density' }
+      case 'blight': return { kind: 'ramp', ramp: this.R.purple, min: 0, max: s ? Math.max(0.05, this.maxOf(s.blight, 0.995)) : 0.05, unit: 'severity', label: 'Late blight' }
+      case 'dose': return { kind: 'ramp', ramp: this.R.blue, min: 0, max: s ? Math.max(5, this.maxOf(new Float32Array(Array.from(s.dose_fungicide, (v, i) => v + s.dose_herbicide[i])))) : 20, unit: 'L/ha', label: 'Sprayed so far' }
+      case 'twi': return { kind: 'ramp', ramp: this.R.teal, min: this.twi ? Math.min(...Array.from(this.twi)) : 0, max: this.twi ? this.maxOf(this.twi) : 1, unit: 'index', label: 'Terrain wetness' }
+      default: return { kind: 'ramp', ramp: this.R.green, min: 0, max: 6, unit: 'm²/m²', label: this.layer === 'canopy' ? 'Crop canopy (leaf area index)' : 'Leaf area index' }
     }
   }
 
@@ -326,7 +328,7 @@ export class FarmScene {
       this.canopy.setMatrixAt(i, m)
       if (this.layer === 'zone') col.copy(pal[Math.round(this.zone[i]) % pal.length])
       else if (this.layer === 'canopy') {
-        rampColor(RAMPS.green, 0.35 + 0.65 * Math.min(1, lai / 5), col)
+        rampColor(this.R.green, 0.35 + 0.65 * Math.min(1, lai / 5), col)
         col.lerp(soil, 1 - Math.min(1, (this.snap?.cc[i] ?? 0) + 0.15))
         col.lerp(brown, Math.min(0.85, (this.snap?.blight[i] ?? 0) * 3))
       } else if (leg.kind === 'ramp') rampColor(leg.ramp, (this.value(i) - leg.min) / (leg.max - leg.min || 1), col)

@@ -1,0 +1,1 @@
+import{_ as e}from"./index-Cnv5AEOc.js";var t=e();function n(e){return(0,t.jsx)(`div`,{className:`page`,children:(0,t.jsx)(`h1`,{children:`Today`})})}export{n as default};

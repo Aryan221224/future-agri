@@ -9,6 +9,15 @@ export const RAMPS = {
   blue: ['#e3eefa', '#a9ccf0', '#5c9ce1', '#2a6bb8', '#123f78'],
   teal: ['#e0f3ef', '#a0d9ce', '#50b4a4', '#1f8174', '#0b4d45'],
 } as const
+/** Dark mode: the same hues stepped so zero recedes into the dark surface and the
+ *  high end is the brightest (light ramps would make near-zero cells glare). */
+export const RAMPS_DARK = {
+  green: ['#22301f', '#2f5a2c', '#3f8a43', '#62b85e', '#a6e38a'],
+  rust: ['#35261d', '#6b3a1f', '#a5532a', '#e07a3c', '#ffb072'],
+  purple: ['#2c2236', '#4f3470', '#7a50a8', '#a87fd6', '#d9bdf5'],
+  blue: ['#1c2939', '#24476e', '#2f6aa8', '#5c9be0', '#a9ccf0'],
+  teal: ['#1b2f2b', '#1f5a52', '#2a8576', '#50b4a4', '#a0d9ce'],
+} as const
 export const ZONES_LIGHT = ['#2a78d6', '#1baf7a', '#eda100', '#6250d6', '#e87ba4']
 export const ZONES_DARK = ['#3987e5', '#199e70', '#c98500', '#9085e9', '#d55181']
 
