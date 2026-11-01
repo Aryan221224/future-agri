@@ -1,1 +1,0 @@
-import{u as e}from"./index-BDmB35Hr.js";var t=e();function n(e){return(0,t.jsx)(`div`,{className:`page`,children:(0,t.jsx)(`h1`,{children:`Live`})})}export{n as default};

@@ -29,3 +29,45 @@ def test_create_farm_wizard_builds(page, console, tmp_path):
     row.get_by_text("ready").wait_for(timeout=20_000)
     shot(page, "03_farms_list")
     assert not page.errors, page.errors
+
+
+def _run_session(console, fid, until):
+    import json as _j
+    import time as _t
+    import urllib.request as _u
+    body = _j.dumps({"until": until, "stop_on_decision": False, "approve_all": True}).encode()
+    req = _u.Request(console["base"] + f"/api/farms/{fid}/session/run", data=body,
+                     headers={"Content-Type": "application/json"})
+    jid = _j.loads(_u.urlopen(req).read())["id"]
+    for _ in range(600):
+        j = _j.loads(_u.urlopen(console["base"] + f"/api/jobs/{jid}").read())
+        if j["status"] in ("done", "failed"):
+            break
+        _t.sleep(0.25)
+    assert j["status"] == "done", j
+
+
+def _canvas_variance(page, selector="canvas") -> float:
+    import io
+
+    from PIL import Image, ImageStat
+    png = page.locator(selector).first.screenshot()
+    st = ImageStat.Stat(Image.open(io.BytesIO(png)).convert("L"))
+    return st.stddev[0]
+
+
+def test_twin3d_renders_and_picks(page, console):
+    from conftest import make_farm
+    fid = make_farm(console, "3D field")
+    _run_session(console, fid, "2025-06-25")
+    page.goto(console["base"] + f"/#/f/{fid}/twin")
+    page.locator("canvas").first.wait_for(timeout=30_000)
+    page.get_by_text("Layer").first.wait_for()
+    page.wait_for_timeout(1500)
+    assert _canvas_variance(page) > 8           # a rendered scene, not a blank canvas
+    page.get_by_role("radio", name="Weeds").check()
+    box = page.locator("canvas").first.bounding_box()
+    page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+    page.get_by_text("Cell", exact=False).first.wait_for(timeout=5000)
+    shot(page, "04_twin3d")
+    assert not page.errors, page.errors

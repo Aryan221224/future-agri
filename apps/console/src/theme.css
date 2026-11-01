@@ -343,3 +343,23 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .row:first-child { border-top: none; }
 .row.link { cursor: pointer; }
 .row.link:hover { background: var(--paper); }
+
+/* 3D digital farm */
+.twin { position: relative; height: calc(100vh - var(--clock)); min-height: 520px; }
+.twin .viewport { position: absolute; inset: 0; }
+.twin-layers { left: 16px; top: 16px; width: 228px; }
+.twin-tools { right: 16px; top: 16px; width: 236px; display: flex; flex-direction: column; gap: 6px; }
+.twin-inspector { right: 16px; top: 268px; width: 272px; }
+.twin-time { left: 16px; right: 16px; bottom: 16px; display: flex; align-items: center; gap: 14px; }
+.twin-empty { left: 50%; bottom: 24px; transform: translateX(-50%); text-align: center; max-width: 420px; }
+.radio { display: flex; align-items: center; gap: 8px; min-height: 30px; cursor: pointer; }
+.radio[aria-disabled="true"] { color: var(--ink-3); cursor: not-allowed; }
+.radio input { accent-color: var(--canopy); width: 16px; height: 16px; margin: 0; }
+input[type="range"] { accent-color: var(--canopy); width: 100%; }
+@media (max-width: 860px) {
+  .twin { height: calc(100vh - var(--clock) - 64px); }
+  .twin-tools { display: none; }
+  .twin-layers { width: auto; right: 16px; padding: 8px 10px; }
+  .twin-layers [role="radiogroup"] { display: flex; flex-wrap: wrap; gap: 0 12px; }
+  .twin-inspector { top: auto; bottom: 90px; left: 16px; width: auto; }
+}

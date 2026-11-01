@@ -1,0 +1,1 @@
+import{f as e}from"./index-C3qFlGTb.js";var t=e();function n(e){return(0,t.jsx)(`div`,{className:`page`,children:(0,t.jsx)(`h1`,{children:`Plan`})})}export{n as default};
