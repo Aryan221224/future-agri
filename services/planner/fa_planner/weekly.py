@@ -65,6 +65,9 @@ class PotatoEconomics:
     herbicide_spot_per_fraction: float = 1500.0
     irrigation_per_cm: float = 300.0
     provenance: str = "assumptions (audit 30 Oct 2026): potato Rs10/kg, spray Rs1500, scout Rs300"
+    #: currency of every figure above (the defaults are the original INR audit values;
+    #: region packs pass their own)
+    currency: str = "INR"
 
     def revenue(self, dry_kg_ha: float) -> float:
         return self.price_per_kg_fresh * self.farm_factor * dry_kg_ha / self.dry_matter
@@ -226,7 +229,7 @@ def fungicide_decision(members: list[list[dict]], status: FieldStatus,
     gain = agg(nets["spray"]) - agg(nets["wait"])
     p_better = float(np.mean(np.array(nets["spray"]) > np.array(nets["wait"])))
     spray = gain > 0
-    reason = (f"{'spray' if spray else 'wait'}: expected {objective} gain Rs {gain:,.0f}/ha "
+    reason = (f"{'spray' if spray else 'wait'}: expected {objective} gain {gain:,.0f} {econ.currency}/ha "
               f"(spray better in {p_better:.0%} of {len(members)} members)")
     return FungicideDecision(day if spray else None, float(gain), p_better,
                              {k: list(map(float, v)) for k, v in nets.items()}, reason)

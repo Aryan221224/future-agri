@@ -109,3 +109,12 @@ def test_restore_replays_actions_to_same_state():
     r = SeasonSession.restore(_kwargs(), s.actions)
     assert r.state() == s.state()
     assert json.dumps(s.state(), default=str)          # JSON-able
+
+
+def test_twin_decisions_speak_the_farm_currency():
+    s = _session(inoculum=True, approvals="auto")          # an EU (EUR) farm
+    s.run_until(day=s.world.sowing + __import__("datetime").timedelta(days=50))
+    plans = [e["text"] for e in s.events if e["kind"] == "plan"]
+    assert plans
+    assert all("Rs" not in t for t in plans), plans[:2]
+    assert any("EUR" in t for t in plans if "gain" in t)

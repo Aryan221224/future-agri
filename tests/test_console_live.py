@@ -124,3 +124,18 @@ def test_tracker_readings_appear_as_positions(app):
         assert len(t["positions"]) == 1
         p = t["positions"][0]
         assert -20 < p["x"] - t["origin_x"] < 120 and p["z"] == 2.5 and p["spraying"] is True
+
+
+def test_virtual_farm_outlook_follows_the_session_day(app, monkeypatch):
+    def members(self, farm, vf):
+        day = self._day(farm["id"], farm)
+        return _members(), "climatology-analogs", day.isoformat()
+    monkeypatch.setattr(live.LiveService, "_forecast_members", members)
+    app.state.sessions.defaults["plan_members"] = 4
+    with TestClient(app) as c:
+        f, _ = _create(c, app)
+        fid = f["id"]
+        first = c.get(f"/api/farms/{fid}/live/outlook").json()["issue"]
+        assert c.post(f"/api/farms/{fid}/session/step").status_code == 200
+        second = c.get(f"/api/farms/{fid}/live/outlook").json()["issue"]
+        assert second > first                      # not the day-1 forecast from the cache

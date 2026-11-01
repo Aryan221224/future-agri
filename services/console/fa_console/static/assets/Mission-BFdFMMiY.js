@@ -1,1 +1,0 @@
-import{p as e}from"./index-DtUoO0VB.js";var t=e();function n(e){return(0,t.jsx)(`div`,{className:`page`,children:(0,t.jsx)(`h1`,{children:`Mission`})})}export{n as default};

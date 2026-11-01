@@ -50,6 +50,6 @@ class Economics:
             herbicide_blanket=self.herbicide_product_ha + self.drone_service_ha,
             herbicide_spot_fixed=0.3 * self.drone_service_ha,
             herbicide_spot_per_fraction=self.herbicide_product_ha + 0.7 * self.drone_service_ha,
-            irrigation_per_cm=self.irrigation_cm_ha,
+            irrigation_per_cm=self.irrigation_cm_ha, currency=self.currency,
             provenance=f"region pack {self.region} ({self.currency}); "
                        + ("illustrative assumptions" if self.assumed else "sourced"))

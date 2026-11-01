@@ -41,12 +41,20 @@ class LiveService:
         self.ttl = {"weather": 3 * 3600, "outlook": 3 * 3600, "satellite": 12 * 3600}
 
     # ---------------------------------------------------------------- caching
+    def _key(self, fid: str) -> str:
+        """What a cached feed depends on besides time: a virtual farm's feeds are as of
+        the session day, so stepping the session invalidates them."""
+        farm = self.farms.get(fid)
+        return "live" if farm["mode"] == "field" else self.sessions.state(fid)["day"]
+
     def _cached(self, fid: str, kind: str, fetch) -> dict:
         d = self.store.farm_dir(fid) / "live"
         d.mkdir(exist_ok=True)
         p = d / f"{kind}.json"
+        key = self._key(fid)
         hit = json.loads(p.read_text()) if p.exists() else None
-        if hit is not None and time.time() - hit["ts"] < self.ttl[kind]:
+        if (hit is not None and hit.get("key", key) == key
+                and time.time() - hit["ts"] < self.ttl[kind]):
             return {**hit["data"], "available": True, "stale": False, "fetched": hit["iso"]}
         try:
             data = fetch()
@@ -56,7 +64,7 @@ class LiveService:
                         "fetched": hit["iso"]}
             return {"available": False, "stale": False, "reason": str(e)}
         iso = now()
-        p.write_text(json.dumps({"ts": time.time(), "iso": iso, "data": data}, default=str))
+        p.write_text(json.dumps({"ts": time.time(), "iso": iso, "key": key, "data": data}, default=str))
         return {**data, "available": True, "stale": False, "fetched": iso}
 
     def _day(self, fid: str, farm: dict) -> dt.date:

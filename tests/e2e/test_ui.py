@@ -94,3 +94,38 @@ def test_drone_playback(page, console):
     assert sorties >= 1
     shot(page, "06_drone_playback")
     assert not page.errors, page.errors
+
+
+def test_mission_step_approve_fly(page, console):
+    from conftest import make_farm
+    fid = make_farm(console, "Mission field")
+    page.goto(console["base"] + f"/#/f/{fid}/mission")
+    page.get_by_role("heading", name="Mission").wait_for(timeout=30_000)
+    page.get_by_role("button", name="Next day").click()
+    page.get_by_text("day 2 of", exact=False).first.wait_for(timeout=20_000)
+    page.get_by_role("button", name="Run to the next decision").click()
+    approve = page.get_by_role("button", name="Approve").first
+    approve.wait_for(timeout=90_000)
+    shot(page, "07_mission_decision")
+    approve.click()
+    page.get_by_text("approved", exact=False).first.wait_for(timeout=10_000)
+    page.get_by_role("button", name="Run 7 days").click()
+    page.locator(".timeline li").first.wait_for(timeout=90_000)
+    page.wait_for_timeout(1500)
+    text = page.locator(".timeline").inner_text()
+    assert "approved" in text and ("flown" in text or "spray window" in text or "dropped" in text or "proposed" in text)
+    shot(page, "08_mission_after_flight")
+    assert not page.errors, page.errors
+
+
+def test_season_charts_render(page, console):
+    from conftest import make_farm
+    fid = make_farm(console, "Season field")
+    _run_session(console, fid, "2025-07-15")
+    page.goto(console["base"] + f"/#/f/{fid}/season")
+    page.get_by_role("heading", name="Season").wait_for(timeout=30_000)
+    page.locator("canvas").nth(2).wait_for(timeout=20_000)
+    assert page.locator("canvas").count() >= 4
+    page.get_by_text("Twin estimate").first.wait_for()
+    shot(page, "09_season_charts")
+    assert not page.errors, page.errors
