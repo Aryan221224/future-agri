@@ -67,6 +67,9 @@ class MissionResult:
     route: Route | None = None
     settings: MissionSettings | None = None
     warnings: list = field(default_factory=list)
+    #: keyframes at segment ends for 3D playback: t, x, y, z, soc, v_cell, liquid_l,
+    #: spraying, flow_lpm, phase, sortie (positions in the grid's local metres)
+    track: list = field(default_factory=list)
 
 
 def check_conditions(spec: DroneSpec, settings: MissionSettings, weather: Weather,
@@ -104,7 +107,8 @@ def _infeasible(n: int, reasons: list[str], settings) -> MissionResult:
 def simulate_mission(grid, spec: DroneSpec, settings: MissionSettings, weather: Weather,
                      targets: np.ndarray | None = None, home_xy: tuple[float, float] | None = None,
                      seed: int = 0, rules=None, power: PowerModel | None = None,
-                     spray: SprayModel | None = None, chunk_m: float = 20.0) -> MissionResult:
+                     spray: SprayModel | None = None, chunk_m: float = 20.0,
+                     record_track: bool = True) -> MissionResult:
     n = grid.n_cells
     reasons = check_conditions(spec, settings, weather, rules)
     if reasons:
@@ -134,6 +138,16 @@ def simulate_mission(grid, spec: DroneSpec, settings: MissionSettings, weather: 
     home_ref = [home]
     tel: list[dict] = []
     samples: dict[int, list] = {}
+    track: list[dict] = []
+    flow_lpm = round(l_per_m * v * 60.0, 3)
+
+    def rec(p, z: float, phase: str, spraying: bool = False):
+        if record_track:
+            track.append({"t": round(st["t"], 1), "x": round(float(p[0]), 2), "y": round(float(p[1]), 2),
+                          "z": round(float(z), 2), "soc": round(batt.soc, 4),
+                          "v_cell": round(batt.last_v / batt.cells, 3), "liquid_l": round(st["liquid"], 3),
+                          "spraying": spraying, "flow_lpm": flow_lpm if spraying else 0.0,
+                          "phase": phase, "sortie": int(st["sorties"])})
 
     def mass():
         return spec.dry_kg + st["liquid"] * LIQUID_KG_PER_L
@@ -207,24 +221,33 @@ def simulate_mission(grid, spec: DroneSpec, settings: MissionSettings, weather: 
         tel.append({"t_s": round(st["t"], 1), "event": "rth", "reason": reason,
                     "soc": round(batt.soc, 3), "liquid_l": round(st["liquid"], 2)})
         ferry(pos, home_ref[0])
+        rec(home_ref[0], h, "rth")
         vertical(h)
+        rec(home_ref[0], 0.0, "land")
         ground_ops(reason)
         st["sorties"] += 1
+        rec(home_ref[0], 0.0, "ground")
         vertical(h)
+        rec(home_ref[0], h, "takeoff")
         ferry(home_ref[0], pos)
+        rec(pos, h, "ferry")
         tel.append({"t_s": round(st["t"], 1), "event": "resume"})
 
     # ---- fly the job
     link = 0.9 * spec.link_range_m
     relocate_s = 600.0                  # crew moves the take-off point (assumption: 10 min)
+    rec(home, 0.0, "takeoff")
     vertical(h)
+    rec(home, h, "takeoff")
     pos = home
     for pi, ps in enumerate(route.passes):
         far = max(math.dist(home_ref[0], ps.start), math.dist(home_ref[0], ps.end))
         if far > link:
             # beyond the K3-A Pro radio range: land, move the crew to this pass, take off again
             ferry(pos, home_ref[0])
+            rec(home_ref[0], h, "ferry")
             vertical(h)
+            rec(home_ref[0], 0.0, "land")
             ux0, uy0 = ps.unit
             nx0, ny0 = ps.normal
             mx, my = (ps.start[0] + ps.end[0]) / 2, (ps.start[1] + ps.end[1]) / 2
@@ -233,13 +256,16 @@ def simulate_mission(grid, spec: DroneSpec, settings: MissionSettings, weather: 
             st["moves"] += 1
             tel.append({"t_s": round(st["t"], 1), "event": "relocate_home",
                         "reason": f"route beyond {spec.link_range_m:.0f} m link range"})
+            st["sorties"] += 1
+            rec(home_ref[0], 0.0, "relocate")
             vertical(h)
             pos = home_ref[0]
-            st["sorties"] += 1
+            rec(pos, h, "takeoff")
         st["max_range"] = max(st["max_range"], math.dist(home_ref[0], ps.start),
                               math.dist(home_ref[0], ps.end))
         ferry(pos, ps.start)
         pos = ps.start
+        rec(pos, h, "ferry")
         ux, uy = ps.unit
         head = -(wind[0] * ux + wind[1] * uy)
         s, L = 0.0, ps.length
@@ -262,11 +288,16 @@ def simulate_mission(grid, spec: DroneSpec, settings: MissionSettings, weather: 
             st["sprayed"] += chunk * l_per_m
             s += chunk
             pos = (ps.start[0] + ux * s, ps.start[1] + uy * s)
+            ex_, ey_ = (log[-1][1], log[-1][2]) if log else (0.0, 0.0)
+            rec((pos[0] + ex_, pos[1] + ey_), h, "spray", spraying=True)
         # turn: decelerate, shift, accelerate (no yaw: nozzles are symmetric)
         a = 9.80665 * math.tan(math.radians(spec.fc.max_tilt_deg))
         fly(pm.hover_w(mass()) * 1.05, 2 * v / a + W / 2.0)
+        rec(pos, h, "turn")
     ferry(pos, home_ref[0])
+    rec(home_ref[0], h, "ferry")
     vertical(h)
+    rec(home_ref[0], 0.0, "landed")
     tel.append({"t_s": round(st["t"], 1), "event": "landed", "soc": round(batt.soc, 3)})
 
     # ---- deposition on the field grid along the actual track
@@ -314,4 +345,4 @@ def simulate_mission(grid, spec: DroneSpec, settings: MissionSettings, weather: 
         "home_moves": int(st["moves"]), "max_range_m": round(st["max_range"], 1),
         "achieved_rate_l_ha": round(rate_eff, 2), "mean_dose_l_ha": round(float(dt_.mean()), 2),
     }
-    return MissionResult(dose, kpis, tel, True, [], route, settings, warn)
+    return MissionResult(dose, kpis, tel, True, [], route, settings, warn, track)
