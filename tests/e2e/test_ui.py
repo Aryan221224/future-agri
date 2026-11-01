@@ -129,3 +129,31 @@ def test_season_charts_render(page, console):
     page.get_by_text("Twin estimate").first.wait_for()
     shot(page, "09_season_charts")
     assert not page.errors, page.errors
+
+
+def test_iterate_to_approved_plan_exports(page, console):
+    import json as _j
+    from pathlib import Path as _P
+
+    from conftest import make_farm
+    fid = make_farm(console, "Plan field")
+    res = _j.loads((_P(__file__).parents[1] / "fixtures" / "perfect_small.json").read_text())
+    app = console["app"]
+    st = app.state.store
+    job = st.create_job("perfect", fid, {"seeds": 1}, target="local")
+    (app.state.settings.jobs_dir / f"{job['id']}.json").write_text(_j.dumps(res))
+    st.update_job(job["id"], status="done", progress=1.0, result=res["summary"])
+    page.goto(console["base"] + f"/#/f/{fid}/iterate")
+    page.get_by_role("heading", name="Iterations", exact=True).wait_for(timeout=30_000)
+    page.get_by_text("Ranked plans").wait_for()
+    shot(page, "10_iterate")
+    row = page.locator("tr", has_text="Twin + blight alert")
+    row.get_by_role("button", name="Use this plan").click()
+    page.wait_for_url("**/plan", timeout=20_000)
+    page.get_by_role("button", name="Approve this plan").click()
+    page.get_by_text("Approved", exact=True).first.wait_for(timeout=20_000)
+    shot(page, "11_plan")
+    for path in ("plan.pdf", "plan.ics", "plan.csv", "kml", "survey.kml", "settings"):
+        r = page.request.get(console["base"] + f"/api/farms/{fid}/export/{path}")
+        assert r.status == 200, path
+    assert not page.errors, page.errors

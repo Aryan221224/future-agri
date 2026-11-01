@@ -147,6 +147,8 @@ export const fmt = {
     const h = Math.floor(m / 60)
     return `${h} h ${Math.round(m - 60 * h)} min`
   },
+  /** "1 season", "3 seasons", "1.5 scans" */
+  count: (v: number | null | undefined, one: string, many = one + 's', d = 1) => (v === null || v === undefined ? '–' : `${fmt.n(v, d)} ${v === 1 ? one : many}`),
 }
 
 export function area(ha: number | null | undefined, unit: 'ha' | 'acre' | 'mu' = 'ha'): string {
