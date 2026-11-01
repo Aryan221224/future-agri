@@ -42,16 +42,24 @@ class DigitalFarm:
 
 
 def build_digital_farm(obs, grid, k: int = 4) -> DigitalFarm:
+    """Zones from the observed cover. With ``obs.observed`` set, only the covered cells form
+    zones; the rest get zone -1 and NaN weeds (unknown, not zero)."""
     n = len(obs.cc_cells)
-    k = max(1, min(k, n))
+    seen = np.ones(n, bool) if getattr(obs, "observed", None) is None else np.asarray(obs.observed, bool)
+    idx_seen = np.where(seen)[0]
+    if len(idx_seen) == 0:
+        raise ValueError("the scan observed no cell of this field")
+    cc_seen = obs.cc_cells[idx_seen]
+    k = max(1, min(k, len(idx_seen)))
     if k > 1:
-        edges = np.quantile(obs.cc_cells, np.linspace(0, 1, k + 1)[1:-1])
-        zone = np.searchsorted(np.unique(edges), obs.cc_cells, side="right")
+        edges = np.quantile(cc_seen, np.linspace(0, 1, k + 1)[1:-1])
+        z_seen = np.searchsorted(np.unique(edges), cc_seen, side="right")
     else:
-        zone = np.zeros(n, int)
-    ids = sorted(set(zone.tolist()))
+        z_seen = np.zeros(len(idx_seen), int)
+    ids = sorted(set(z_seen.tolist()))
     remap = {z: i for i, z in enumerate(ids)}
-    zone = np.array([remap[z] for z in zone])
+    zone = np.full(n, -1, int)
+    zone[idx_seen] = [remap[z] for z in z_seen]
     cell_ha = grid.cell_m ** 2 / 1e4
     zones = []
     for i in range(len(ids)):
@@ -60,12 +68,15 @@ def build_digital_farm(obs, grid, k: int = 4) -> DigitalFarm:
         finite = np.isfinite(obs.weed_density_sd[sel])
         wsd = (float(np.sqrt(np.sum(obs.weed_density_sd[sel][finite] ** 2)) / max(finite.sum(), 1))
                if finite.any() else float("inf"))
+        w_sel = obs.weed_density_est[sel]
         zones.append(ZoneObs(
             i, sel, m * cell_ha,
             float(obs.cc_cells[sel].mean()),
             float(np.hypot(obs.cc_cells[sel].std(), obs.cc_sd / np.sqrt(m))),
             float(obs.dvs_cells[sel].mean()), float(obs.dvs_sd / np.sqrt(m) + obs.dvs_cells[sel].std()),
-            float(obs.weed_density_est[sel].mean()), wsd))
-    return DigitalFarm(obs.day_index, obs.gsd_m, zone, zones, obs.weed_density_est.copy(),
-                       obs.weed_density_sd.copy(), bool(obs.blight_flag.any()), obs.blight_sev_est,
-                       obs.blight_flag.copy(), grid.cell_m, list(obs.assumptions))
+            float(np.nanmean(w_sel)) if np.isfinite(w_sel).any() else float("nan"), wsd))
+    weed_map = np.where(seen, obs.weed_density_est, np.nan)
+    weed_sd = np.where(seen, obs.weed_density_sd, np.inf)
+    blight = obs.blight_flag & seen
+    return DigitalFarm(obs.day_index, obs.gsd_m, zone, zones, weed_map, weed_sd, bool(blight.any()),
+                       obs.blight_sev_est, blight, grid.cell_m, list(obs.assumptions))

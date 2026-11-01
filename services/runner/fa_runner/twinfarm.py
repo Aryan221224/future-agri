@@ -44,6 +44,9 @@ class TwinFarm:
     def ingest(self, digital, day: dt.date, members: int = 16, seed: int = 0) -> Decision:
         """Assimilate a scan's DigitalFarm (area-weighted cover and stage) and
         decide herbicide from its per-cell weed map."""
+        prev = getattr(self, "digital", None)
+        if prev is not None or not np.isfinite(digital.weed_map).all():
+            digital = self._merge(prev, digital)
         self.digital = digital
         # A herbicide only saves the part of the critical period still ahead of it.
         from dataclasses import replace
@@ -62,6 +65,34 @@ class TwinFarm:
         weeds = np.where(np.isfinite(digital.weed_map), digital.weed_map, 0.0)
         return self.field.ingest_pass(day, cc, dvs, weeds if self.archetype.weeds else None,
                                       canopy_cover_sd=cc_sd, members=members, seed=seed)
+
+    @staticmethod
+    def _merge(prev, new):
+        """Cells the new scan did not see keep the previous map; with no previous map, the mean
+        of what this scan saw (the best prior there is) -- never zero."""
+        from dataclasses import replace
+        seen = np.isfinite(new.weed_map)
+        if seen.all():
+            return new
+        if prev is not None:
+            fill, fill_sd = prev.weed_map, prev.weed_map_sd
+        else:
+            mu = float(np.nanmean(new.weed_map)) if seen.any() else 0.0
+            fill, fill_sd = np.full(len(seen), mu), np.full(len(seen), np.inf)
+        return replace(new, weed_map=np.where(seen, new.weed_map, fill),
+                       weed_map_sd=np.where(seen, new.weed_map_sd, fill_sd))
+
+    def herbicide_targets(self, weed_map: np.ndarray) -> tuple[str, np.ndarray]:
+        """The planner's herbicide rule (none / blanket / spot) applied to a weed map."""
+        from fa_planner.weekly import herbicide_decision
+        w = np.asarray(weed_map, float)
+        f = self.field
+        dec = herbicide_decision(w, f._expected_yield_hint(), f.s.econ, f.s.weeds)
+        if dec.option == "blanket":
+            return "blanket", np.ones(len(w), bool)
+        if dec.option == "spot":
+            return "spot", np.asarray(w > dec.threshold_m2, bool)
+        return "none", np.zeros(len(w), bool)
 
     # -- decisions ------------------------------------------------------------
     @property

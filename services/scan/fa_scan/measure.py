@@ -129,6 +129,9 @@ class ScanObservation:
     blight_flag: np.ndarray            # cells where lesions were seen
     blight_sev_est: float              # mean observed severity over flagged cells (0 if none)
     assumptions: list = field(default_factory=list)
+    #: cells the camera covered (None: the whole field). Unobserved cells carry no information:
+    #: their weed estimate is NaN and they are left out of zones, so the twin keeps its prior there.
+    observed: np.ndarray | None = None
 
 
 def simulate_scan(state, grid, plan, rng: np.random.Generator, crop: str,
