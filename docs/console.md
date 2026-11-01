@@ -70,6 +70,32 @@ on the idlest GPU (none if all are busy — iterations are CPU work anyway). Wee
 detection is offered only when a trained run is found (`FA_DETECTOR_WEIGHTS`, by
 default the newest `~/futureagri/ml/runs/*` with `run.json`).
 
+## Live run (closed loop)
+
+A spray job can correct itself while it is flown. On the **Mission** page, a proposed or
+approved spray job has **Fly closed loop** (virtual farm) or **Start live run** (live field).
+
+* Before take-off the twin freezes its prediction: weed density per cell with its spread,
+  the targets, the dose each cell should get, sorties, litres and time.
+* After every sortie the camera on the sprayer reports what it saw per cell. Only a
+  difference of more than 2 standard deviations over at least 5 cells and 5 % of the cells
+  seen counts as a deviation. The rest of the job is re-planned with the planner's own rules:
+  cells already at 90 % of the rate drop out, under-dosed cells come back (at most twice),
+  weedy cells the camera found join, clean ones leave. Every correction is logged with its reason.
+* **Spot valve** (optional): the boom opens only where the camera sees weeds above the
+  threshold, or did not see at all, so a cell never gets more than the plan.
+* **The aircraft** (live field): the on-board computer posts message batches (schema
+  `fa.live/1`, see `packages/fa_core/fa_core/live_msgs.py`) to `/api/live-run/ingest` with a
+  device token (**Live → Add a device**, kind *camera*). A batch sent twice is counted once.
+  Nothing is sent to the aircraft: **Download next sortie (KML)** gives the remaining targets
+  for its app. **Freeze plan (open loop)** stops all corrections. **Finish and update the twin**
+  hands what the camera saw to the twin as a partial scan; unseen cells keep what the twin knew.
+
+The **Live run** page shows the drone, the camera footprint, the cells seen, where the field
+differs from the prediction, the remaining targets, planned vs flown, the sortie log and the
+corrections. What the closed loop gains, measured on simulated farms, is in
+[ADR 0018](adr/0018-live-closed-loop.md).
+
 ## Field devices
 
 **Live → Add a device** creates a soil probe, weather station, camera or a GPS

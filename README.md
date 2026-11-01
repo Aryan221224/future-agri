@@ -30,7 +30,8 @@ scripts/console/start.sh                    # Linux / macOS
 docker compose --profile console up console # Docker (loopback only)
 ```
 
-Operator guide: [docs/console.md](docs/console.md) · design: [ADR 0017](docs/adr/0017-mission-console.md)
+Operator guide: [docs/console.md](docs/console.md) · design: [ADR 0017](docs/adr/0017-mission-console.md) ·
+live closed loop (sprayer camera corrects the job between sorties): [ADR 0018](docs/adr/0018-live-closed-loop.md)
 
 ---
 
