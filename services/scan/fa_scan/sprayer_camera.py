@@ -77,6 +77,22 @@ def observe(state, grid, seen: np.ndarray, gsd_m: float, das: int, rng: np.rando
                            observed=seen)
 
 
+def estimate_from_counts(raw: np.ndarray, area_m2: np.ndarray, gsd_m: np.ndarray, das: int,
+                         detector: DetectorModel | None = None) -> tuple[np.ndarray, np.ndarray]:
+    """Weed density and its sd per cell from an aircraft's raw counts (the same correction as
+    a survey scan: false positives removed, divided by recall at the GSD). Recall under 5 %:
+    no information (estimate 0, infinite sd)."""
+    det = detector or DetectorModel.load()
+    raw, area, gsd = (np.asarray(v, float) for v in (raw, area_m2, gsd_m))
+    size_cm = float(np.clip(1.0 + 0.15 * max(0, das), 1.0, 12.0))
+    rec = np.array([det.weed_recall(size_cm, g) for g in gsd])
+    fp = np.array([det.fp_per_m2(g) for g in gsd])
+    ok = rec > 0.05
+    est = np.where(ok, np.maximum(0.0, (raw - fp * area) / np.where(ok, rec, 1)) / area, 0.0)
+    sd = np.where(ok, np.sqrt(np.maximum(raw, 1)) / np.where(ok, rec, 1) / area, np.inf)
+    return est, sd
+
+
 def to_cell_messages(obs: ScanObservation, grid, t: str) -> list[dict]:
     """The per-cell items of a live message batch (schema fa.live/1, ``cells``) for the seen cells."""
     seen = np.ones(grid.n_cells, bool) if obs.observed is None else np.asarray(obs.observed, bool)

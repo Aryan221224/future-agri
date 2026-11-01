@@ -60,24 +60,31 @@ class ExportService:
         return MissionSettings(**self.sessions.config(fid)["flight"])
 
     def _target_polys(self, fid: str, op_id: str):
-        from pyproj import Transformer
-        from shapely.geometry import box
-        from shapely.ops import transform as shp_transform, unary_union
         ops = {o["id"]: o for o in self.store.list_operations(fid)}
         if op_id not in ops:
             raise NotFound(f"no operation {op_id}")
-        s = self.sessions.get(fid)
-        op = s.ops.get(op_id)
-        vf = self.farms.load(fid)
+        op = self.sessions.get(fid).ops.get(op_id)
         if op is None or op.targets is None:
-            return [vf.spec.polygon_wgs84]
-        grid = farm_grid(vf)
+            return [self.farms.load(fid).spec.polygon_wgs84]
+        return self._polys_for(fid, op.targets)
+
+    def _polys_for(self, fid: str, targets):
+        from pyproj import Transformer
+        from shapely.geometry import box
+        from shapely.ops import transform as shp_transform, unary_union
+        grid = farm_grid(self.farms.load(fid))
         h = grid.cell_m / 2
-        cells = [box(x - h, y - h, x + h, y + h) for (x, y), t in zip(grid.cells_xy, op.targets) if t]
+        cells = [box(x - h, y - h, x + h, y + h) for (x, y), t in zip(grid.cells_xy, targets) if t]
+        if not cells:
+            raise ValueError("nothing left to spray")
         u = unary_union(cells).buffer(0.01)
         tr = Transformer.from_crs(grid.crs, "EPSG:4326", always_xy=True)
         u = shp_transform(tr.transform, u)
         return list(u.geoms) if u.geom_type == "MultiPolygon" else [u]
+
+    def targets_kml(self, fid: str, name: str, targets) -> bytes:
+        """KML of the given target cells (e.g. the next sortie of a live run) for the aircraft app."""
+        return kml_polygons(name, self._polys_for(fid, targets))
 
     def kml(self, fid: str, op_id: str | None = None) -> bytes:
         farm = self.farms.get(fid)

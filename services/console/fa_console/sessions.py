@@ -29,7 +29,7 @@ from .scene import b64, farm_grid
 from .store import new_id
 
 ACTIONS = {"step", "run_until", "approve", "reject", "defer", "fly_now", "scan_now", "record_flight",
-           "report_scouting"}
+           "report_scouting", "fly_closed_loop"}
 SNAP_VARS = ("lai", "cc", "weeds", "blight", "dose_fungicide", "dose_herbicide")
 
 
@@ -85,6 +85,9 @@ class SessionService:
         p = self.store.farm_dir(fid) / "scans" / f"{ref}.json"
         d = json.loads(p.read_text())
         grid = farm_grid(self.farms.load(fid))
+        if d.get("live_run"):                     # what a live run's camera saw (partial scan)
+            from .live_run import obs_from_saved
+            return obs_from_saved(d, grid)
         cover = np.asarray(d["cover"]) if d.get("cover") is not None else None
         obs, _ = import_scan(d["geojson"], grid, d["gsd_m"], d["day_index"], cover_cells=cover, dvs=d.get("dvs"))
         return obs
