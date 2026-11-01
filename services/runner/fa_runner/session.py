@@ -177,6 +177,8 @@ class SeasonSession:
         self._event_today = False
         self._seq = 0
         self._leftover: list[Operation] = []
+        self.closed_loop: dict[str, dict] = {}       # op id -> closed-loop summary
+        self.closed_loop_listener = None             # called with each sortie report (not logged)
 
     # ------------------------------------------------------------------ bookkeeping
     def _log(self, action: str, params: dict) -> dict:
@@ -561,6 +563,52 @@ class SeasonSession:
         reason = "" if ok else next((e["text"] for e in reversed(self.events[n0:]) if e["kind"] == "no_fly"),
                                     "no weather record for today")
         return {"flown": ok, "reason": reason, "op": op.as_dict()}
+
+    def fly_closed_loop(self, op_id: str, valve: bool = False) -> dict:
+        """Fly a job today as a closed loop (virtual farms): the sprayer's camera feeds the
+        twin after every sortie and the rest of the job is re-planned; ``valve`` adds in-pass
+        spot spraying, which can only reduce product."""
+        from .closedloop.run import fly_closed_loop
+        op = self._op(op_id)
+        if not getattr(self.world, "has_truth", True):
+            raise ValueError("on a live field, the closed loop runs from the aircraft's own camera: "
+                             "start a live run")
+        if op.status not in OPEN or op.product == "scan":
+            raise ValueError(f"operation {op_id} is {op.status}")
+        entry = self._log("fly_closed_loop", {"op_id": op_id, "valve": bool(valve)})
+        try:
+            self._ensure_flights_phase()
+        except Exception:
+            self._unlog(entry)
+            raise
+        if op.status == "proposed":
+            self._approve(op_id)
+        d = self.day
+        rec = self.world.weather(d)
+        if rec is None:
+            return {"flown": False, "reason": "no weather record for today", "op": op.as_dict(), "closed_loop": None}
+        fr = flight_record(rec)
+        if not self.window.ok(fr):
+            self.windy_days += 1
+            why = f"{op.product}: outside the spray window ({', '.join(self.window.reasons(fr))})"
+            self._event("no_fly", why, op=op.id)
+            return {"flown": False, "reason": why, "op": op.as_dict(), "closed_loop": None}
+        wx = mission_weather(rec, self.rng)          # one draw, as an open-loop flight takes
+        flight = MissionSettings(**op.settings) if op.settings else self.flight
+        try:
+            res = fly_closed_loop(self, op, valve=valve, weather=wx, on_sortie=self.closed_loop_listener)
+        except ValueError as e:
+            self.windy_days += 1
+            self._event("no_fly", f"{op.product}: not flyable ({e})", op=op.id)
+            return {"flown": False, "reason": str(e), "op": op.as_dict(), "closed_loop": None}
+        track = [p for r in res.sorties for p in r.track]
+        self._account(d, op, flight, res.kpis, res.dose_l_ha, res.warnings, track)
+        summ = res.summary()
+        self.closed_loop[op.id] = summ
+        self._event("flight", f"{op.product} flown as a closed loop: {res.kpis['litres']:.1f} L in "
+                              f"{res.kpis['sorties']} sorties (planned {res.prediction.litres:.1f} L), {res.stopped}",
+                    op=op.id, kpis=dict(res.kpis), closed_loop=True)
+        return {"flown": True, "reason": "", "op": op.as_dict(), "closed_loop": summ}
 
     def scan_now(self, gsd_m: float | None = None, obs=None, ref: str | None = None) -> dict:
         """An extra scan today (virtual farm) or an uploaded scan (``obs``; live field)."""
