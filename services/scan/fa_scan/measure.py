@@ -134,6 +134,22 @@ class ScanObservation:
     observed: np.ndarray | None = None
 
 
+def _weed_counts(weeds_m2: np.ndarray, area_m2, rec: float, fp_m2: float, rng: np.random.Generator):
+    """Raw detections (true plants found at ``rec`` + false positives) over ``area_m2`` per cell,
+    and the recall- and FP-corrected density with its sd. Below 5 % recall the counts say
+    nothing: estimate 0 with infinite sd."""
+    w = np.maximum(np.asarray(weeds_m2, float), 0)
+    area = np.broadcast_to(np.asarray(area_m2, float), w.shape)
+    detected = rng.binomial(rng.poisson(w * area), rec)
+    raw = detected + rng.poisson(fp_m2 * area)
+    if rec > 0.05:
+        est = np.maximum(0.0, (raw - fp_m2 * area) / rec) / area
+        sd = np.sqrt(np.maximum(raw, 1)) / rec / area
+    else:
+        est, sd = np.zeros(len(w)), np.full(len(w), np.inf)
+    return raw, est, sd
+
+
 def simulate_scan(state, grid, plan, rng: np.random.Generator, crop: str,
                   days_after_sowing: int, detector: DetectorModel | None = None) -> ScanObservation:
     det = detector or DetectorModel.load()
@@ -146,17 +162,7 @@ def simulate_scan(state, grid, plan, rng: np.random.Generator, crop: str,
     dvs = np.clip(state.dvs + rng.normal(0, dvs_sd, n), 0.0, 2.5)
     size_cm = float(np.clip(1.0 + 0.15 * max(0, days_after_sowing), 1.0, 12.0))
     rec = det.weed_recall(size_cm, g)
-    true_counts = rng.poisson(np.maximum(state.weeds_m2, 0) * cell_m2)
-    detected = rng.binomial(true_counts, rec)
-    fp_m2 = det.fp_per_m2(g)
-    fp = rng.poisson(fp_m2 * cell_m2, n)
-    raw = detected + fp
-    if rec > 0.05:
-        est = np.maximum(0.0, (raw - fp_m2 * cell_m2) / rec) / cell_m2
-        sd = np.sqrt(np.maximum(raw, 1)) / rec / cell_m2
-    else:
-        est = np.zeros(n)
-        sd = np.full(n, np.inf)
+    raw, est, sd = _weed_counts(state.weeds_m2, cell_m2, rec, det.fp_per_m2(g), rng)
     s_det = 0.005 * (g / 0.01)
     p_flag = 1.0 - np.exp(-np.maximum(state.blight_sev, 0) / max(s_det, 1e-6))
     flag = rng.random(n) < p_flag
