@@ -1,0 +1,430 @@
+{
+ "blight_twin": {
+  "policy": "twin",
+  "seed": 0,
+  "yield_dry_kg_ha": 5290.0,
+  "yield_marketed_kg_ha": 26450.0,
+  "revenue_ha": 3967.5,
+  "costs_ha": {
+   "fungicide_product": 160.32,
+   "herbicide_product": 0.0,
+   "application": 102.33,
+   "scans": 16.0
+  },
+  "net_ha": 3688.85,
+  "currency": "EUR",
+  "fungicide_sprays": 4,
+  "herbicide": "none",
+  "herbicide_treated_frac": 0.0,
+  "missions": [
+   [
+    "2025-05-24",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-06-11",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-06-24",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-07-03",
+    "fungicide",
+    15.03,
+    12.53
+   ]
+  ],
+  "litres": 60.12,
+  "sorties": 8,
+  "battery_swaps": 3,
+  "drone_time_min": 50.1,
+  "off_target_l": 6.31,
+  "mean_cv_pct": 12.2,
+  "mean_skipped_frac": 0.0075,
+  "scans": 2,
+  "blight_infection_day": "2025-05-20",
+  "final_blight_severity": 0.999,
+  "weed_loss_pct": 4.74,
+  "forecast_sources": {
+   "climatology-analogs": 18
+  },
+  "flight": {
+   "height_m": 2.5,
+   "speed_ms": 5.0,
+   "swath_m": 4.0,
+   "rate_l_ha": 15.0,
+   "rtk": false,
+   "pump_lpm": 3.5,
+   "route_angle_deg": null,
+   "ferry_speed_ms": 8.0,
+   "n_battery_sets": 4,
+   "chargers": 1,
+   "refill_s": 60.0,
+   "battery_swap_s": 60.0,
+   "battery_cycles": 0
+  },
+  "notes": [
+   "aerial spraying is not allowed by default in EU; a derogation is required",
+   "prices/costs for EU are illustrative assumptions"
+  ],
+  "n_decisions": 41,
+  "as_applied_last_sum": 86.869
+ },
+ "blight_calendar": {
+  "policy": "calendar",
+  "seed": 0,
+  "yield_dry_kg_ha": 6956.1,
+  "yield_marketed_kg_ha": 34780.5,
+  "revenue_ha": 5217.07,
+  "costs_ha": {
+   "fungicide_product": 440.88,
+   "herbicide_product": 35.07,
+   "application": 306.99,
+   "scans": 0.0
+  },
+  "net_ha": 4434.14,
+  "currency": "EUR",
+  "fungicide_sprays": 11,
+  "herbicide": "blanket",
+  "herbicide_treated_frac": 1.0,
+  "missions": [
+   [
+    "2025-05-20",
+    "herbicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-05-20",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-05-31",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-06-10",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-06-19",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-07-03",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-07-11",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-07-19",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-07-31",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-08-18",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-08-30",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-09-07",
+    "fungicide",
+    15.03,
+    12.53
+   ]
+  ],
+  "litres": 180.36,
+  "sorties": 24,
+  "battery_swaps": 6,
+  "drone_time_min": 150.4,
+  "off_target_l": 12.24,
+  "mean_cv_pct": 11.7,
+  "mean_skipped_frac": 0.0092,
+  "scans": 0,
+  "blight_infection_day": "2025-05-20",
+  "final_blight_severity": 0.999,
+  "weed_loss_pct": 2.97,
+  "forecast_sources": {},
+  "flight": {
+   "height_m": 2.5,
+   "speed_ms": 5.0,
+   "swath_m": 4.0,
+   "rate_l_ha": 15.0,
+   "rtk": false,
+   "pump_lpm": 3.5,
+   "route_angle_deg": null,
+   "ferry_speed_ms": 8.0,
+   "n_battery_sets": 4,
+   "chargers": 1,
+   "refill_s": 60.0,
+   "battery_swap_s": 60.0,
+   "battery_cycles": 0
+  },
+  "notes": [
+   "aerial spraying is not allowed by default in EU; a derogation is required",
+   "prices/costs for EU are illustrative assumptions",
+   "fungicide due 2025-08-08 dropped: no feasible spray window within 6 days"
+  ],
+  "n_decisions": 0,
+  "as_applied_last_sum": 94.292
+ },
+ "clean_twin": {
+  "policy": "twin",
+  "seed": 0,
+  "yield_dry_kg_ha": 8627.0,
+  "yield_marketed_kg_ha": 43135.0,
+  "revenue_ha": 6470.25,
+  "costs_ha": {
+   "fungicide_product": 280.56,
+   "herbicide_product": 0.0,
+   "application": 179.07,
+   "scans": 48.0
+  },
+  "net_ha": 5962.62,
+  "currency": "EUR",
+  "fungicide_sprays": 7,
+  "herbicide": "none",
+  "herbicide_treated_frac": 0.0,
+  "missions": [
+   [
+    "2025-05-24",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-06-11",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-06-24",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-07-03",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-07-23",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-08-16",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-08-30",
+    "fungicide",
+    15.03,
+    12.53
+   ]
+  ],
+  "litres": 105.21,
+  "sorties": 14,
+  "battery_swaps": 5,
+  "drone_time_min": 87.7,
+  "off_target_l": 10.26,
+  "mean_cv_pct": 12.7,
+  "mean_skipped_frac": 0.0143,
+  "scans": 6,
+  "blight_infection_day": null,
+  "final_blight_severity": 0.0,
+  "weed_loss_pct": 4.74,
+  "forecast_sources": {
+   "climatology-analogs": 18
+  },
+  "flight": {
+   "height_m": 2.5,
+   "speed_ms": 5.0,
+   "swath_m": 4.0,
+   "rate_l_ha": 15.0,
+   "rtk": false,
+   "pump_lpm": 3.5,
+   "route_angle_deg": null,
+   "ferry_speed_ms": 8.0,
+   "n_battery_sets": 4,
+   "chargers": 1,
+   "refill_s": 60.0,
+   "battery_swap_s": 60.0,
+   "battery_cycles": 0
+  },
+  "notes": [
+   "aerial spraying is not allowed by default in EU; a derogation is required",
+   "prices/costs for EU are illustrative assumptions"
+  ],
+  "n_decisions": 49,
+  "as_applied_last_sum": 93.791
+ },
+ "clean_calendar": {
+  "policy": "calendar",
+  "seed": 0,
+  "yield_dry_kg_ha": 8780.0,
+  "yield_marketed_kg_ha": 43900.2,
+  "revenue_ha": 6585.03,
+  "costs_ha": {
+   "fungicide_product": 440.88,
+   "herbicide_product": 35.07,
+   "application": 306.99,
+   "scans": 0.0
+  },
+  "net_ha": 5802.09,
+  "currency": "EUR",
+  "fungicide_sprays": 11,
+  "herbicide": "blanket",
+  "herbicide_treated_frac": 1.0,
+  "missions": [
+   [
+    "2025-05-20",
+    "herbicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-05-20",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-05-31",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-06-10",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-06-19",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-07-03",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-07-11",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-07-19",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-07-31",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-08-18",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-08-30",
+    "fungicide",
+    15.03,
+    12.53
+   ],
+   [
+    "2025-09-07",
+    "fungicide",
+    15.03,
+    12.53
+   ]
+  ],
+  "litres": 180.36,
+  "sorties": 24,
+  "battery_swaps": 6,
+  "drone_time_min": 150.4,
+  "off_target_l": 12.24,
+  "mean_cv_pct": 11.7,
+  "mean_skipped_frac": 0.0092,
+  "scans": 0,
+  "blight_infection_day": null,
+  "final_blight_severity": 0.0,
+  "weed_loss_pct": 2.97,
+  "forecast_sources": {},
+  "flight": {
+   "height_m": 2.5,
+   "speed_ms": 5.0,
+   "swath_m": 4.0,
+   "rate_l_ha": 15.0,
+   "rtk": false,
+   "pump_lpm": 3.5,
+   "route_angle_deg": null,
+   "ferry_speed_ms": 8.0,
+   "n_battery_sets": 4,
+   "chargers": 1,
+   "refill_s": 60.0,
+   "battery_swap_s": 60.0,
+   "battery_cycles": 0
+  },
+  "notes": [
+   "aerial spraying is not allowed by default in EU; a derogation is required",
+   "prices/costs for EU are illustrative assumptions",
+   "fungicide due 2025-08-08 dropped: no feasible spray window within 6 days"
+  ],
+  "n_decisions": 0,
+  "as_applied_last_sum": 94.292
+ }
+}
