@@ -263,8 +263,10 @@ class SeasonSession:
         self.last_digital = dfarm
         if self.twin is not None:
             self.twin.ingest(dfarm, d - DAY, seed=self.seed)
+            self.last_digital = self.twin.digital          # merged: unseen cells keep what was known
+        seen_w = obs.weed_density_est[np.isfinite(obs.weed_density_est)]
         self._event("scan", f"{purpose} scan ingested (GSD {obs.gsd_m * 1000:.0f} mm)", purpose=purpose,
-                    gsd_m=obs.gsd_m, weeds_m2=round(float(np.mean(obs.weed_density_est)), 2),
+                    gsd_m=obs.gsd_m, weeds_m2=round(float(seen_w.mean()), 2) if len(seen_w) else None,
                     blight_seen=bool(obs.blight_flag.any()))
         if herbicide and self.twin is not None:
             self.st["herb"] = self.twin.herbicide_option
@@ -431,9 +433,10 @@ class SeasonSession:
             lai, cc, weeds, blight = s.lai, s.cc, s.weeds_m2, s.blight_sev
         elif self.last_digital is not None:
             df = self.last_digital
-            cc = np.array([df.zones[z].cc for z in df.zone_of_cell])
+            mean_cc = float(np.mean([z.cc for z in df.zones])) if df.zones else 0.0
+            cc = np.array([df.zones[z].cc if 0 <= z < len(df.zones) else mean_cc for z in df.zone_of_cell])
             lai = -np.log(np.clip(1.0 - cc, 1e-3, 1.0)) / 0.6
-            weeds = df.weed_map
+            weeds = np.where(np.isfinite(df.weed_map), df.weed_map, 0.0)
             blight = df.blight_cells.astype(float) * df.blight_sev_est
         else:
             return
@@ -601,6 +604,9 @@ class SeasonSession:
             self.windy_days += 1
             self._event("no_fly", f"{op.product}: not flyable ({e})", op=op.id)
             return {"flown": False, "reason": str(e), "op": op.as_dict(), "closed_loop": None}
+        except Exception:
+            self._unlog(entry)                          # never leave a logged action that did not happen
+            raise
         track = [p for r in res.sorties for p in r.track]
         self._account(d, op, flight, res.kpis, res.dose_l_ha, res.warnings, track)
         summ = res.summary()

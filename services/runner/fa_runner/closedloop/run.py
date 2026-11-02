@@ -14,6 +14,7 @@ dropped and audited (the boom cannot reach it), so the loop never re-flies it fo
 """
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -70,6 +71,7 @@ class ClosedLoopResult:
 
 
 MAX_PASSES = 2
+MAX_SHARE = 1.25          # assumed label margin: a top-up never takes a cell past 125 % of the rate
 
 
 def fly_closed_loop(session, op, valve: bool = False, camera: SprayerCamera | None = None,
@@ -100,12 +102,29 @@ def fly_closed_loop(session, op, valve: bool = False, camera: SprayerCamera | No
     warnings: list[str] = []
     stopped, kpis0 = "max sorties", None
     passes = np.zeros(n, int)
+    valve_done = np.zeros(n, bool)
+    rate = flight.rate_l_ha
 
-    def sim(tg, k):
-        return simulate_mission(grid, spec, flight, wx, targets=tg, seed=seed + 1000 * (k - 1),
+    def sim(tg, k, rate_k):
+        fl = flight if rate_k == rate else dataclasses.replace(flight, rate_l_ha=rate_k)
+        return simulate_mission(grid, spec, fl, wx, targets=tg, seed=seed + 1000 * (k - 1),
                                 rules=session.region.rules, power=session.pm, spray=session.sm, record_track=True)
     for k in range(1, max_sorties + 1):
-        res = sim(targets, k)
+        fresh = targets & (dose_cum <= 0)
+        if fresh.any():                                  # cells not sprayed yet: the full rate
+            targets, rate_k = fresh, rate
+        else:                                            # only under-dosed cells: top up, never far over
+            rate_k = float(np.clip(np.median(rate - dose_cum[targets]), 0.25 * rate, rate))
+            over = targets & (dose_cum + rate_k > MAX_SHARE * rate)
+            if over.any():
+                targets = targets & ~over
+                audit.append({"sortie": k, "channel": "dose", "correction": "cells left as they are",
+                              "reason": f"{int(over.sum())} under-dosed cells would pass {MAX_SHARE:.0%} of the "
+                                        f"rate with a {rate_k:.1f} L/ha top-up"})
+            if not targets.any():
+                stopped = "done"
+                break
+        res = sim(targets, k, rate_k)
         if not res.feasible:
             stopped = "not flyable: " + "; ".join(res.reasons)
             break
@@ -116,7 +135,7 @@ def fly_closed_loop(session, op, valve: bool = False, camera: SprayerCamera | No
                 audit.append({"sortie": k, "channel": "plan", "correction": "stopped: no progress",
                               "reason": "the next sortie would reach none of the remaining targets"})
                 break
-            res = sim(first, k)
+            res = sim(first, k, rate_k)
             if not res.feasible:
                 stopped = "not flyable: " + "; ".join(res.reasons)
                 break
@@ -137,14 +156,16 @@ def fly_closed_loop(session, op, valve: bool = False, camera: SprayerCamera | No
             informative = seen & np.isfinite(obs.weed_density_sd)
             open_ = ~informative | (weeds > thr)
             full = dose.sum()
+            valve_done |= informative & ~open_          # deliberately not sprayed: done for this job
             dose = np.where(open_, dose, 0.0)
             litres *= dose.sum() / full if full > 0 else 0.0
         dose_cum += dose
         treated |= sprayed & (dose > 0)
         devs = [deviation_weeds(pred, obs.weed_density_est, obs.weed_density_sd, seen),
                 deviation_dose(pred, dose_cum, sprayed)]
-        new_targets, why = remaining_targets(session.twin, weeds, dose_cum, flight.rate_l_ha, op.product,
+        new_targets, why = remaining_targets(session.twin, weeds, dose_cum, rate, op.product,
                                              original=pred.targets)
+        new_targets &= ~valve_done
         given_up = new_targets & (passes >= MAX_PASSES)
         if given_up.any():
             new_targets &= ~given_up
@@ -169,7 +190,10 @@ def fly_closed_loop(session, op, valve: bool = False, camera: SprayerCamera | No
                            np.where(new_targets)[0].tolist(), np.where(seen)[0].tolist())
         reports.append(rep)
         if on_sortie is not None:
-            on_sortie(rep.to_json())
+            try:
+                on_sortie(rep.to_json())
+            except Exception:  # noqa: BLE001 -- a listener (view, job progress) never changes the flight
+                pass
         if not new_targets.any():
             stopped = "done"
             audit.append({"sortie": k, "channel": "plan", "correction": "job complete", "reason": why})
@@ -178,7 +202,6 @@ def fly_closed_loop(session, op, valve: bool = False, camera: SprayerCamera | No
     if not reports:
         raise ValueError(stopped)
     tm = treated if treated.any() else pred.targets
-    rate = flight.rate_l_ha
     d_t = dose_cum[tm]
     litres = float(sum(r.litres for r in reports))
     deposited = float(dose_cum.sum() * grid.cell_m ** 2 / 1e4)

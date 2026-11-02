@@ -48,6 +48,8 @@ class TwinFarm:
         if prev is not None or not np.isfinite(digital.weed_map).all():
             digital = self._merge(prev, digital)
         self.digital = digital
+        if not getattr(digital, "crop_observed", True):
+            return self._weeds_only(digital, day)
         # A herbicide only saves the part of the critical period still ahead of it.
         from dataclasses import replace
         from fa_farm.truth import CPWC_DAYS, CPWC_DEFAULT
@@ -65,6 +67,16 @@ class TwinFarm:
         weeds = np.where(np.isfinite(digital.weed_map), digital.weed_map, 0.0)
         return self.field.ingest_pass(day, cc, dvs, weeds if self.archetype.weeds else None,
                                       canopy_cover_sd=cc_sd, members=members, seed=seed)
+
+    def _weeds_only(self, digital, day: dt.date) -> Decision:
+        """A scan that measured weeds but not cover or stage: re-decide herbicide on the merged
+        map; the crop model is left alone (an uninformative cover/stage must not move it)."""
+        from fa_planner.weekly import herbicide_decision
+        f = self.field
+        if self.archetype.weeds and f.cfg.crop in f.s.herbicide_crops:
+            f.herbicide = herbicide_decision(np.asarray(digital.weed_map, float), f._expected_yield_hint(),
+                                             f.s.econ, f.s.weeds)
+        return Decision(day, "pass", True, "weed map updated (cover and stage not observed)", {})
 
     @staticmethod
     def _merge(prev, new):

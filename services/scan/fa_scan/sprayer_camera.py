@@ -74,7 +74,7 @@ def observe(state, grid, seen: np.ndarray, gsd_m: float, das: int, rng: np.rando
                            [f"sprayer camera at GSD {gsd_m * 1000:.1f} mm: weed size {size_cm:.1f} cm "
                             f"(assumed growth), recall {rec:.2f} from the measured RF-DETR curve",
                             "growth stage not observed by the sprayer camera: marked uninformative"],
-                           observed=seen)
+                           observed=seen, crop_observed=False)
 
 
 def estimate_from_counts(raw: np.ndarray, area_m2: np.ndarray, gsd_m: np.ndarray, das: int,

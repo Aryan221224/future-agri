@@ -35,6 +35,7 @@ class DigitalFarm:
     blight_cells: np.ndarray
     cell_m: float
     assumptions: list = field(default_factory=list)
+    crop_observed: bool = True
 
     @property
     def area_ha(self) -> float:
@@ -79,4 +80,5 @@ def build_digital_farm(obs, grid, k: int = 4) -> DigitalFarm:
     weed_sd = np.where(seen, obs.weed_density_sd, np.inf)
     blight = obs.blight_flag & seen
     return DigitalFarm(obs.day_index, obs.gsd_m, zone, zones, weed_map, weed_sd, bool(blight.any()),
-                       obs.blight_sev_est, blight, grid.cell_m, list(obs.assumptions))
+                       obs.blight_sev_est, blight, grid.cell_m, list(obs.assumptions),
+                       bool(getattr(obs, "crop_observed", True)))

@@ -132,6 +132,9 @@ class ScanObservation:
     #: cells the camera covered (None: the whole field). Unobserved cells carry no information:
     #: their weed estimate is NaN and they are left out of zones, so the twin keeps its prior there.
     observed: np.ndarray | None = None
+    #: False when cover and growth stage were not measured (e.g. the sprayer camera reports
+    #: weed counts only): the twin then updates the weed map and nothing else.
+    crop_observed: bool = True
 
 
 def _weed_counts(weeds_m2: np.ndarray, area_m2, rec: float, fp_m2: float, rng: np.random.Generator):

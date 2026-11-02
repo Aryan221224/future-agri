@@ -47,7 +47,7 @@ def obs_from_saved(d: dict, grid) -> ScanObservation:
     return ScanObservation(int(d["day_index"]), float(d["gsd_m"]), np.full(n, 0.5), 10.0, np.full(n, 1.0), 10.0,
                            np.zeros(n), est, sd, 0.0, np.zeros(n, bool), 0.0,
                            ["live run: the sprayer camera's per-cell counts; cover and stage not observed"],
-                           observed=seen)
+                           observed=seen, crop_observed=False)
 
 
 class LiveRunService:
