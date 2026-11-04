@@ -1,0 +1,846 @@
+{
+ "rows": [
+  {
+   "site": "Ne1",
+   "year": 2004,
+   "date": "sowing",
+   "cut": "2004-05-11",
+   "lead_days": 157,
+   "forecast_t_ha": 11.98,
+   "climate_spread_t_ha": 4.18,
+   "measured_t_ha": 10.05,
+   "seconds": 3.14
+  },
+  {
+   "site": "Ne1",
+   "year": 2004,
+   "date": "06-01",
+   "cut": "2004-06-01",
+   "lead_days": 136,
+   "forecast_t_ha": 11.82,
+   "climate_spread_t_ha": 4.39,
+   "measured_t_ha": 10.05,
+   "seconds": 3.31
+  },
+  {
+   "site": "Ne1",
+   "year": 2004,
+   "date": "07-01",
+   "cut": "2004-07-01",
+   "lead_days": 106,
+   "forecast_t_ha": 10.99,
+   "climate_spread_t_ha": 4.15,
+   "measured_t_ha": 10.05,
+   "seconds": 2.92
+  },
+  {
+   "site": "Ne1",
+   "year": 2004,
+   "date": "07-15",
+   "cut": "2004-07-15",
+   "lead_days": 92,
+   "forecast_t_ha": 10.81,
+   "climate_spread_t_ha": 4.74,
+   "measured_t_ha": 10.05,
+   "seconds": 2.86
+  },
+  {
+   "site": "Ne1",
+   "year": 2004,
+   "date": "08-01",
+   "cut": "2004-08-01",
+   "lead_days": 75,
+   "forecast_t_ha": 10.26,
+   "climate_spread_t_ha": 4.59,
+   "measured_t_ha": 10.05,
+   "seconds": 3.58
+  },
+  {
+   "site": "Ne1",
+   "year": 2004,
+   "date": "08-15",
+   "cut": "2004-08-15",
+   "lead_days": 61,
+   "forecast_t_ha": 10.6,
+   "climate_spread_t_ha": 4.67,
+   "measured_t_ha": 10.05,
+   "seconds": 3.41
+  },
+  {
+   "site": "Ne1",
+   "year": 2004,
+   "date": "09-01",
+   "cut": "2004-09-01",
+   "lead_days": 44,
+   "forecast_t_ha": 11.42,
+   "climate_spread_t_ha": 4.97,
+   "measured_t_ha": 10.05,
+   "seconds": 3.62
+  },
+  {
+   "site": "Ne1",
+   "year": 2004,
+   "date": "harvest",
+   "cut": "2004-10-15",
+   "lead_days": 0,
+   "forecast_t_ha": 12.1,
+   "climate_spread_t_ha": 0.0,
+   "measured_t_ha": 10.05,
+   "seconds": 0.16
+  },
+  {
+   "site": "Ne1",
+   "year": 2005,
+   "date": "sowing",
+   "cut": "2005-05-11",
+   "lead_days": 157,
+   "forecast_t_ha": 12.04,
+   "climate_spread_t_ha": 4.2,
+   "measured_t_ha": 11.47,
+   "seconds": 2.84
+  },
+  {
+   "site": "Ne1",
+   "year": 2005,
+   "date": "06-01",
+   "cut": "2005-06-01",
+   "lead_days": 136,
+   "forecast_t_ha": 11.9,
+   "climate_spread_t_ha": 4.45,
+   "measured_t_ha": 11.47,
+   "seconds": 3.18
+  },
+  {
+   "site": "Ne1",
+   "year": 2005,
+   "date": "07-01",
+   "cut": "2005-07-01",
+   "lead_days": 106,
+   "forecast_t_ha": 12.41,
+   "climate_spread_t_ha": 3.96,
+   "measured_t_ha": 11.47,
+   "seconds": 3.01
+  },
+  {
+   "site": "Ne1",
+   "year": 2005,
+   "date": "07-15",
+   "cut": "2005-07-15",
+   "lead_days": 92,
+   "forecast_t_ha": 12.49,
+   "climate_spread_t_ha": 3.85,
+   "measured_t_ha": 11.47,
+   "seconds": 3.31
+  },
+  {
+   "site": "Ne1",
+   "year": 2005,
+   "date": "08-01",
+   "cut": "2005-08-01",
+   "lead_days": 75,
+   "forecast_t_ha": 12.76,
+   "climate_spread_t_ha": 4.57,
+   "measured_t_ha": 11.47,
+   "seconds": 2.9
+  },
+  {
+   "site": "Ne1",
+   "year": 2005,
+   "date": "08-15",
+   "cut": "2005-08-15",
+   "lead_days": 61,
+   "forecast_t_ha": 12.59,
+   "climate_spread_t_ha": 3.45,
+   "measured_t_ha": 11.47,
+   "seconds": 2.91
+  },
+  {
+   "site": "Ne1",
+   "year": 2005,
+   "date": "09-01",
+   "cut": "2005-09-01",
+   "lead_days": 44,
+   "forecast_t_ha": 12.64,
+   "climate_spread_t_ha": 2.55,
+   "measured_t_ha": 11.47,
+   "seconds": 2.89
+  },
+  {
+   "site": "Ne1",
+   "year": 2005,
+   "date": "harvest",
+   "cut": "2005-10-15",
+   "lead_days": 0,
+   "forecast_t_ha": 12.41,
+   "climate_spread_t_ha": 0.0,
+   "measured_t_ha": 11.47,
+   "seconds": 0.16
+  },
+  {
+   "site": "Ne2",
+   "year": 2001,
+   "date": "sowing",
+   "cut": "2001-05-11",
+   "lead_days": 157,
+   "forecast_t_ha": 12.05,
+   "climate_spread_t_ha": 4.21,
+   "measured_t_ha": 13.62,
+   "seconds": 3.06
+  },
+  {
+   "site": "Ne2",
+   "year": 2001,
+   "date": "06-01",
+   "cut": "2001-06-01",
+   "lead_days": 136,
+   "forecast_t_ha": 11.99,
+   "climate_spread_t_ha": 4.47,
+   "measured_t_ha": 13.62,
+   "seconds": 3.27
+  },
+  {
+   "site": "Ne2",
+   "year": 2001,
+   "date": "07-01",
+   "cut": "2001-07-01",
+   "lead_days": 106,
+   "forecast_t_ha": 11.78,
+   "climate_spread_t_ha": 4.12,
+   "measured_t_ha": 13.62,
+   "seconds": 4.47
+  },
+  {
+   "site": "Ne2",
+   "year": 2001,
+   "date": "07-15",
+   "cut": "2001-07-15",
+   "lead_days": 92,
+   "forecast_t_ha": 11.9,
+   "climate_spread_t_ha": 4.26,
+   "measured_t_ha": 13.62,
+   "seconds": 2.96
+  },
+  {
+   "site": "Ne2",
+   "year": 2001,
+   "date": "08-01",
+   "cut": "2001-08-01",
+   "lead_days": 75,
+   "forecast_t_ha": 12.39,
+   "climate_spread_t_ha": 4.49,
+   "measured_t_ha": 13.62,
+   "seconds": 3.45
+  },
+  {
+   "site": "Ne2",
+   "year": 2001,
+   "date": "08-15",
+   "cut": "2001-08-15",
+   "lead_days": 61,
+   "forecast_t_ha": 11.71,
+   "climate_spread_t_ha": 3.62,
+   "measured_t_ha": 13.62,
+   "seconds": 3.53
+  },
+  {
+   "site": "Ne2",
+   "year": 2001,
+   "date": "09-01",
+   "cut": "2001-09-01",
+   "lead_days": 44,
+   "forecast_t_ha": 12.41,
+   "climate_spread_t_ha": 2.4,
+   "measured_t_ha": 13.62,
+   "seconds": 3.11
+  },
+  {
+   "site": "Ne2",
+   "year": 2001,
+   "date": "harvest",
+   "cut": "2001-10-15",
+   "lead_days": 0,
+   "forecast_t_ha": 12.24,
+   "climate_spread_t_ha": 0.0,
+   "measured_t_ha": 13.62,
+   "seconds": 0.16
+  },
+  {
+   "site": "Ne2",
+   "year": 2003,
+   "date": "sowing",
+   "cut": "2003-05-14",
+   "lead_days": 154,
+   "forecast_t_ha": 11.73,
+   "climate_spread_t_ha": 4.42,
+   "measured_t_ha": 14.15,
+   "seconds": 2.88
+  },
+  {
+   "site": "Ne2",
+   "year": 2003,
+   "date": "06-01",
+   "cut": "2003-06-01",
+   "lead_days": 136,
+   "forecast_t_ha": 11.54,
+   "climate_spread_t_ha": 4.74,
+   "measured_t_ha": 14.15,
+   "seconds": 3.12
+  },
+  {
+   "site": "Ne2",
+   "year": 2003,
+   "date": "07-01",
+   "cut": "2003-07-01",
+   "lead_days": 106,
+   "forecast_t_ha": 10.91,
+   "climate_spread_t_ha": 4.31,
+   "measured_t_ha": 14.15,
+   "seconds": 3.29
+  },
+  {
+   "site": "Ne2",
+   "year": 2003,
+   "date": "07-15",
+   "cut": "2003-07-15",
+   "lead_days": 92,
+   "forecast_t_ha": 11.2,
+   "climate_spread_t_ha": 4.97,
+   "measured_t_ha": 14.15,
+   "seconds": 2.8
+  },
+  {
+   "site": "Ne2",
+   "year": 2003,
+   "date": "08-01",
+   "cut": "2003-08-01",
+   "lead_days": 75,
+   "forecast_t_ha": 11.46,
+   "climate_spread_t_ha": 4.07,
+   "measured_t_ha": 14.15,
+   "seconds": 2.81
+  },
+  {
+   "site": "Ne2",
+   "year": 2003,
+   "date": "08-15",
+   "cut": "2003-08-15",
+   "lead_days": 61,
+   "forecast_t_ha": 11.83,
+   "climate_spread_t_ha": 3.73,
+   "measured_t_ha": 14.15,
+   "seconds": 3.18
+  },
+  {
+   "site": "Ne2",
+   "year": 2003,
+   "date": "09-01",
+   "cut": "2003-09-01",
+   "lead_days": 44,
+   "forecast_t_ha": 11.06,
+   "climate_spread_t_ha": 3.52,
+   "measured_t_ha": 14.15,
+   "seconds": 2.76
+  },
+  {
+   "site": "Ne2",
+   "year": 2003,
+   "date": "harvest",
+   "cut": "2003-10-15",
+   "lead_days": 0,
+   "forecast_t_ha": 11.24,
+   "climate_spread_t_ha": 0.0,
+   "measured_t_ha": 14.15,
+   "seconds": 0.23
+  },
+  {
+   "site": "Ne2",
+   "year": 2005,
+   "date": "sowing",
+   "cut": "2005-05-12",
+   "lead_days": 156,
+   "forecast_t_ha": 11.91,
+   "climate_spread_t_ha": 4.4,
+   "measured_t_ha": 12.83,
+   "seconds": 3.48
+  },
+  {
+   "site": "Ne2",
+   "year": 2005,
+   "date": "06-01",
+   "cut": "2005-06-01",
+   "lead_days": 136,
+   "forecast_t_ha": 11.77,
+   "climate_spread_t_ha": 4.46,
+   "measured_t_ha": 12.83,
+   "seconds": 3.28
+  },
+  {
+   "site": "Ne2",
+   "year": 2005,
+   "date": "07-01",
+   "cut": "2005-07-01",
+   "lead_days": 106,
+   "forecast_t_ha": 12.27,
+   "climate_spread_t_ha": 3.89,
+   "measured_t_ha": 12.83,
+   "seconds": 3.17
+  },
+  {
+   "site": "Ne2",
+   "year": 2005,
+   "date": "07-15",
+   "cut": "2005-07-15",
+   "lead_days": 92,
+   "forecast_t_ha": 12.41,
+   "climate_spread_t_ha": 4.09,
+   "measured_t_ha": 12.83,
+   "seconds": 3.12
+  },
+  {
+   "site": "Ne2",
+   "year": 2005,
+   "date": "08-01",
+   "cut": "2005-08-01",
+   "lead_days": 75,
+   "forecast_t_ha": 12.6,
+   "climate_spread_t_ha": 4.38,
+   "measured_t_ha": 12.83,
+   "seconds": 2.89
+  },
+  {
+   "site": "Ne2",
+   "year": 2005,
+   "date": "08-15",
+   "cut": "2005-08-15",
+   "lead_days": 61,
+   "forecast_t_ha": 12.46,
+   "climate_spread_t_ha": 3.37,
+   "measured_t_ha": 12.83,
+   "seconds": 3.1
+  },
+  {
+   "site": "Ne2",
+   "year": 2005,
+   "date": "09-01",
+   "cut": "2005-09-01",
+   "lead_days": 44,
+   "forecast_t_ha": 12.53,
+   "climate_spread_t_ha": 2.72,
+   "measured_t_ha": 12.83,
+   "seconds": 2.68
+  },
+  {
+   "site": "Ne2",
+   "year": 2005,
+   "date": "harvest",
+   "cut": "2005-10-15",
+   "lead_days": 0,
+   "forecast_t_ha": 12.33,
+   "climate_spread_t_ha": 0.0,
+   "measured_t_ha": 12.83,
+   "seconds": 0.15
+  },
+  {
+   "site": "Ne3",
+   "year": 2001,
+   "date": "sowing",
+   "cut": "2001-05-14",
+   "lead_days": 154,
+   "forecast_t_ha": 6.89,
+   "climate_spread_t_ha": 4.37,
+   "measured_t_ha": 8.81,
+   "seconds": 2.72
+  },
+  {
+   "site": "Ne3",
+   "year": 2001,
+   "date": "06-01",
+   "cut": "2001-06-01",
+   "lead_days": 136,
+   "forecast_t_ha": 7.27,
+   "climate_spread_t_ha": 3.79,
+   "measured_t_ha": 8.81,
+   "seconds": 2.67
+  },
+  {
+   "site": "Ne3",
+   "year": 2001,
+   "date": "07-01",
+   "cut": "2001-07-01",
+   "lead_days": 106,
+   "forecast_t_ha": 7.69,
+   "climate_spread_t_ha": 3.83,
+   "measured_t_ha": 8.81,
+   "seconds": 2.62
+  },
+  {
+   "site": "Ne3",
+   "year": 2001,
+   "date": "07-15",
+   "cut": "2001-07-15",
+   "lead_days": 92,
+   "forecast_t_ha": 7.59,
+   "climate_spread_t_ha": 3.13,
+   "measured_t_ha": 8.81,
+   "seconds": 3.36
+  },
+  {
+   "site": "Ne3",
+   "year": 2001,
+   "date": "08-01",
+   "cut": "2001-08-01",
+   "lead_days": 75,
+   "forecast_t_ha": 7.3,
+   "climate_spread_t_ha": 4.34,
+   "measured_t_ha": 8.81,
+   "seconds": 3.08
+  },
+  {
+   "site": "Ne3",
+   "year": 2001,
+   "date": "08-15",
+   "cut": "2001-08-15",
+   "lead_days": 61,
+   "forecast_t_ha": 6.84,
+   "climate_spread_t_ha": 3.2,
+   "measured_t_ha": 8.81,
+   "seconds": 2.85
+  },
+  {
+   "site": "Ne3",
+   "year": 2001,
+   "date": "09-01",
+   "cut": "2001-09-01",
+   "lead_days": 44,
+   "forecast_t_ha": 7.5,
+   "climate_spread_t_ha": 1.39,
+   "measured_t_ha": 8.81,
+   "seconds": 3.18
+  },
+  {
+   "site": "Ne3",
+   "year": 2001,
+   "date": "harvest",
+   "cut": "2001-10-15",
+   "lead_days": 0,
+   "forecast_t_ha": 7.49,
+   "climate_spread_t_ha": 0.0,
+   "measured_t_ha": 8.81,
+   "seconds": 0.16
+  },
+  {
+   "site": "Ne3",
+   "year": 2003,
+   "date": "sowing",
+   "cut": "2003-05-13",
+   "lead_days": 155,
+   "forecast_t_ha": 8.85,
+   "climate_spread_t_ha": 4.64,
+   "measured_t_ha": 7.81,
+   "seconds": 2.67
+  },
+  {
+   "site": "Ne3",
+   "year": 2003,
+   "date": "06-01",
+   "cut": "2003-06-01",
+   "lead_days": 136,
+   "forecast_t_ha": 8.81,
+   "climate_spread_t_ha": 4.79,
+   "measured_t_ha": 7.81,
+   "seconds": 3.32
+  },
+  {
+   "site": "Ne3",
+   "year": 2003,
+   "date": "07-01",
+   "cut": "2003-07-01",
+   "lead_days": 106,
+   "forecast_t_ha": 8.95,
+   "climate_spread_t_ha": 4.7,
+   "measured_t_ha": 7.81,
+   "seconds": 2.97
+  },
+  {
+   "site": "Ne3",
+   "year": 2003,
+   "date": "07-15",
+   "cut": "2003-07-15",
+   "lead_days": 92,
+   "forecast_t_ha": 8.93,
+   "climate_spread_t_ha": 4.55,
+   "measured_t_ha": 7.81,
+   "seconds": 3.55
+  },
+  {
+   "site": "Ne3",
+   "year": 2003,
+   "date": "08-01",
+   "cut": "2003-08-01",
+   "lead_days": 75,
+   "forecast_t_ha": 8.51,
+   "climate_spread_t_ha": 6.84,
+   "measured_t_ha": 7.81,
+   "seconds": 3.35
+  },
+  {
+   "site": "Ne3",
+   "year": 2003,
+   "date": "08-15",
+   "cut": "2003-08-15",
+   "lead_days": 61,
+   "forecast_t_ha": 8.47,
+   "climate_spread_t_ha": 5.67,
+   "measured_t_ha": 7.81,
+   "seconds": 3.0
+  },
+  {
+   "site": "Ne3",
+   "year": 2003,
+   "date": "09-01",
+   "cut": "2003-09-01",
+   "lead_days": 44,
+   "forecast_t_ha": 7.24,
+   "climate_spread_t_ha": 3.35,
+   "measured_t_ha": 7.81,
+   "seconds": 3.02
+  },
+  {
+   "site": "Ne3",
+   "year": 2003,
+   "date": "harvest",
+   "cut": "2003-10-15",
+   "lead_days": 0,
+   "forecast_t_ha": 7.4,
+   "climate_spread_t_ha": 0.0,
+   "measured_t_ha": 7.81,
+   "seconds": 0.21
+  },
+  {
+   "site": "Ne3",
+   "year": 2005,
+   "date": "sowing",
+   "cut": "2005-05-13",
+   "lead_days": 155,
+   "forecast_t_ha": 7.97,
+   "climate_spread_t_ha": 4.41,
+   "measured_t_ha": 8.94,
+   "seconds": 3.3
+  },
+  {
+   "site": "Ne3",
+   "year": 2005,
+   "date": "06-01",
+   "cut": "2005-06-01",
+   "lead_days": 136,
+   "forecast_t_ha": 8.25,
+   "climate_spread_t_ha": 4.13,
+   "measured_t_ha": 8.94,
+   "seconds": 3.12
+  },
+  {
+   "site": "Ne3",
+   "year": 2005,
+   "date": "07-01",
+   "cut": "2005-07-01",
+   "lead_days": 106,
+   "forecast_t_ha": 8.09,
+   "climate_spread_t_ha": 3.59,
+   "measured_t_ha": 8.94,
+   "seconds": 3.1
+  },
+  {
+   "site": "Ne3",
+   "year": 2005,
+   "date": "07-15",
+   "cut": "2005-07-15",
+   "lead_days": 92,
+   "forecast_t_ha": 8.07,
+   "climate_spread_t_ha": 3.72,
+   "measured_t_ha": 8.94,
+   "seconds": 3.01
+  },
+  {
+   "site": "Ne3",
+   "year": 2005,
+   "date": "08-01",
+   "cut": "2005-08-01",
+   "lead_days": 75,
+   "forecast_t_ha": 8.33,
+   "climate_spread_t_ha": 3.01,
+   "measured_t_ha": 8.94,
+   "seconds": 3.55
+  },
+  {
+   "site": "Ne3",
+   "year": 2005,
+   "date": "08-15",
+   "cut": "2005-08-15",
+   "lead_days": 61,
+   "forecast_t_ha": 8.24,
+   "climate_spread_t_ha": 2.2,
+   "measured_t_ha": 8.94,
+   "seconds": 3.28
+  },
+  {
+   "site": "Ne3",
+   "year": 2005,
+   "date": "09-01",
+   "cut": "2005-09-01",
+   "lead_days": 44,
+   "forecast_t_ha": 8.3,
+   "climate_spread_t_ha": 1.46,
+   "measured_t_ha": 8.94,
+   "seconds": 3.28
+  },
+  {
+   "site": "Ne3",
+   "year": 2005,
+   "date": "harvest",
+   "cut": "2005-10-15",
+   "lead_days": 0,
+   "forecast_t_ha": 8.09,
+   "climate_spread_t_ha": 0.0,
+   "measured_t_ha": 8.94,
+   "seconds": 0.16
+  }
+ ],
+ "summary": {
+  "sowing": {
+   "all": {
+    "rmse": 1.5381157303662163,
+    "bias": -0.5325000000000001
+   },
+   "irrigated": {
+    "rmse": 1.6258843747327172,
+    "bias": -0.48200000000000004
+   },
+   "rainfed": {
+    "rmse": 1.379480578575381,
+    "bias": -0.6166666666666668
+   },
+   "lead_days_mean": 155.625,
+   "spread_mean": 4.35375,
+   "seconds_mean": 3.01125
+  },
+  "06-01": {
+   "all": {
+    "rmse": 1.4898867406618534,
+    "bias": -0.5412500000000001
+   },
+   "irrigated": {
+    "rmse": 1.6679568339738293,
+    "bias": -0.6200000000000003
+   },
+   "rainfed": {
+    "rmse": 1.1325045989604934,
+    "bias": -0.40999999999999986
+   },
+   "lead_days_mean": 136.0,
+   "spread_mean": 4.4025,
+   "seconds_mean": 3.15875
+  },
+  "07-01": {
+   "all": {
+    "rmse": 1.5508263926049233,
+    "bias": -0.5737500000000002
+   },
+   "irrigated": {
+    "rmse": 1.786840787535364,
+    "bias": -0.7520000000000003
+   },
+   "rainfed": {
+    "rmse": 1.045067780895893,
+    "bias": -0.27666666666666667
+   },
+   "lead_days_mean": 106.0,
+   "spread_mean": 4.06875,
+   "seconds_mean": 3.19375
+  },
+  "07-15": {
+   "all": {
+    "rmse": 1.4558073361540669,
+    "bias": -0.535
+   },
+   "irrigated": {
+    "rmse": 1.6404450615610389,
+    "bias": -0.6620000000000001
+   },
+   "rainfed": {
+    "rmse": 1.0800771577376622,
+    "bias": -0.32333333333333325
+   },
+   "lead_days_mean": 92.0,
+   "spread_mean": 4.16375,
+   "seconds_mean": 3.12125
+  },
+  "08-01": {
+   "all": {
+    "rmse": 1.306345092232523,
+    "bias": -0.50875
+   },
+   "irrigated": {
+    "rmse": 1.4498344733106598,
+    "bias": -0.53
+   },
+   "rainfed": {
+    "rmse": 1.0234256201600587,
+    "bias": -0.47333333333333333
+   },
+   "lead_days_mean": 75.0,
+   "spread_mean": 4.53625,
+   "seconds_mean": 3.20125
+  },
+  "08-15": {
+   "all": {
+    "rmse": 1.3933233651956027,
+    "bias": -0.6174999999999998
+   },
+   "irrigated": {
+    "rmse": 1.46453405559584,
+    "bias": -0.586
+   },
+   "rainfed": {
+    "rmse": 1.2657672245190534,
+    "bias": -0.6699999999999996
+   },
+   "lead_days_mean": 61.0,
+   "spread_mean": 3.73875,
+   "seconds_mean": 3.1575
+  },
+  "09-01": {
+   "all": {
+    "rmse": 1.4490772926245168,
+    "bias": -0.5724999999999999
+   },
+   "irrigated": {
+    "rmse": 1.6939893742287757,
+    "bias": -0.4120000000000001
+   },
+   "rainfed": {
+    "rmse": 0.9038067640080297,
+    "bias": -0.8399999999999995
+   },
+   "lead_days_mean": 44.0,
+   "spread_mean": 2.795,
+   "seconds_mean": 3.0675
+  },
+  "harvest": {
+   "all": {
+    "rmse": 1.5141664373509272,
+    "bias": -0.5475
+   },
+   "irrigated": {
+    "rmse": 1.7724897743005454,
+    "bias": -0.36000000000000015
+   },
+   "rainfed": {
+    "rmse": 0.9368386556214824,
+    "bias": -0.8599999999999998
+   },
+   "lead_days_mean": 0.0,
+   "spread_mean": 0.0,
+   "seconds_mean": 0.17375000000000002
+  }
+ }
+}

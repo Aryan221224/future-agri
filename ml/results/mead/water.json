@@ -1,0 +1,796 @@
+{
+ "seasons": [
+  {
+   "site": "Ne1",
+   "year": 2014,
+   "sowing": "2014-04-21",
+   "population": 79815,
+   "measured_t_ha": 11.14,
+   "farmer": {
+    "yield_t_ha": 11.87,
+    "agb_t_ha": 24.32,
+    "transpiration_cm": 43.2,
+    "irrigation_mm": 205.7,
+    "passes": 8
+   },
+   "twin": {
+    "yield_t_ha": 11.87,
+    "agb_t_ha": 24.32,
+    "transpiration_cm": 43.2,
+    "irrigation_mm": 78.7,
+    "passes": 4,
+    "dates": [
+     "2014-08-01",
+     "2014-08-18"
+    ]
+   },
+   "twin_noforecast": {
+    "yield_t_ha": 11.87,
+    "agb_t_ha": 24.32,
+    "transpiration_cm": 43.2,
+    "irrigation_mm": 78.7,
+    "passes": 4,
+    "dates": [
+     "2014-07-31",
+     "2014-08-16"
+    ]
+   },
+   "twin_blind": {
+    "yield_t_ha": 11.87,
+    "agb_t_ha": 24.32,
+    "transpiration_cm": 43.2,
+    "irrigation_mm": 78.7,
+    "passes": 4,
+    "dates": [
+     "2014-07-29",
+     "2014-08-17"
+    ]
+   },
+   "rainfed": {
+    "yield_t_ha": 11.69,
+    "agb_t_ha": 24.17,
+    "transpiration_cm": 42.9,
+    "irrigation_mm": 0,
+    "passes": 0
+   },
+   "fertigation_only": {
+    "yield_t_ha": 11.74,
+    "agb_t_ha": 24.21,
+    "transpiration_cm": 43.0,
+    "irrigation_mm": 15.2,
+    "passes": 2
+   },
+   "potential": {
+    "yield_t_ha": 11.87,
+    "agb_t_ha": 24.32,
+    "transpiration_cm": 43.2,
+    "irrigation_mm": 0.0,
+    "passes": 0
+   },
+   "seconds": 1.62
+  },
+  {
+   "site": "Ne1",
+   "year": 2015,
+   "sowing": "2015-04-29",
+   "population": 75120,
+   "measured_t_ha": 11.86,
+   "farmer": {
+    "yield_t_ha": 13.23,
+    "agb_t_ha": 24.34,
+    "transpiration_cm": 41.2,
+    "irrigation_mm": 96.6,
+    "passes": 6
+   },
+   "twin": {
+    "yield_t_ha": 13.23,
+    "agb_t_ha": 24.34,
+    "transpiration_cm": 41.2,
+    "irrigation_mm": 15.0,
+    "passes": 2,
+    "dates": []
+   },
+   "twin_noforecast": {
+    "yield_t_ha": 13.23,
+    "agb_t_ha": 24.34,
+    "transpiration_cm": 41.2,
+    "irrigation_mm": 15.0,
+    "passes": 2,
+    "dates": []
+   },
+   "twin_blind": {
+    "yield_t_ha": 13.23,
+    "agb_t_ha": 24.34,
+    "transpiration_cm": 41.2,
+    "irrigation_mm": 15.0,
+    "passes": 2,
+    "dates": []
+   },
+   "rainfed": {
+    "yield_t_ha": 13.23,
+    "agb_t_ha": 24.34,
+    "transpiration_cm": 41.2,
+    "irrigation_mm": 0,
+    "passes": 0
+   },
+   "fertigation_only": {
+    "yield_t_ha": 13.23,
+    "agb_t_ha": 24.34,
+    "transpiration_cm": 41.2,
+    "irrigation_mm": 15.0,
+    "passes": 2
+   },
+   "potential": {
+    "yield_t_ha": 13.23,
+    "agb_t_ha": 24.34,
+    "transpiration_cm": 41.2,
+    "irrigation_mm": 0.0,
+    "passes": 0
+   },
+   "seconds": 1.47
+  },
+  {
+   "site": "Ne1",
+   "year": 2016,
+   "sowing": "2016-05-19",
+   "population": 75120,
+   "measured_t_ha": 12.69,
+   "farmer": {
+    "yield_t_ha": 12.48,
+    "agb_t_ha": 22.58,
+    "transpiration_cm": 38.1,
+    "irrigation_mm": 84.8,
+    "passes": 4
+   },
+   "twin": {
+    "yield_t_ha": 12.48,
+    "agb_t_ha": 22.58,
+    "transpiration_cm": 38.1,
+    "irrigation_mm": 12.4,
+    "passes": 1,
+    "dates": []
+   },
+   "twin_noforecast": {
+    "yield_t_ha": 12.48,
+    "agb_t_ha": 22.58,
+    "transpiration_cm": 38.1,
+    "irrigation_mm": 12.4,
+    "passes": 1,
+    "dates": []
+   },
+   "twin_blind": {
+    "yield_t_ha": 12.48,
+    "agb_t_ha": 22.58,
+    "transpiration_cm": 38.1,
+    "irrigation_mm": 12.4,
+    "passes": 1,
+    "dates": []
+   },
+   "rainfed": {
+    "yield_t_ha": 12.48,
+    "agb_t_ha": 22.58,
+    "transpiration_cm": 38.1,
+    "irrigation_mm": 0,
+    "passes": 0
+   },
+   "fertigation_only": {
+    "yield_t_ha": 12.48,
+    "agb_t_ha": 22.58,
+    "transpiration_cm": 38.1,
+    "irrigation_mm": 12.4,
+    "passes": 1
+   },
+   "potential": {
+    "yield_t_ha": 12.48,
+    "agb_t_ha": 22.58,
+    "transpiration_cm": 38.1,
+    "irrigation_mm": 0.0,
+    "passes": 0
+   },
+   "seconds": 1.54
+  },
+  {
+   "site": "Ne1",
+   "year": 2017,
+   "sowing": "2017-04-27",
+   "population": 82162,
+   "measured_t_ha": 14.12,
+   "farmer": {
+    "yield_t_ha": 15.54,
+    "agb_t_ha": 27.13,
+    "transpiration_cm": 50.7,
+    "irrigation_mm": 157.9,
+    "passes": 6
+   },
+   "twin": {
+    "yield_t_ha": 15.54,
+    "agb_t_ha": 27.13,
+    "transpiration_cm": 50.7,
+    "irrigation_mm": 107.7,
+    "passes": 4,
+    "dates": [
+     "2017-07-27",
+     "2017-08-06",
+     "2017-09-06"
+    ]
+   },
+   "twin_noforecast": {
+    "yield_t_ha": 15.54,
+    "agb_t_ha": 27.13,
+    "transpiration_cm": 50.7,
+    "irrigation_mm": 107.7,
+    "passes": 4,
+    "dates": [
+     "2017-07-25",
+     "2017-08-04",
+     "2017-08-13"
+    ]
+   },
+   "twin_blind": {
+    "yield_t_ha": 15.54,
+    "agb_t_ha": 27.13,
+    "transpiration_cm": 50.7,
+    "irrigation_mm": 139.4,
+    "passes": 5,
+    "dates": [
+     "2017-07-19",
+     "2017-07-23",
+     "2017-08-02",
+     "2017-08-10"
+    ]
+   },
+   "rainfed": {
+    "yield_t_ha": 14.3,
+    "agb_t_ha": 26.08,
+    "transpiration_cm": 48.9,
+    "irrigation_mm": 0,
+    "passes": 0
+   },
+   "fertigation_only": {
+    "yield_t_ha": 14.81,
+    "agb_t_ha": 26.51,
+    "transpiration_cm": 49.5,
+    "irrigation_mm": 12.4,
+    "passes": 1
+   },
+   "potential": {
+    "yield_t_ha": 15.54,
+    "agb_t_ha": 27.13,
+    "transpiration_cm": 50.7,
+    "irrigation_mm": 0.0,
+    "passes": 0
+   },
+   "seconds": 1.74
+  },
+  {
+   "site": "Ne1",
+   "year": 2018,
+   "sowing": "2018-05-08",
+   "population": 86857,
+   "measured_t_ha": 8.47,
+   "farmer": {
+    "yield_t_ha": 13.47,
+    "agb_t_ha": 24.95,
+    "transpiration_cm": 43.9,
+    "irrigation_mm": 122.0,
+    "passes": 5
+   },
+   "twin": {
+    "yield_t_ha": 13.47,
+    "agb_t_ha": 24.95,
+    "transpiration_cm": 43.9,
+    "irrigation_mm": 31.8,
+    "passes": 1,
+    "dates": [
+     "2018-08-11"
+    ]
+   },
+   "twin_noforecast": {
+    "yield_t_ha": 13.47,
+    "agb_t_ha": 24.95,
+    "transpiration_cm": 43.9,
+    "irrigation_mm": 63.5,
+    "passes": 2,
+    "dates": [
+     "2018-08-11",
+     "2018-08-20"
+    ]
+   },
+   "twin_blind": {
+    "yield_t_ha": 13.47,
+    "agb_t_ha": 24.95,
+    "transpiration_cm": 43.9,
+    "irrigation_mm": 63.5,
+    "passes": 2,
+    "dates": [
+     "2018-07-30",
+     "2018-08-07"
+    ]
+   },
+   "rainfed": {
+    "yield_t_ha": 13.47,
+    "agb_t_ha": 24.95,
+    "transpiration_cm": 43.9,
+    "irrigation_mm": 0,
+    "passes": 0
+   },
+   "fertigation_only": {
+    "yield_t_ha": 13.47,
+    "agb_t_ha": 24.95,
+    "transpiration_cm": 43.9,
+    "irrigation_mm": 0,
+    "passes": 0
+   },
+   "potential": {
+    "yield_t_ha": 13.47,
+    "agb_t_ha": 24.95,
+    "transpiration_cm": 43.9,
+    "irrigation_mm": 0.0,
+    "passes": 0
+   },
+   "seconds": 1.5
+  },
+  {
+   "site": "Ne1",
+   "year": 2020,
+   "sowing": "2020-04-20",
+   "population": 77467,
+   "measured_t_ha": 13.72,
+   "farmer": {
+    "yield_t_ha": 14.61,
+    "agb_t_ha": 24.57,
+    "transpiration_cm": 46.3,
+    "irrigation_mm": 259.6,
+    "passes": 10
+   },
+   "twin": {
+    "yield_t_ha": 14.48,
+    "agb_t_ha": 24.47,
+    "transpiration_cm": 46.0,
+    "irrigation_mm": 176.0,
+    "passes": 6,
+    "dates": [
+     "2020-07-21",
+     "2020-07-27",
+     "2020-08-05",
+     "2020-08-14",
+     "2020-08-25"
+    ]
+   },
+   "twin_noforecast": {
+    "yield_t_ha": 14.48,
+    "agb_t_ha": 24.46,
+    "transpiration_cm": 46.0,
+    "irrigation_mm": 176.0,
+    "passes": 6,
+    "dates": [
+     "2020-07-18",
+     "2020-07-27",
+     "2020-08-05",
+     "2020-08-14",
+     "2020-08-25"
+    ]
+   },
+   "twin_blind": {
+    "yield_t_ha": 13.51,
+    "agb_t_ha": 23.64,
+    "transpiration_cm": 44.2,
+    "irrigation_mm": 112.5,
+    "passes": 4,
+    "dates": [
+     "2020-07-20",
+     "2020-08-10",
+     "2020-08-16"
+    ]
+   },
+   "rainfed": {
+    "yield_t_ha": 8.52,
+    "agb_t_ha": 19.37,
+    "transpiration_cm": 37.1,
+    "irrigation_mm": 0,
+    "passes": 0
+   },
+   "fertigation_only": {
+    "yield_t_ha": 9.4,
+    "agb_t_ha": 20.17,
+    "transpiration_cm": 38.4,
+    "irrigation_mm": 17.3,
+    "passes": 1
+   },
+   "potential": {
+    "yield_t_ha": 14.61,
+    "agb_t_ha": 24.57,
+    "transpiration_cm": 46.3,
+    "irrigation_mm": 0.0,
+    "passes": 0
+   },
+   "seconds": 1.61
+  },
+  {
+   "site": "Ne1",
+   "year": 2021,
+   "sowing": "2021-04-27",
+   "population": 77467,
+   "measured_t_ha": 14.23,
+   "farmer": {
+    "yield_t_ha": 13.75,
+    "agb_t_ha": 24.75,
+    "transpiration_cm": 44.8,
+    "irrigation_mm": 126.3,
+    "passes": 5
+   },
+   "twin": {
+    "yield_t_ha": 13.75,
+    "agb_t_ha": 24.75,
+    "transpiration_cm": 44.8,
+    "irrigation_mm": 39.6,
+    "passes": 2,
+    "dates": [
+     "2021-08-25"
+    ]
+   },
+   "twin_noforecast": {
+    "yield_t_ha": 13.75,
+    "agb_t_ha": 24.75,
+    "transpiration_cm": 44.8,
+    "irrigation_mm": 39.6,
+    "passes": 2,
+    "dates": [
+     "2021-08-24"
+    ]
+   },
+   "twin_blind": {
+    "yield_t_ha": 13.75,
+    "agb_t_ha": 24.75,
+    "transpiration_cm": 44.8,
+    "irrigation_mm": 103.1,
+    "passes": 4,
+    "dates": [
+     "2021-07-31",
+     "2021-08-08",
+     "2021-08-15"
+    ]
+   },
+   "rainfed": {
+    "yield_t_ha": 13.75,
+    "agb_t_ha": 24.75,
+    "transpiration_cm": 44.8,
+    "irrigation_mm": 0,
+    "passes": 0
+   },
+   "fertigation_only": {
+    "yield_t_ha": 13.75,
+    "agb_t_ha": 24.75,
+    "transpiration_cm": 44.8,
+    "irrigation_mm": 7.9,
+    "passes": 1
+   },
+   "potential": {
+    "yield_t_ha": 13.75,
+    "agb_t_ha": 24.75,
+    "transpiration_cm": 44.8,
+    "irrigation_mm": 0.0,
+    "passes": 0
+   },
+   "seconds": 1.85
+  },
+  {
+   "site": "Ne2",
+   "year": 2015,
+   "sowing": "2015-04-29",
+   "population": 75120,
+   "measured_t_ha": 13.5,
+   "farmer": {
+    "yield_t_ha": 13.23,
+    "agb_t_ha": 24.34,
+    "transpiration_cm": 41.2,
+    "irrigation_mm": 63.5,
+    "passes": 4
+   },
+   "twin": {
+    "yield_t_ha": 13.23,
+    "agb_t_ha": 24.34,
+    "transpiration_cm": 41.2,
+    "irrigation_mm": 0,
+    "passes": 0,
+    "dates": []
+   },
+   "twin_noforecast": {
+    "yield_t_ha": 13.23,
+    "agb_t_ha": 24.34,
+    "transpiration_cm": 41.2,
+    "irrigation_mm": 0,
+    "passes": 0,
+    "dates": []
+   },
+   "twin_blind": {
+    "yield_t_ha": 13.23,
+    "agb_t_ha": 24.34,
+    "transpiration_cm": 41.2,
+    "irrigation_mm": 0,
+    "passes": 0,
+    "dates": []
+   },
+   "rainfed": {
+    "yield_t_ha": 13.23,
+    "agb_t_ha": 24.34,
+    "transpiration_cm": 41.2,
+    "irrigation_mm": 0,
+    "passes": 0
+   },
+   "fertigation_only": {
+    "yield_t_ha": 13.23,
+    "agb_t_ha": 24.34,
+    "transpiration_cm": 41.2,
+    "irrigation_mm": 0,
+    "passes": 0
+   },
+   "potential": {
+    "yield_t_ha": 13.23,
+    "agb_t_ha": 24.34,
+    "transpiration_cm": 41.2,
+    "irrigation_mm": 0.0,
+    "passes": 0
+   },
+   "seconds": 1.83
+  },
+  {
+   "site": "Ne2",
+   "year": 2017,
+   "sowing": "2017-05-07",
+   "population": 78641,
+   "measured_t_ha": null,
+   "farmer": {
+    "yield_t_ha": 15.54,
+    "agb_t_ha": 26.39,
+    "transpiration_cm": 48.5,
+    "irrigation_mm": 134.9,
+    "passes": 5
+   },
+   "twin": {
+    "yield_t_ha": 15.54,
+    "agb_t_ha": 26.39,
+    "transpiration_cm": 48.5,
+    "irrigation_mm": 103.1,
+    "passes": 4,
+    "dates": [
+     "2017-07-27",
+     "2017-08-06",
+     "2017-09-06"
+    ]
+   },
+   "twin_noforecast": {
+    "yield_t_ha": 15.54,
+    "agb_t_ha": 26.39,
+    "transpiration_cm": 48.5,
+    "irrigation_mm": 103.1,
+    "passes": 4,
+    "dates": [
+     "2017-07-24",
+     "2017-08-04",
+     "2017-08-13"
+    ]
+   },
+   "twin_blind": {
+    "yield_t_ha": 15.54,
+    "agb_t_ha": 26.39,
+    "transpiration_cm": 48.5,
+    "irrigation_mm": 103.1,
+    "passes": 4,
+    "dates": [
+     "2017-07-22",
+     "2017-07-26",
+     "2017-08-10"
+    ]
+   },
+   "rainfed": {
+    "yield_t_ha": 13.65,
+    "agb_t_ha": 24.79,
+    "transpiration_cm": 45.9,
+    "irrigation_mm": 0,
+    "passes": 0
+   },
+   "fertigation_only": {
+    "yield_t_ha": 14.05,
+    "agb_t_ha": 25.13,
+    "transpiration_cm": 46.5,
+    "irrigation_mm": 7.9,
+    "passes": 1
+   },
+   "potential": {
+    "yield_t_ha": 15.54,
+    "agb_t_ha": 26.39,
+    "transpiration_cm": 48.5,
+    "irrigation_mm": 0.0,
+    "passes": 0
+   },
+   "seconds": 1.54
+  },
+  {
+   "site": "Ne2",
+   "year": 2019,
+   "sowing": "2019-04-23",
+   "population": 77890,
+   "measured_t_ha": null,
+   "farmer": {
+    "yield_t_ha": 12.87,
+    "agb_t_ha": 23.66,
+    "transpiration_cm": 40.2,
+    "irrigation_mm": 128.5,
+    "passes": 5
+   },
+   "twin": {
+    "yield_t_ha": 12.87,
+    "agb_t_ha": 23.66,
+    "transpiration_cm": 40.2,
+    "irrigation_mm": 68.8,
+    "passes": 3,
+    "dates": [
+     "2019-08-03",
+     "2019-08-12"
+    ]
+   },
+   "twin_noforecast": {
+    "yield_t_ha": 12.87,
+    "agb_t_ha": 23.66,
+    "transpiration_cm": 40.2,
+    "irrigation_mm": 68.8,
+    "passes": 3,
+    "dates": [
+     "2019-07-20",
+     "2019-08-10"
+    ]
+   },
+   "twin_blind": {
+    "yield_t_ha": 12.87,
+    "agb_t_ha": 23.66,
+    "transpiration_cm": 40.2,
+    "irrigation_mm": 37.1,
+    "passes": 2,
+    "dates": [
+     "2019-08-06"
+    ]
+   },
+   "rainfed": {
+    "yield_t_ha": 12.46,
+    "agb_t_ha": 23.31,
+    "transpiration_cm": 39.7,
+    "irrigation_mm": 0,
+    "passes": 0
+   },
+   "fertigation_only": {
+    "yield_t_ha": 12.57,
+    "agb_t_ha": 23.41,
+    "transpiration_cm": 39.8,
+    "irrigation_mm": 5.3,
+    "passes": 1
+   },
+   "potential": {
+    "yield_t_ha": 12.87,
+    "agb_t_ha": 23.66,
+    "transpiration_cm": 40.2,
+    "irrigation_mm": 0.0,
+    "passes": 0
+   },
+   "seconds": 1.59
+  },
+  {
+   "site": "Ne2",
+   "year": 2021,
+   "sowing": "2021-04-26",
+   "population": 77467,
+   "measured_t_ha": 16.95,
+   "farmer": {
+    "yield_t_ha": 13.84,
+    "agb_t_ha": 24.74,
+    "transpiration_cm": 44.8,
+    "irrigation_mm": 88.4,
+    "passes": 3
+   },
+   "twin": {
+    "yield_t_ha": 13.84,
+    "agb_t_ha": 24.74,
+    "transpiration_cm": 44.8,
+    "irrigation_mm": 63.5,
+    "passes": 2,
+    "dates": [
+     "2021-07-31",
+     "2021-08-25"
+    ]
+   },
+   "twin_noforecast": {
+    "yield_t_ha": 13.84,
+    "agb_t_ha": 24.74,
+    "transpiration_cm": 44.8,
+    "irrigation_mm": 63.5,
+    "passes": 2,
+    "dates": [
+     "2021-07-30",
+     "2021-08-25"
+    ]
+   },
+   "twin_blind": {
+    "yield_t_ha": 13.84,
+    "agb_t_ha": 24.74,
+    "transpiration_cm": 44.8,
+    "irrigation_mm": 127.0,
+    "passes": 4,
+    "dates": [
+     "2021-07-27",
+     "2021-08-08",
+     "2021-08-13",
+     "2021-08-20"
+    ]
+   },
+   "rainfed": {
+    "yield_t_ha": 13.8,
+    "agb_t_ha": 24.7,
+    "transpiration_cm": 44.7,
+    "irrigation_mm": 0,
+    "passes": 0
+   },
+   "fertigation_only": {
+    "yield_t_ha": 13.8,
+    "agb_t_ha": 24.7,
+    "transpiration_cm": 44.7,
+    "irrigation_mm": 0,
+    "passes": 0
+   },
+   "potential": {
+    "yield_t_ha": 13.84,
+    "agb_t_ha": 24.74,
+    "transpiration_cm": 44.8,
+    "irrigation_mm": 0.0,
+    "passes": 0
+   },
+   "seconds": 1.77
+  }
+ ],
+ "summary": {
+  "farmer": {
+   "irrigation_mm_mean": 133.47272727272727,
+   "yield_t_ha_mean": 13.675454545454546,
+   "passes_total": 61
+  },
+  "twin": {
+   "irrigation_mm_mean": 63.32727272727273,
+   "yield_t_ha_mean": 13.663636363636364,
+   "passes_total": 29
+  },
+  "twin_noforecast": {
+   "irrigation_mm_mean": 66.2090909090909,
+   "yield_t_ha_mean": 13.663636363636364,
+   "passes_total": 30
+  },
+  "twin_blind": {
+   "irrigation_mm_mean": 71.98181818181818,
+   "yield_t_ha_mean": 13.575454545454544,
+   "passes_total": 32
+  },
+  "rainfed": {
+   "irrigation_mm_mean": 0.0,
+   "yield_t_ha_mean": 12.780000000000001,
+   "passes_total": 0
+  },
+  "fertigation_only": {
+   "irrigation_mm_mean": 8.490909090909092,
+   "yield_t_ha_mean": 12.957272727272727,
+   "passes_total": 10
+  },
+  "potential": {
+   "irrigation_mm_mean": 0.0,
+   "yield_t_ha_mean": 13.675454545454546,
+   "passes_total": 0
+  },
+  "farmer_sim_vs_combine": {
+   "n": 9,
+   "rmse": 2.1144424008865,
+   "bias": 0.5933333333333333
+  }
+ },
+ "assumptions": {
+  "emergence": 0.95,
+  "efficiency": 0.85,
+  "stop_dvs": 1.75
+ }
+}

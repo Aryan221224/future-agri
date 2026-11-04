@@ -171,6 +171,114 @@ Simulated against the combine, the sprayed (calendar) yield was +1 % in 2021 (12
 Mead has no weed or disease records, so this is a decision-value estimate, not a
 validated result.
 
+## Gains beyond yield
+
+### Irrigation water, 2014-2021 (real metered passes vs the twin's scheduler)
+
+`ml/mead/water.py` compares the farm's real irrigation with the twin's. It covers every irrigated
+maize season on Ne1 and Ne2 from 2014 to 2021, 11 site-years in all. The farm's actual pivot
+passes come from the BADM management records:
+
+* Each pass's field-average depth was transcribed by hand.
+* A rain-interrupted partial circle counts as depth × degrees covered / 360.
+* Fertigation passes are applied on both sides, because they were made to apply nitrogen.
+
+Each season also uses the recorded sowing date, seeding rate (95% assumed emergence), hybrid
+GDU and combine yield.
+
+The shipped `IrrigationScheduler` is used unchanged:
+
+* It triggers at 55% of plant-available water.
+* Each pass is 1.25 in, the farm's own standard pass.
+* Passes are at least 4 days apart, one pivot rotation.
+* It stops at full dent.
+* It was not tuned on these seasons.
+
+The **blind** variant shows the twin's own errors. It decides with gridded weather only (no rain
+gauge) and the global soil map (SoilGrids). Its schedule is then applied to the field as it was:
+gauge weather and soil-survey soil.
+
+| per season, 11 site-years | farm | twin | twin, blind |
+|---|---|---|---|
+| irrigation, mm | 133 | 63 (−53%) | 72 (−46%) |
+| pivot passes, total | 61 | 29 | 32 |
+| simulated yield, t/ha | 13.68 | 13.66 | 13.58 (−0.7%) |
+| pumping diesel saved, L/ha* | | 61 | 53 |
+| CO₂ saved, kg/ha* | | 163 | 143 |
+
+\*At 2.35 gal diesel per acre-inch: UNL CropWatch, 125 ft lift and 35 psi, at 80% pump
+performance. Each 1 mm saved is 10 m³/ha of groundwater.
+
+Without irrigation the simulated yield is 12.78 t/ha, so the farm's water was worth 0.9 t/ha on
+average. In the 2020 drought it was worth 6 t/ha.
+
+The blind twin's worst season was that drought, Ne1 2020. It applied 112 mm against the farm's
+260 mm and lost 1.1 t/ha (−7.5%). The no-gauge, global-soil-map twin under-estimated how fast
+the soil was drying. That is why the rain gauge and the soil survey are worth having on the
+farm. With them, the 2020 loss was 0.13 t/ha on 176 mm.
+
+The model also had to reproduce the farm's yield under the farm's own irrigation. These 9
+seasons have a combine yield, and none was used to build the model:
+
+* RMSE 2.11 t/ha, bias +0.59.
+* Without Ne1 2018, RMSE 1.38, bias +0.04. That season yielded 8.5 t/ha after a planter set at
+  the wrong vacuum, and the model cannot see that.
+* Ne2 2021 (16.95 t/ha) is 3.1 t/ha under-predicted. The hybrid was calibrated on 2001-2003
+  genetics.
+
+Read the saving with its limits:
+
+* WOFOST 7.2 does not penalise over-watering, and does not model the nitrate leached by extra
+  water.
+* The yield under the twin's schedule is simulated, not harvested.
+* A published survey of Nebraska irrigated maize put the attainable saving at up to 32% with
+  better scheduling (Grassini et al. 2011). The 46-53% here is above that, on a research farm in
+  mostly wet years.
+* A field trial against flow meters and soil-moisture probes is what would confirm it.
+
+### How early the forecast is right (`ml/mead/leadtime.py`)
+
+The forecast was made on 8 dates for the 8 held-out seasons. Each uses the real weather up to
+that day, then each of 17 past years' weather for the rest of the season, averaged.
+
+| forecast date | days before harvest | RMSE all | irrigated | rainfed | range across past weather |
+|---|---|---|---|---|---|
+| sowing | 156 | 1.54 | 1.63 | 1.38 | 4.35 |
+| 1 June | 136 | 1.49 | 1.67 | 1.13 | 4.40 |
+| 1 July | 106 | 1.55 | 1.79 | 1.05 | 4.07 |
+| 1 Aug | 75 | 1.31 | 1.45 | 1.02 | 4.54 |
+| 1 Sep | 44 | 1.45 | 1.69 | 0.90 | 2.79 |
+| harvest (all weather known) | 0 | 1.51 | 1.77 | 0.94 | 0 |
+
+* **The forecast at sowing is as good as the end-of-season hindcast.** It is available 5 months
+  before the combine and about 8 months before USDA's county estimate.
+* On the rainfed field the error falls to about 1.0 t/ha by 1 July, more than 3 months ahead.
+* The remaining error is the model's, not the unknown weather. The range across past weather
+  years tells the farmer how wide the outcomes can still be on that date.
+
+### Speed
+
+Each run is one CPU core of this workspace.
+
+| task | time |
+|---|---|
+| one full-season simulation | 0.2 s |
+| one forecast (17 weather years) | 3.2 s |
+| one season's irrigation study (7 policies, daily decisions) | 1.6 s |
+| one season of the Ne3 decision study (field build, 3 policies, drone scans) | 30-100 s |
+
+### Herbicide (from the decision study above)
+
+On the rainfed pivot, 2017-2023, the twin used 84% less herbicide than blanket spraying (120 vs
+734 L per season) for the same simulated profit. This is simulated; Mead has no weed records.
+
+### Not measured here
+
+* **Nitrogen:** the farm applied 140-230 lb N/acre, but WOFOST 7.2 has no nitrogen cycle.
+* **Fungicide:** no disease records.
+* **Labour hours:** only the 29 fewer pivot passes, about 100 h of pivot running time each,
+  appear above.
+
 ## Reproduce
 
 ```
@@ -180,6 +288,8 @@ python ml/mead/study.py run-v4              # all 15 site-years       -> ml/resu
 python ml/mead/report.py                    # metrics + figures
 python ml/mead/ablation.py                  # which input carries what
 python ml/mead/decisions.py --years 2017-2023 --seeds 2   # spraying policies on Ne3
+python ml/mead/water.py && python ml/mead/water.py --plot    # irrigation 2014-2021 vs the farm's passes
+python ml/mead/leadtime.py && python ml/mead/leadtime.py --plot   # forecast error by date
 ```
 
 ## Sources
@@ -197,3 +307,5 @@ python ml/mead/decisions.py --years 2017-2023 --seeds 2   # spraying policies on
 * Allen et al. 1998, FAO-56 ch. 10 (mulch and soil evaporation).
 * Eck & Brown 2004, Purdue AY-269-W (residue cover).
 * WOFOST 7.2 via PCSE (de Wit et al. 2019).
+* Grassini et al. 2011, Field Crops Res. 120:133-141 (irrigation management and water productivity, Nebraska maize).
+* UNL CropWatch, "Conversion for diesel fuel for center pivots" (diesel per acre-inch).
