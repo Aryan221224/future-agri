@@ -190,7 +190,13 @@ class LiveRunService:
         dev = self.store.device_by_token_hash(token_hash(token or ""))
         if dev is None:
             raise PermissionError("unknown device token")
-        fid = dev["farm_id"]
+        out = self.ingest_for(dev["farm_id"], batch)
+        self.store.touch_device(dev["id"])
+        return out
+
+    def ingest_for(self, fid: str, batch: dict) -> dict:
+        """A batch for this farm's run from a source the console trusts already (the ArduPilot
+        link it holds itself); the device-token check is ingest()'s."""
         grid = farm_grid(self.farms.load(fid))
         session = self.sessions.get(fid)                    # loaded (maybe restored) outside the lock
         with self._flock(fid):
@@ -213,7 +219,6 @@ class LiveRunService:
             self._save(fid, nxt)
             r.clear()
             r.update(nxt)
-        self.store.touch_device(dev["id"])
         return {"accepted": len(ok["telemetry"]) + len(ok["cells"]), "duplicate": False, "errors": errs}
 
     @staticmethod

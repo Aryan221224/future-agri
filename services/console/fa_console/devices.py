@@ -9,7 +9,7 @@ import secrets
 
 from .errors import NotFound
 
-KINDS = ("soil_moisture", "weather_station", "tracker", "camera")
+KINDS = ("soil_moisture", "weather_station", "tracker", "camera", "drone_agent")
 READINGS = {"soil_moisture": ("%", 0, 100), "soil_temp": ("C", -30, 70), "air_temp": ("C", -50, 60),
             "rh": ("%", 0, 100), "rain_mm": ("mm", 0, 500), "wind_ms": ("m/s", 0, 75),
             "leaf_wetness": ("min", 0, 1440), "battery_v": ("V", 0, 60), "flow_lpm": ("L/min", 0, 20),
