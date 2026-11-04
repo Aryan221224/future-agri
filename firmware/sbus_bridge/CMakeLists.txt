@@ -1,0 +1,13 @@
+# RP2040 firmware: needs the Pico SDK (export PICO_SDK_PATH=/path/to/pico-sdk).
+#   mkdir build && cd build && cmake .. && make      -> sbus_bridge.uf2 (drag onto the Pico)
+cmake_minimum_required(VERSION 3.13)
+include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
+project(sbus_bridge C CXX ASM)
+set(CMAKE_C_STANDARD 11)
+pico_sdk_init()
+add_executable(sbus_bridge src/main.c src/bridge_core.c)
+target_link_libraries(sbus_bridge pico_stdlib hardware_uart hardware_watchdog)
+pico_enable_stdio_usb(sbus_bridge 1)
+pico_enable_stdio_uart(sbus_bridge 0)
+target_compile_options(sbus_bridge PRIVATE -Wall -Wextra)
+pico_add_extra_outputs(sbus_bridge)

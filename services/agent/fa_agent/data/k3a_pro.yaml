@@ -1,0 +1,23 @@
+# JIYI K3-A Pro in GPS-SPEED mode, as fa-agent drives it through the S-BUS bridge.
+# Channel numbers are 0-based S-BUS channels (CH1 = 0). Values marked "bench: verify" are
+# confirmed with the props-off bench test (python -m fa_agent bench) before the first flight;
+# gains, dead bands and response times are replaced by the calibration flight.
+roll:     {ch: 0, gain: 5.0, dead: 0.05, sign: 1, tau_s: 0.6}     # lateral speed, m/s
+pitch:    {ch: 1, gain: 5.0, dead: 0.05, sign: 1, tau_s: 0.6}     # forward speed, m/s   bench: verify sign
+throttle: {ch: 2, gain: 2.0, dead: 0.10, sign: 1, tau_s: 0.5}     # climb rate, m/s
+yaw:      {ch: 3, gain: 90.0, dead: 0.05, sign: 1, tau_s: 0.3}    # yaw rate, deg/s clockwise
+mode_ch: 4            # CH5 flight mode
+mode_gps_us: 1500     # bench: verify that this selects GPS-SPEED (Assistant2 shows the mode)
+rth_ch: 5             # CH6 one-key return home
+rth_on_us: 2000
+rth_off_us: 1000
+pump_ch: 6            # bench: verify the pump channel set in Assistant2 (Adv -> Pump, manual)
+pump_on_us: 2000
+pump_off_us: 1000
+auto_ch: 7            # CH8: the pilot's AUTO switch, read by the bridge
+# Arming stick combination, held (bench: verify against the K3-A Pro manual figure):
+# throttle low, yaw full, roll and pitch to the corners.
+arm_sequence:
+  - [2500, {2: 1000, 3: 1000, 0: 2000, 1: 1000}]
+idle_current_a: 2.0   # battery current when armed on the ground (motors idling)
+calibrated: false

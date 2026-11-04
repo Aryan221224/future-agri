@@ -1,0 +1,18 @@
+# /etc/fa-agent.yaml on the drone's Raspberry Pi. Every key is optional except token.
+console_url: http://192.168.1.20:8099     # the Mission Console (Wi-Fi), or its 4G/VPN address
+token: PASTE-THE-DEVICE-TOKEN             # Console -> Live -> Add a device (kind: drone agent)
+bridge_port: /dev/serial0                 # Pi UART to the RP2040 bridge (or /dev/ttyACM2 for its USB)
+gnss_front_port: /dev/ttyACM0             # ZED-F9P moving base (position)
+gnss_rear_port: /dev/ttyACM1              # ZED-F9P rover (heading)
+heading_offset_deg: 0.0                   # baseline front->rear antenna = 180 if along the body
+baseline_m: 0.80                          # measured antenna separation (rejects wrong heading fixes)
+ntrip:                                    # RTK corrections over 4G (or remove and use a radio base)
+  host: caster.example.com
+  port: 2101
+  mount: MOUNTPOINT
+  user: me
+  password: secret
+power: {bus: 1, addr: 0x40, shunt_ohm: 0.0005}
+relay: {chip: gpiochip0, line: 17}
+profile: /var/lib/fa-agent/k3a_pro.yaml   # written by the bench test and the calibration flight
+spool: /var/lib/fa-agent/spool.jsonl

@@ -8,3 +8,7 @@ bench/results/
 ml/runs/
 .superpowers/
 apps/console/node_modules/
+
+# firmware builds
+firmware/*/build/
+firmware/*/build-host/
