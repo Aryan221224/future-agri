@@ -149,6 +149,28 @@ calibration mismatch.
   not in the weather or the canopy the model sees. Nitrogen, hail and maize diseases are not
   modelled.
 
+## Decisions on the rainfed pivot, 2017-2023 (simulated)
+
+`ml/mead/decisions.py` runs Ne3 in each maize season with that year's real weather, its
+Sentinel-2 cover, and the field's recorded seeding rate, sowing date and hybrid (BADM). Each
+season has 2 seeds, and the three policies are no spraying, calendar (blanket herbicide) and
+twin (scan, then spot / blanket / none).
+
+| | none | calendar | twin |
+|---|---|---|---|
+| mean net, USD/ha (4 seasons) | 1907 | 1906 | 1898 |
+| mean herbicide, L/season | 0 | 734 | 120 (−84 %) |
+| best net in season | 2019, 2021 | 2017, 2023 | none |
+
+The twin used 84 % less herbicide and stayed within $9/ha of the best policy. It did not
+earn more, because the default weed pressure costs only ~6.6 % of yield untreated.
+
+Simulated against the combine, the sprayed (calendar) yield was +1 % in 2021 (12.01 vs
+11.89 t/ha) and +18 % in 2017 (14.25 vs 12.05).
+
+Mead has no weed or disease records, so this is a decision-value estimate, not a
+validated result.
+
 ## Reproduce
 
 ```
@@ -157,6 +179,7 @@ python ml/mead/study.py calibrate-v4        # Ne1 2001-2003 only      -> ml/resu
 python ml/mead/study.py run-v4              # all 15 site-years       -> ml/results/mead/runs_v4.json
 python ml/mead/report.py                    # metrics + figures
 python ml/mead/ablation.py                  # which input carries what
+python ml/mead/decisions.py --years 2017-2023 --seeds 2   # spraying policies on Ne3
 ```
 
 ## Sources

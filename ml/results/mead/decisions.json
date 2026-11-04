@@ -859,5 +859,128 @@
    "application": 0.0,
    "scans": 8.0
   }
+ },
+ {
+  "year": 2023,
+  "seed": 1,
+  "policy": "none",
+  "currency": "USD",
+  "measured_combine_t_ha": null,
+  "management": {
+   "population": 69385,
+   "tillage": "no-till",
+   "previous_crop": "soybean",
+   "gdu_black_layer": 2750
+  },
+  "science_notes": [
+   "weather: gauge MEAD 6 S, NE US (5.34 km) for rain and temperature",
+   "soil: USDA SSURGO soil survey, 0-150 cm",
+   "phenology: hybrid rated 2750 GDU, converted on 20 past seasons",
+   "stand: 69,385 plants/ha",
+   "residue: no-till after soybean, ~50% cover, soil evaporation x0.75",
+   "soil water at sowing: 13.7 of 25.3 cm from the weather since 1 October"
+  ],
+  "warnings": [
+   "European grain-maize parameters; phenology anchored to Sentinel-2.",
+   "crop type of this field in this season is not verified (no open global crop map reachable); its Sentinel-2 cover is used for crop timing only"
+  ],
+  "yield_dry_kg_ha": 8363.8,
+  "net_ha": 1682.66,
+  "fungicide_sprays": 0,
+  "herbicide": "none",
+  "herbicide_treated_frac": 0.0,
+  "missions": 0,
+  "litres": 0.0,
+  "drone_time_min": 0.0,
+  "weed_loss_pct": 6.67,
+  "scans": 0,
+  "costs": {
+   "fungicide_product": 0.0,
+   "herbicide_product": 0.0,
+   "application": 0.0,
+   "scans": 0.0
+  }
+ },
+ {
+  "year": 2023,
+  "seed": 1,
+  "policy": "calendar",
+  "currency": "USD",
+  "measured_combine_t_ha": null,
+  "management": {
+   "population": 69385,
+   "tillage": "no-till",
+   "previous_crop": "soybean",
+   "gdu_black_layer": 2750
+  },
+  "science_notes": [
+   "weather: gauge MEAD 6 S, NE US (5.34 km) for rain and temperature",
+   "soil: USDA SSURGO soil survey, 0-150 cm",
+   "phenology: hybrid rated 2750 GDU, converted on 20 past seasons",
+   "stand: 69,385 plants/ha",
+   "residue: no-till after soybean, ~50% cover, soil evaporation x0.75",
+   "soil water at sowing: 13.7 of 25.3 cm from the weather since 1 October"
+  ],
+  "warnings": [
+   "European grain-maize parameters; phenology anchored to Sentinel-2.",
+   "crop type of this field in this season is not verified (no open global crop map reachable); its Sentinel-2 cover is used for crop timing only"
+  ],
+  "yield_dry_kg_ha": 8727.8,
+  "net_ha": 1686.77,
+  "fungicide_sprays": 0,
+  "herbicide": "blanket",
+  "herbicide_treated_frac": 1.0,
+  "missions": 1,
+  "litres": 733.96,
+  "drone_time_min": 1022.2,
+  "weed_loss_pct": 2.61,
+  "scans": 0,
+  "costs": {
+   "fungicide_product": 0.0,
+   "herbicide_product": 30.0,
+   "application": 39.12,
+   "scans": 0.0
+  }
+ },
+ {
+  "year": 2023,
+  "seed": 1,
+  "policy": "twin",
+  "currency": "USD",
+  "measured_combine_t_ha": null,
+  "management": {
+   "population": 69385,
+   "tillage": "no-till",
+   "previous_crop": "soybean",
+   "gdu_black_layer": 2750
+  },
+  "science_notes": [
+   "weather: gauge MEAD 6 S, NE US (5.34 km) for rain and temperature",
+   "soil: USDA SSURGO soil survey, 0-150 cm",
+   "phenology: hybrid rated 2750 GDU, converted on 20 past seasons",
+   "stand: 69,385 plants/ha",
+   "residue: no-till after soybean, ~50% cover, soil evaporation x0.75",
+   "soil water at sowing: 13.7 of 25.3 cm from the weather since 1 October"
+  ],
+  "warnings": [
+   "European grain-maize parameters; phenology anchored to Sentinel-2.",
+   "crop type of this field in this season is not verified (no open global crop map reachable); its Sentinel-2 cover is used for crop timing only"
+  ],
+  "yield_dry_kg_ha": 8363.8,
+  "net_ha": 1674.66,
+  "fungicide_sprays": 0,
+  "herbicide": "none",
+  "herbicide_treated_frac": 0.0,
+  "missions": 0,
+  "litres": 0.0,
+  "drone_time_min": 0.0,
+  "weed_loss_pct": 6.67,
+  "scans": 1,
+  "costs": {
+   "fungicide_product": 0.0,
+   "herbicide_product": 0.0,
+   "application": 0.0,
+   "scans": 8.0
+  }
  }
 ]

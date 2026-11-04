@@ -97,6 +97,18 @@ def _science_fields(sci) -> dict:
             "science_notes": list(sci.notes)}
 
 
+def apply_archetype_overrides(a, overrides: dict):
+    """The archetype for one field. A different variety replaces the archetype's fidelity note
+    with that variety's own provenance -- the old note described the old parameters."""
+    import dataclasses
+    ov = dict(overrides)
+    if "variety" in ov and ov["variety"] != a.variety and "fidelity_note" not in ov:
+        from fa_twin.engine import resolve_variety
+        prov = resolve_variety(a.crop, ov["variety"])[2]
+        ov["fidelity_note"] = f"variety {ov['variety']}: {prov}" if prov else f"variety {ov['variety']} (shipped WOFOST set)"
+    return dataclasses.replace(a, **ov)
+
+
 def build_virtual_farm(archetype_id: str, year: int, cache: Cache | None = None,
                        site_index: int = 0, cell_m: float = 5.0, seed: int = 0,
                        polygon_wgs84=None, anchor: bool = True, history_years: int = 20,
@@ -105,12 +117,11 @@ def build_virtual_farm(archetype_id: str, year: int, cache: Cache | None = None,
                        science: bool = True, archetype_overrides: dict | None = None) -> VirtualFarm:
     """``management``: what the farmer knows at sowing (fa_farm.science.Management fields);
     ``archetype_overrides``: e.g. {"variety": ..., "sowing": "05-13"} for a specific field."""
-    import dataclasses
     cache = cache or Cache()
     say = progress or (lambda frac, msg, detail=None: None)
     a = load_archetypes()[archetype_id]
     if archetype_overrides:
-        a = dataclasses.replace(a, **archetype_overrides)
+        a = apply_archetype_overrides(a, archetype_overrides)
     if not a.supported:
         raise ValueError(f"archetype {a.id} ({a.name}) not supported: {a.unsupported_reason}")
     site = a.locations[site_index]

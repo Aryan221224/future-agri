@@ -240,3 +240,15 @@ def test_observed_weather_accepts_real_continental_winters_but_not_wrong_units()
     swapped = [dict(r) for r in recs]
     swapped[1].update(TMIN=20.0, TMAX=10.0)
     assert any("temperatures out of range" in p for p in validate_records(swapped))
+
+
+def test_variety_override_replaces_the_archetype_fidelity_note():
+    """Building A4 with the calibrated Corn Belt hybrid must not keep warning about European parameters."""
+    from fa_farm.archetypes import load_archetypes
+    from fa_farm.build import apply_archetype_overrides
+    a = load_archetypes()["A4"]
+    assert "European" in a.fidelity_note
+    b = apply_archetype_overrides(a, {"variety": "US_CornBelt_2750GDU", "sowing": "05-13"})
+    assert b.variety == "US_CornBelt_2750GDU" and b.sowing == "05-13"
+    assert "European" not in b.fidelity_note and "AmeriFlux" in b.fidelity_note
+    assert apply_archetype_overrides(a, {"sowing": "05-02"}).fidelity_note == a.fidelity_note
