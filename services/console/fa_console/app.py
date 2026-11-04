@@ -114,6 +114,8 @@ def _errors(app: FastAPI) -> None:
     app.add_exception_handler(KeyError, h(404))
     app.add_exception_handler(PermissionError, h(401))
     app.add_exception_handler(DataUnavailable, h(503))
+    from .rc_link import RcError
+    app.add_exception_handler(RcError, h(503))
 
 
 def _spa(app: FastAPI) -> None:
