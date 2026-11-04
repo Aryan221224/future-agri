@@ -252,7 +252,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .seg { display: inline-flex; border: 1px solid var(--rule-strong); border-radius: var(--radius-s); overflow: hidden; background: var(--surface); }
 .seg button { border: none; background: transparent; padding: 6px 12px; min-height: 34px; cursor: pointer; font-weight: 500; color: var(--ink-2); }
 .seg button + button { border-left: 1px solid var(--rule); }
-.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.seg button[aria-pressed="true"], .seg button[aria-selected="true"] { background: var(--ink); color: var(--paper); }
 
 /* ---------------------------------------------------------------- structure */
 .sheet { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius-m); }

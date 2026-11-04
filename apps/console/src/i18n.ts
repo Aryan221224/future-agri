@@ -8,7 +8,7 @@ export const LOCALE = 'en'
 const en: Dict = {
   'nav.farms': 'Farms', 'nav.mission': 'Mission', 'nav.twin': '3D farm', 'nav.drone': 'Drone twin',
   'nav.season': 'Season', 'nav.iterate': 'Iterations', 'nav.plan': 'Plan', 'nav.live': 'Live',
-  'nav.records': 'Records', 'nav.system': 'System', 'nav.today': 'Today', 'nav.more': 'More',
+  'nav.records': 'Records', 'nav.aircraft': 'Aircraft', 'nav.system': 'System', 'nav.today': 'Today', 'nav.more': 'More',
   'mode.team': 'Team', 'mode.farmer': 'Farmer',
   'clock.day': 'Day {das} of {total}', 'clock.morning': 'morning', 'clock.flights': 'flights due',
   'clock.done': 'season complete', 'clock.waiting': 'waiting for data',

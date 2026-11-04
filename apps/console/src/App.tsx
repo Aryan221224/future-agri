@@ -17,6 +17,7 @@ const PlanPage = lazy(() => import('./pages/Plan'))
 const Live = lazy(() => import('./pages/Live'))
 const Records = lazy(() => import('./pages/Records'))
 const LiveRun = lazy(() => import('./pages/LiveRun'))
+const Aircraft = lazy(() => import('./pages/Aircraft'))
 const System = lazy(() => import('./pages/System'))
 const Today = lazy(() => import('./pages/Today'))
 
@@ -28,6 +29,7 @@ const NAV: { page: Page; icon: string; key: string }[] = [
   { page: 'iterate', icon: 'flask', key: 'nav.iterate' },
   { page: 'plan', icon: 'clipboard', key: 'nav.plan' },
   { page: 'live', icon: 'signal', key: 'nav.live' },
+  { page: 'aircraft', icon: 'drone', key: 'nav.aircraft' },
   { page: 'records', icon: 'book', key: 'nav.records' },
 ]
 
@@ -75,7 +77,7 @@ function FarmPage({ route }: { route: Extract<Route, { name: 'farm' }> }) {
   if (farm.status !== 'ready') return <div className="page"><BuildState /></div>
   const pages: Record<Page, ReactNode> = {
     mission: <Mission />, twin: <Twin3D />, drone: <Drone />, season: <Season />, iterate: <Iterate />,
-    plan: <PlanPage />, live: <Live />, records: <Records />, 'live-run': <LiveRun />,
+    plan: <PlanPage />, live: <Live />, records: <Records />, 'live-run': <LiveRun />, aircraft: <Aircraft />,
   }
   return <Suspense fallback={<Loading />}>{pages[route.page]}</Suspense>
 }

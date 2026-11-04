@@ -32,6 +32,7 @@ docker compose --profile console up console # Docker (loopback only)
 
 Operator guide: [docs/console.md](docs/console.md) · design: [ADR 0017](docs/adr/0017-mission-console.md) ·
 live closed loop (sprayer camera corrects the job between sorties): [ADR 0018](docs/adr/0018-live-closed-loop.md)
+the software flies the drone (K3-A Pro virtual pilot + autonomy kit, stock K3-A Pro loop, ArduPilot): [ADR 0019](docs/adr/0019-drone-control.md), [install](docs/hardware/k3a-autonomy-kit.md), [first flights](docs/hardware/first-flight.md)
 
 ---
 

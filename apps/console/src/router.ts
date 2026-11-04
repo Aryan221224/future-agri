@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
-export type Page = 'mission' | 'twin' | 'drone' | 'season' | 'iterate' | 'plan' | 'live' | 'records' | 'live-run'
-export const PAGES: Page[] = ['mission', 'twin', 'drone', 'season', 'iterate', 'plan', 'live', 'records', 'live-run']
+export type Page = 'mission' | 'twin' | 'drone' | 'season' | 'iterate' | 'plan' | 'live' | 'records' | 'live-run' | 'aircraft'
+export const PAGES: Page[] = ['mission', 'twin', 'drone', 'season', 'iterate', 'plan', 'live', 'records', 'live-run', 'aircraft']
 export type Route =
   | { name: 'farms' }
   | { name: 'newfarm' }

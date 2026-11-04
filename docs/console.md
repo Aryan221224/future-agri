@@ -103,6 +103,25 @@ differs from the prediction, the remaining targets, planned vs flown, the sortie
 corrections. What the closed loop gains, measured on simulated farms, is in
 [ADR 0018](adr/0018-live-closed-loop.md).
 
+## Aircraft (flying the real drone)
+
+The **Aircraft** page flies a spray job with the real drone, three ways:
+
+* **K3-A Pro + autonomy kit:** the on-board agent (`fa-agent`) flies the K3-A Pro through the
+  S-BUS bridge on its own RTK. **Start job**, **Calibrate**, **Pause / Resume**, **Battery
+  swapped**, **Abort: return home**. The agent dials out (Wi-Fi or 4G), so no port has to be
+  opened on the drone. Add it under **Live → Add a device**, kind *drone agent*.
+* **K3-A Pro, stock:** the job is planned in tank-sized blocks. Download each block's KML for
+  Agri Assistant (or let the console push it to the remote over ADB), fly it, then record its
+  flight record. The twin re-plans the remaining blocks, and **Finish** books the job.
+* **ArduPilot:** connect over `serial:COMx:57600` (USB or SiK radio), `udpin:0.0.0.0:14550` or
+  `tcp:IP:5760` (Wi-Fi or 4G through the drone's computer). **Preflight check** reports
+  ArduPilot's own reasons. **Start job** uploads the fence and mission, arms, takes off and
+  flies AUTO, sortie by sortie.
+
+Install and first flights: [docs/hardware](hardware/k3a-autonomy-kit.md). Design and measured
+results: [ADR 0019](adr/0019-drone-control.md).
+
 ## Field devices
 
 **Live → Add a device** creates a soil probe, weather station, camera or a GPS

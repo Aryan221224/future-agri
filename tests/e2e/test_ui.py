@@ -389,3 +389,29 @@ def test_closed_loop_live_view(page, console):
     page.wait_for_timeout(500)
     shot(page, "14_live_run_light")
     assert not page.errors, page.errors
+
+
+def test_aircraft_page_all_three_ways_to_fly(page, console):
+    fid, op = _farm_with_herbicide_op(console)
+    page.goto(console["base"] + f"/#/f/{fid}/aircraft")
+    page.get_by_role("heading", name="Aircraft").wait_for()
+    # the autonomy kit: no agent connected yet -> a clear notice, Start disabled
+    page.get_by_text("agent is not connected", exact=False).wait_for()
+    assert page.get_by_role("button", name="Start job").is_disabled()
+    shot(page, "17_aircraft_kit")
+    # stock K3-A Pro: plan in blocks, record a sortie
+    page.get_by_role("tab", name="K3-A Pro, stock").click()
+    page.get_by_label("Litres per fill").fill("1")
+    page.get_by_role("button", name="Plan in blocks").click()
+    page.get_by_role("cell", name="1", exact=True).first.wait_for(timeout=20_000)
+    page.get_by_label("Litres sprayed").fill("0.5")
+    page.get_by_label("Area sprayed, ha").fill("0.03")
+    page.get_by_role("button", name="Record the sortie").click()
+    page.get_by_text("Re-planning and why").wait_for()
+    shot(page, "17_aircraft_stock")
+    # ArduPilot: link presets and connect
+    page.get_by_role("tab", name="ArduPilot").click()
+    page.get_by_role("button", name="Connect").wait_for()
+    assert page.get_by_label("MAVLink link").input_value().startswith("serial:")
+    shot(page, "17_aircraft_ardupilot")
+    assert not page.errors, page.errors
