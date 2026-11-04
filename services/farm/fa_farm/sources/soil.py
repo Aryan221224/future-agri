@@ -17,6 +17,9 @@ SG_URL = "https://files.isric.org/soilgrids/latest/data"
 SG_ATTRIB = ("SoilGrids 2.0, ISRIC - World Soil Information (Poggio et al. 2021, SOIL 7:217-240), "
              "CC-BY-4.0")
 DEPTHS = (("0-5cm", 5), ("5-15cm", 10), ("15-30cm", 15), ("30-60cm", 30))
+# The whole root zone of a deep-rooted crop (maize roots reach ~1.5 m in deep loess / Mollisol
+# soils: Ordonez et al. 2018, Field Crops Res. 215): 0-150 cm, the 100-200 cm layer half-weighted.
+DEPTHS_ROOTZONE = DEPTHS + (("60-100cm", 40), ("100-200cm", 50))
 # property -> scale to SI-ish: sand/clay g/kg -> fraction; soc dg/kg -> %; bdod cg/cm3 -> g/cm3
 PROPS = {"sand": 1e-3, "clay": 1e-3, "soc": 1e-2, "bdod": 1e-2}
 # WCS: the same 250 m grid, a ~1 kB window per layer (each VRT index above is ~6 MB, which a slow
@@ -92,7 +95,7 @@ def _wcs_window(prop: str, depth: str, x: float, y: float, half: float):
         return src.read(1), (t.c, t.f, t.a)
 
 
-def _profile_wcs(lat: float, lon: float, progress=None) -> dict:
+def _profile_wcs(lat: float, lon: float, progress=None, depths=DEPTHS) -> dict:
     """Depth-weighted profile at the nearest cell (within ~1 km) that has a value in every
     layer: 16 small WCS requests, 8 at a time."""
     from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -100,7 +103,7 @@ def _profile_wcs(lat: float, lon: float, progress=None) -> dict:
     from pyproj import Transformer
     to_igh = Transformer.from_crs("EPSG:4326", IGH, always_xy=True)
     x, y = to_igh.transform(lon, lat)
-    jobs = [(prop, depth, w) for prop in PROPS for depth, w in DEPTHS]
+    jobs = [(prop, depth, w) for prop in PROPS for depth, w in depths]
     got: dict = {}
     try:
         with ThreadPoolExecutor(max_workers=8) as ex:
@@ -128,7 +131,7 @@ def _profile_wcs(lat: float, lon: float, progress=None) -> dict:
     r, c = np.unravel_index(int(np.argmin(dist)), dist.shape)
     vals = {}
     for prop, scale in PROPS.items():
-        pairs = [(float(got[(prop, d)][0][r, c]), w) for d, w in DEPTHS]
+        pairs = [(float(got[(prop, d)][0][r, c]), w) for d, w in depths]
         vals[prop] = sum(v * scale * w for v, w in pairs) / sum(w for _, w in pairs)
     plon, plat = Transformer.from_crs(IGH, "EPSG:4326", always_xy=True).transform(
         left + (c + 0.5) * cell, top - (r + 0.5) * cell)
@@ -198,4 +201,19 @@ def soilgrids_profile(lat: float, lon: float, cache: Cache, rdmsol_cm: float = 1
         note += f"; field centre masked (paddy/water/urban): nearest valid cell {at[2]:.0f} m away"
     prov = Provenance("SoilGrids 2.0 (250 m), depth-weighted 0-60 cm; Saxton & Rawls 2006 PTF",
                       SG_URL, "CC-BY-4.0", today(), SG_ATTRIB, True, note)
+    return hit, sp, prov
+
+
+def soilgrids_rootzone(lat: float, lon: float, cache: Cache, depth_cm: float = 150.0, progress=None):
+    """Soil water parameters over the whole root zone (0-150 cm by default) instead of the top
+    60 cm: (profile, SoilParams with RDMSOL = depth_cm, Provenance). Deep-rooted crops (maize,
+    wheat, sunflower, cotton) draw on the subsoil in dry spells; a 60 cm soil starves them."""
+    key = cache.key("soilgrids-rootzone", round(lat, 4), round(lon, 4))
+    hit = cache.get_json(key)
+    if hit is None:
+        hit = _profile_wcs(lat, lon, progress, depths=DEPTHS_ROOTZONE)
+        cache.put_json(key, hit)
+    sp = to_soil_params(hit, depth_cm)
+    prov = Provenance(f"SoilGrids 2.0 (250 m), depth-weighted 0-{depth_cm:.0f} cm; Saxton & Rawls 2006 PTF",
+                      SG_URL, "CC-BY-4.0", today(), SG_ATTRIB, True, "prior at 250 m; not a measurement of this field")
     return hit, sp, prov

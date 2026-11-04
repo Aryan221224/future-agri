@@ -69,6 +69,18 @@ REGIONAL_VARIETIES: dict[tuple[str, str], dict] = {
                        "Delhi (audit S1, 30 Oct 2026). Phenology only -- NOT a yield "
                        "calibration; absolute yield needs field data."),
     },
+    ("maize", "US_CornBelt_2750GDU"): {
+        "base_variety": "Grain_maize_204",
+        # TSUM1/TSUM2: a 2750-GDU (~113 CRM) hybrid converted on Mead, NE weather 1984-2000 (fa_twin.hybrids);
+        # SPAN/RGRLAI/TDWI/TSUMEM: fitted to AmeriFlux US-Ne1 2001-2003 (irrigated: LAI, biomass, yield)
+        # at the 80 000 plants/ha reference stand (fa_twin.management); RRI: Ordonez et al. 2018.
+        "overrides": {"TSUM1": 1029.0, "TSUM2": 1010.0, "TSUMEM": 185.1, "SPAN": 39.16, "RGRLAI": 0.03154,
+                      "TDWI": 21.2, "RRI": 3.1},
+        "provenance": ("Grain_maize_204 re-timed to a 2750-GDU US Corn Belt hybrid and fitted to three "
+                       "irrigated AmeriFlux seasons (US-Ne1 2001-2003); validated on 12 held-out Mead "
+                       "site-years incl. rainfed (docs/validation/mead.md). Give the field's own hybrid "
+                       "rating and stand (fa_farm.science.Management) for other fields."),
+    },
 }
 
 
@@ -117,6 +129,8 @@ class ZoneConfig:
     NSOILBASE_FR: float = 0.025 # daily fraction released
     CO2: float = 425.0
     max_duration: int = 330
+    #: Bare-soil evaporation demand multiplier for surface residue (fa_twin.management; FAO-56).
+    soil_evap_factor: float = 1.0
     #: Extra crop-parameter overrides (applied after any regional-variety set).
     param_overrides: dict = field(default_factory=dict)
 

@@ -149,7 +149,8 @@ class SeasonSession:
             self.twin = TwinFarm(a, self.region, lat, lon, self.world.pre_sowing(), vf.spec.soil,
                                  self.world.sowing, self.world.harvest, inoculum=inoc,
                                  objective=objective, plan_members=plan_members,
-                                 expected_yield_kg_ha=expected_yield_kg_ha)
+                                 expected_yield_kg_ha=expected_yield_kg_ha,
+                                 science=vf.spec.science_inputs() if hasattr(vf.spec, "science_inputs") else None)
 
         self.costs = {"fungicide_product": 0.0, "herbicide_product": 0.0, "application": 0.0,
                       "scans": 0.0}

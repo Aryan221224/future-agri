@@ -52,6 +52,8 @@ class VirtualFarm:
                 "area_ha": round(g.area_ha, 3), "cells": g.n_cells, "cell_m": s.cell_m,
                 "crop": s.archetype.crop, "variety": s.archetype.variety,
                 "soil": s.soil.as_dict(), "param_overrides": s.param_overrides,
+                "science": {"overrides": getattr(s, "science_overrides", {}), "wav_fraction": s.wav_fraction,
+                            "soil_evap_factor": s.soil_evap_factor, "notes": getattr(s, "science_notes", [])},
                 "s2_observations": len(self.s2_series), "anchor": self.anchor_info,
                 "provenance": [p.as_dict() for p in self.provenance], "warnings": self.warnings}
 
@@ -72,14 +74,43 @@ def _sub(say, base: float, span: float, step: str):
     return lambda f, m, d=None: say(base + span * f, step, {**(d or {}), "label": m})
 
 
+def _science(say, frac, lat, lon, a, sow, recs, cache, soil, elev, management, prov, warns):
+    """Field science (fa_farm.science) or, if it fails as a whole, the plain layers."""
+    from .science import derive
+    say(frac, "field science (rain gauge, soil survey, soil water at sowing, stand)")
+    try:
+        sci = derive(lat, lon, a.crop, a.variety, sow, recs, cache, soil, elev, management)
+    except Exception as e:  # noqa: BLE001 -- never lose the farm over an extra layer
+        warns.append(f"field science skipped ({e})")
+        return None
+    prov.extend(sci.provenance)
+    warns.extend(sci.warnings)
+    return sci
+
+
+def _science_fields(sci) -> dict:
+    if sci is None:
+        return {}
+    cap = max(1e-6, (sci.soil.SMFCF - sci.soil.SMW) * sci.soil.RDMSOL)
+    return {"science_overrides": dict(sci.overrides), "soil_evap_factor": sci.soil_evap_factor,
+            "wav_fraction": None if sci.WAV is None else round(min(1.0, sci.WAV / cap), 4),
+            "science_notes": list(sci.notes)}
+
+
 def build_virtual_farm(archetype_id: str, year: int, cache: Cache | None = None,
                        site_index: int = 0, cell_m: float = 5.0, seed: int = 0,
                        polygon_wgs84=None, anchor: bool = True, history_years: int = 20,
                        weed_mean_m2: float = 8.0, blight_inoculum: bool | None = None,
-                       n_zones: int = 4, progress=None) -> VirtualFarm:
+                       n_zones: int = 4, progress=None, management: dict | None = None,
+                       science: bool = True, archetype_overrides: dict | None = None) -> VirtualFarm:
+    """``management``: what the farmer knows at sowing (fa_farm.science.Management fields);
+    ``archetype_overrides``: e.g. {"variety": ..., "sowing": "05-13"} for a specific field."""
+    import dataclasses
     cache = cache or Cache()
     say = progress or (lambda frac, msg, detail=None: None)
     a = load_archetypes()[archetype_id]
+    if archetype_overrides:
+        a = dataclasses.replace(a, **archetype_overrides)
     if not a.supported:
         raise ValueError(f"archetype {a.id} ({a.name}) not supported: {a.unsupported_reason}")
     site = a.locations[site_index]
@@ -119,6 +150,9 @@ def build_virtual_farm(archetype_id: str, year: int, cache: Cache | None = None,
     say(0.4, f"weather {start.year}-{end.year} (NASA POWER)")
     recs, p, elev = power_daily(lat, lon, start, end, cache)
     prov.append(p)
+    sci = _science(say, 0.5, lat, lon, a, sow, recs, cache, soil, elev, management, prov, warns) if science else None
+    if sci is not None:
+        soil, recs = sci.soil, sci.weather
     season = [r for r in recs if sow - dt.timedelta(days=60) <= r["DAY"] <= end]
     history = [r for r in recs if r["DAY"] < sow - dt.timedelta(days=60)]
     if not season or season[-1]["DAY"] < harvest:
@@ -139,14 +173,24 @@ def build_virtual_farm(archetype_id: str, year: int, cache: Cache | None = None,
     if anchor and series:
         say(0.75, f"anchoring the crop model to {len(series)} satellite observations")
         engine = "Wofost72_PP" if a.irrigated else "Wofost72_WLP_CWB"
-        cfg = ZoneConfig("anchor", lat, lon, a.crop, a.variety, sow, harvest, soil=soil)
+        sf = _science_fields(sci)
+        cfg = ZoneConfig("anchor", lat, lon, a.crop, a.variety, sow, harvest, soil=soil,
+                         WAV=FarmSpec.wav_for(_WavOnly(sf.get("wav_fraction")), soil),
+                         soil_evap_factor=sf.get("soil_evap_factor", 1.0),
+                         param_overrides=dict(sf.get("science_overrides", {})))
         overrides, info = anchor_to_cover(cfg, season, series, members=24, seed=seed, engine=engine)
 
     spec = FarmSpec(archetype=a, site=site, year=year, polygon_wgs84=polygon_wgs84, soil=soil,
                     elevation_m=elev, region=a.region, cell_m=cell_m, seed=seed,
                     weed_mean_m2=weed_mean_m2 if a.weeds else 0.0, blight_inoculum=blight_inoculum,
-                    twi_cells=twi_cells, param_overrides=overrides, n_zones=n_zones, provenance=prov)
+                    twi_cells=twi_cells, param_overrides=overrides, n_zones=n_zones, provenance=prov,
+                    **_science_fields(sci))
     return VirtualFarm(spec, season, history, series, info, prov, warns)
+
+
+@dataclass
+class _WavOnly:
+    wav_fraction: float | None
 
 
 @dataclass
@@ -173,6 +217,8 @@ class FieldFarm:
                 "year": s.year, "lat": round(lat, 5), "lon": round(lon, 5),
                 "area_ha": round(g.area_ha, 3), "cells": g.n_cells, "cell_m": s.cell_m,
                 "crop": s.archetype.crop, "variety": s.archetype.variety, "soil": s.soil.as_dict(),
+                "science": {"overrides": getattr(s, "science_overrides", {}), "wav_fraction": s.wav_fraction,
+                            "soil_evap_factor": s.soil_evap_factor, "notes": getattr(s, "science_notes", [])},
                 "observed_through": self.observed[-1]["DAY"].isoformat() if self.observed else None,
                 "s2_observations": len(self.s2_series), "harvest_expected": self.harvest.isoformat(),
                 "provenance": [p.as_dict() for p in self.provenance], "warnings": self.warnings}
@@ -187,7 +233,7 @@ def with_region(archetype, region: str | None):
 def build_field_farm(template_id: str, polygon_wgs84, sowing: dt.date, cache: Cache | None = None,
                      cell_m: float = 10.0, today: dt.date | None = None, region: str | None = None,
                      history_years: int = 20, seed: int = 0, country: str = "",
-                     progress=None) -> FieldFarm:
+                     progress=None, management: dict | None = None, science: bool = True) -> FieldFarm:
     """Real data for a field being farmed now. Harvest is expected after the template's
     season length; weather and satellite run up to the last published day."""
     import dataclasses
@@ -237,6 +283,14 @@ def build_field_farm(template_id: str, polygon_wgs84, sowing: dt.date, cache: Ca
         say(0.6, "this season's weather so far (NASA POWER, near real time)")
         observed, p, _ = power_recent(lat, lon, season_start, cache, today=today)
         prov.append(p)
+    sci = None
+    if science:
+        recs = sorted(history + observed, key=lambda r: r["DAY"])
+        sci = _science(say, 0.7, lat, lon, a, sowing, recs, cache, soil, elev, management, prov, warns)
+        if sci is not None:
+            soil = sci.soil
+            history = [r for r in sci.weather if r["DAY"] < season_start]
+            observed = [r for r in sci.weather if r["DAY"] >= season_start]
     series = []
     if sowing <= today:
         say(0.75, "satellite cover this season (Sentinel-2)")
@@ -253,5 +307,5 @@ def build_field_farm(template_id: str, polygon_wgs84, sowing: dt.date, cache: Ca
     spec = FarmSpec(archetype=a, site=site, year=sowing.year, polygon_wgs84=polygon_wgs84, soil=soil,
                     elevation_m=elev, region=a.region, cell_m=cell_m, seed=seed, weed_mean_m2=0.0,
                     blight_inoculum=None, twi_cells=twi_cells, param_overrides={}, n_zones=4,
-                    provenance=prov)
+                    provenance=prov, **_science_fields(sci))
     return FieldFarm(spec, observed, history, series, harvest, prov, warns)

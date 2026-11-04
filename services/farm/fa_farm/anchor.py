@@ -17,8 +17,9 @@ from fa_twin.weather import records_provider
 K_COVER = 0.6
 
 
-def _provider(cfg: ZoneConfig, records: list[dict], elev: float = 0.0):
-    return records_provider(records, cfg.latitude, cfg.longitude, elev, "observed (anchor)")
+def _provider(cfg: ZoneConfig, records: list[dict], elev: float = 0.0, soil_evap_factor: float | None = None):
+    f = getattr(cfg, "soil_evap_factor", 1.0) if soil_evap_factor is None else soil_evap_factor
+    return records_provider(records, cfg.latitude, cfg.longitude, elev, "observed (anchor)", soil_evap_factor=f)
 
 
 def simulate_cover(cfg: ZoneConfig, records: list[dict], days: list[dt.date],
@@ -54,7 +55,7 @@ def usable_cover(series: list[tuple], drop_below: float = 0.25) -> list[tuple]:
 
 def anchor_to_cover(cfg: ZoneConfig, records: list[dict], series: list[tuple], members: int = 24,
                     seed: int = 0, sd: float = 0.08, engine: str = "Wofost72_WLP_CWB",
-                    min_days_after_sowing: int = 10) -> tuple[dict, dict]:
+                    min_days_after_sowing: int = 10, soil_evap_factor: float | None = None) -> tuple[dict, dict]:
     """Fit crop parameters to an observed cover series [(date, ndvi|None, cover)].
     -> (parameter overrides, info)."""
     obs = [Observation(d, "CC", float(c), sd) for d, _, c in usable_cover(series)
@@ -63,7 +64,8 @@ def anchor_to_cover(cfg: ZoneConfig, records: list[dict], series: list[tuple], m
     if len(obs) < 3:
         info["note"] = "fewer than 3 usable cover observations: shipped parameters kept"
         return {}, info
-    et = EnsembleTwin(cfg, _provider(cfg, records), n_members=members, seed=seed, engine=engine)
+    et = EnsembleTwin(cfg, _provider(cfg, records, soil_evap_factor=soil_evap_factor), n_members=members, seed=seed,
+                      engine=engine)
     res = et.run(obs)
     post = et.posterior_parameters()
     info["rejected"] = int(sum(res.rejected))

@@ -103,7 +103,8 @@ class FieldTwin:
         if probs:
             raise ValueError("observed weather rejected: " + "; ".join(probs))
         self.weather = records_provider(observed_records, cfg.latitude, cfg.longitude,
-                                        description="observed weather (twin)")
+                                        description="observed weather (twin)",
+                                        soil_evap_factor=getattr(cfg, "soil_evap_factor", 1.0))
         self.model = ZoneTwin(cfg, self.weather, engine=engine)
         self.last_irrigation: dt.date | None = None
         self.water_cm = 0.0
@@ -300,7 +301,8 @@ class FieldTwin:
                "irrigation_cm": 4.0}
               for i in range(int((cfg.harvest_date - cfg.sowing_date).days
                                  / self.s.planning_irrigation_days))]
-        tw = ZoneTwin(cfg, records_provider(recs, cfg.latitude, cfg.longitude), events=ev,
+        tw = ZoneTwin(cfg, records_provider(recs, cfg.latitude, cfg.longitude,
+                                            soil_evap_factor=getattr(cfg, "soil_evap_factor", 1.0)), events=ev,
                       engine=self.engine)
         tw.run_to_end()
         df = tw.output_frame()

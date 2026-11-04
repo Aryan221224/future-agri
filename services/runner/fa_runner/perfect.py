@@ -85,8 +85,12 @@ def prior_yield(vf) -> float:
     if not recs or recs[-1]["DAY"] < harv:
         return 0.0
     lat, lon = vf.spec.centroid
-    cfg = ZoneConfig("prior", lat, lon, a.crop, a.variety, sow, harv, soil=vf.spec.soil)
-    zt = ZoneTwin(cfg, records_provider(recs, lat, lon, vf.spec.elevation_m),
+    sci = vf.spec.science_inputs() if hasattr(vf.spec, "science_inputs") else {}
+    cfg = ZoneConfig("prior", lat, lon, a.crop, a.variety, sow, harv, soil=vf.spec.soil,
+                     WAV=sci.get("WAV", 25.0), soil_evap_factor=sci.get("soil_evap_factor", 1.0),
+                     param_overrides=dict(sci.get("overrides") or {}))
+    zt = ZoneTwin(cfg, records_provider(recs, lat, lon, vf.spec.elevation_m,
+                                        soil_evap_factor=cfg.soil_evap_factor),
                   engine="Wofost72_PP" if a.irrigated else "Wofost72_WLP_CWB")
     zt.run_to_end()
     return float(zt.summary().get("TWSO") or 0.0)

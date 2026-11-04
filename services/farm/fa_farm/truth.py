@@ -61,11 +61,29 @@ class FarmSpec:
     param_overrides: dict = field(default_factory=dict)
     n_zones: int = 4
     provenance: list = field(default_factory=list)
+    #: Pre-season field science (fa_farm.science): knowable before sowing, so the twin gets it too.
+    #: ``param_overrides`` above is the satellite anchor -- the truth's own, never the twin's.
+    science_overrides: dict = field(default_factory=dict)
+    wav_fraction: float | None = None        # soil water at sowing, fraction of plant-available capacity
+    soil_evap_factor: float = 1.0
+    science_notes: list = field(default_factory=list)
 
     @property
     def centroid(self) -> tuple[float, float]:
         c = self.polygon_wgs84.centroid
         return float(c.y), float(c.x)
+
+    def wav_for(self, soil: SoilParams) -> float:
+        """Initial available water (cm) for a zone's soil; WOFOST's 25 cm without a spin-up."""
+        if self.wav_fraction is None:
+            return 25.0
+        return round(self.wav_fraction * max(0.0, soil.SMFCF - soil.SMW) * soil.RDMSOL, 2)
+
+    def science_inputs(self) -> dict:
+        """What the twin may know: soil prior, soil water at sowing, management/hybrid overrides."""
+        return {"soil": self.soil, "WAV": self.wav_for(self.soil),
+                "overrides": dict(getattr(self, "science_overrides", None) or {}),   # farms pickled before 0.4
+                "soil_evap_factor": self.soil_evap_factor}
 
 
 @dataclass
@@ -130,12 +148,15 @@ class GroundTruthFarm:
             raise ValueError(f"weather does not cover the season ({missing[0]} missing)")
         lat, lon = spec.centroid
         self.weather = records_provider(self.records, lat, lon, spec.elevation_m,
-                                        "observed weather (truth)")
+                                        "observed weather (truth)", soil_evap_factor=spec.soil_evap_factor)
         self.engine = "Wofost72_PP" if a.irrigated else "Wofost72_WLP_CWB"
         self.zones: list[ZoneTwin] = []
         for i, soil in enumerate(self.zone_soils):
             cfg = ZoneConfig(f"truth-z{i}", lat, lon, a.crop, a.variety, self.sowing,
-                             self.harvest_date, soil=soil, param_overrides=dict(spec.param_overrides))
+                             self.harvest_date, soil=soil, WAV=spec.wav_for(soil),
+                             soil_evap_factor=spec.soil_evap_factor,
+                             param_overrides={**(getattr(spec, "science_overrides", None) or {}),
+                                              **spec.param_overrides})
             self.zones.append(ZoneTwin(cfg, self.weather, engine=self.engine))
         self._zone_lai = np.zeros(len(self.zones))
         self._zone_dvs = np.zeros(len(self.zones))

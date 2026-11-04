@@ -21,13 +21,16 @@ class TwinFarm:
     def __init__(self, archetype, region, lat: float, lon: float, observed_records: list[dict],
                  soil_prior: SoilParams, sowing: dt.date, harvest: dt.date,
                  inoculum: bool | None = None, objective: str = "mean", plan_members: int = 10,
-                 expected_yield_kg_ha: float | None = None):
+                 expected_yield_kg_ha: float | None = None, science: dict | None = None):
         self.archetype = archetype
         self.region = region
         self.econ = Economics.from_region(region, archetype.crop)
         engine = "Wofost72_PP" if archetype.irrigated else "Wofost72_WLP_CWB"
+        sci = science or {}
         cfg = ZoneConfig("twin", lat, lon, archetype.crop, archetype.variety, sowing, harvest,
-                         soil=soil_prior)
+                         soil=sci.get("soil") or soil_prior, WAV=sci.get("WAV") or 25.0,
+                         soil_evap_factor=sci.get("soil_evap_factor", 1.0),
+                         param_overrides=dict(sci.get("overrides") or {}))
         settings = TwinSettings(econ=self.econ.planner_econ(), objective=objective,
                                 plan_members=plan_members,
                                 herbicide_crops=frozenset({archetype.crop}) if archetype.weeds

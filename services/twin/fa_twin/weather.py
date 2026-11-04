@@ -191,13 +191,14 @@ def generate_records(start: date, days: int, seed: int, normals: dict | None = N
 
 
 def records_provider(records: list[dict], latitude: float, longitude: float,
-                     elevation: float = 200.0, description: str = ""):
+                     elevation: float = 200.0, description: str = "", soil_evap_factor: float = 1.0):
     """Wrap daily records (RAIN in mm) as a PCSE WeatherDataProvider.
 
     Reference ET is computed with PCSE's own Penman-Monteith so the water
     balance is consistent with the driving variables. The records stay
     attached as ``.records`` so forecasts and the damage layer can read the
-    same days the crop model saw.
+    same days the crop model saw. ``soil_evap_factor`` scales the bare-soil
+    evaporation demand (ES0) for surface residue (``fa_twin.management``).
     """
     from pcse.base import WeatherDataProvider, WeatherDataContainer
     from pcse.util import reference_ET
@@ -223,7 +224,7 @@ def records_provider(records: list[dict], latitude: float, longitude: float,
                     TMAX=r["TMAX"], IRRAD=r["IRRAD"], VAP=r["VAP"], WIND=r["WIND"],
                     ANGSTA=0.25, ANGSTB=0.5, ETMODEL="PM")
                 rec = dict(r, LAT=latitude, LON=longitude, ELEV=elevation,
-                           E0=e0 / 10.0, ES0=es0 / 10.0, ET0=et0 / 10.0,
+                           E0=e0 / 10.0, ES0=es0 * soil_evap_factor / 10.0, ET0=et0 / 10.0,
                            RAIN=r["RAIN"] / 10.0)   # PCSE wants cm/day
                 self._store_WeatherDataContainer(WeatherDataContainer(**rec), r["DAY"])
                 if r["DAY"] in by_day:

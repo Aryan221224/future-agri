@@ -1,0 +1,9 @@
+# Citation information for the selected data product for each site selected.
+# Newly published BASE and FLUXNET data products may not yet have a DOI for citation. Check the site's AmeriFlux Site Info webpage in a few days.
+# Read more information about citing AmeriFlux data at the Data Policy webpage: https://ameriflux.lbl.gov/data/data-policy
+# Citation information can also be acquired by making a Site Set (https://ameriflux.lbl.gov/sites/site-sets/) for your downloaded sites and use the "Download for Set: DOIs as ASCII" feature to acquire a list of DOI citations.
+# Citation information can also be found on each site's AmeriFlux Site Info webpage. Access Site Info pages via Site Search: https://ameriflux.lbl.gov/sites/site-search/
+site_id,author,title,publication_year,publisher,doi,doi_url,citation
+"US-Ne1","Suyker, Andy","AmeriFlux BASE US-Ne1 Mead - irrigated continuous maize site, Ver. 20-5","2026","AmeriFlux AMP","10.17190/AMF/1246084","http://doi.org/10.17190/AMF/1246084","Andy Suyker (2026), AmeriFlux BASE US-Ne1 Mead - irrigated continuous maize site, Ver. 20-5, AmeriFlux AMP, (Dataset). https://doi.org/10.17190/AMF/1246084"
+"US-Ne2","Suyker, Andy","AmeriFlux BASE US-Ne2 Mead - irrigated maize-soybean rotation site, Ver. 20-5","2026","AmeriFlux AMP","10.17190/AMF/1246085","http://doi.org/10.17190/AMF/1246085","Andy Suyker (2026), AmeriFlux BASE US-Ne2 Mead - irrigated maize-soybean rotation site, Ver. 20-5, AmeriFlux AMP, (Dataset). https://doi.org/10.17190/AMF/1246085"
+"US-Ne3","Suyker, Andy","AmeriFlux BASE US-Ne3 Mead - rainfed maize-soybean rotation site, Ver. 20-5","2026","AmeriFlux AMP","10.17190/AMF/1246086","http://doi.org/10.17190/AMF/1246086","Andy Suyker (2026), AmeriFlux BASE US-Ne3 Mead - rainfed maize-soybean rotation site, Ver. 20-5, AmeriFlux AMP, (Dataset). https://doi.org/10.17190/AMF/1246086"
