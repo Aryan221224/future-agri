@@ -362,7 +362,9 @@ def validate_records(records: list[dict]) -> list[str]:
             probs.append(f"gap or disorder between {a} and {b}")
             break
     for r in records:
-        if not (-10 <= r["TMIN"] <= r["TMAX"] <= 55):
+        # Physical range (world records -89.2 C .. 56.7 C) -- this catches Kelvin / Fahrenheit and
+        # swapped columns, not cold climates: a Nebraska gauge reads -12 C in February.
+        if not (-70 <= r["TMIN"] <= r["TMAX"] <= 60):
             probs.append(f"{r['DAY']}: temperatures out of range (TMIN {r['TMIN']}, TMAX {r['TMAX']})")
             break
         if not (0 <= r["RAIN"] <= 600):

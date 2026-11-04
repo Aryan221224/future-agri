@@ -224,3 +224,19 @@ def test_stand_overrides_pass_pcse_partitioning_check(pop):
     zt = ZoneTwin(cfg, records_provider(recs, 41.0, -96.5), engine="Wofost72_PP")
     zt.run_till(dt.date(2004, 7, 1))
     assert (zt.model.get_variable("TAGP") or 0) > 0
+
+
+def test_observed_weather_accepts_real_continental_winters_but_not_wrong_units():
+    """A Nebraska February day from the MEAD 6 S gauge (TMIN -12.2, TMAX -0.6) is real weather; the
+    check exists to catch Kelvin or Fahrenheit, not cold places (records: -89.2 C to 56.7 C)."""
+    from fa_twin.weather import validate_records
+    recs = _records(days=5)
+    cold = [dict(r) for r in recs]
+    cold[2].update(TMIN=-12.2, TMAX=-0.6)
+    cold[3].update(TMIN=-38.0, TMAX=-25.0)                      # a prairie cold snap
+    assert validate_records(cold) == []
+    kelvin = [dict(r, TMIN=r["TMIN"] + 273.15, TMAX=r["TMAX"] + 273.15) for r in recs]
+    assert any("temperatures out of range" in p for p in validate_records(kelvin))
+    swapped = [dict(r) for r in recs]
+    swapped[1].update(TMIN=20.0, TMAX=10.0)
+    assert any("temperatures out of range" in p for p in validate_records(swapped))

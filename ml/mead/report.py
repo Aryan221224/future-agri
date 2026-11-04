@@ -100,11 +100,13 @@ def figures(m: dict) -> list[Path]:
     for i, g in enumerate(("irrigated", "rainfed")):
         vals = [m["versions"][v]["forward"][g]["yield"]["rmse"] for v in vs]
         ax.bar([k + (i - 0.5) * w for k in range(len(vs))], vals, w, label=g)
-    ax.axhline(m["baseline"]["rainfed"]["rmse"], ls=":", c="grey", lw=1)
-    ax.set_xticks(range(len(vs)), vs)
+    for i, (g, c) in enumerate((("irrigated", "tab:blue"), ("rainfed", "tab:orange"))):
+        ax.axhline(m["baseline"][g]["rmse"], ls=":", c=c, lw=1.2,
+                   label=f"naive 'use the average', {g} ({m['baseline'][g]['rmse']:.2f})")
+    ax.set_xticks(range(len(vs)), ["v1 generic", "v2 + physics", "v3 + hybrid", "v4 + real field"][:len(vs)])
     ax.set_ylabel("yield RMSE, t/ha (held-out seasons)")
     ax.set_title("Forecast at sowing: error by model version")
-    ax.legend(frameon=False)
+    ax.legend(frameon=False, fontsize=8)
     fig.tight_layout()
     paths.append(fig_dir / "rmse_by_version.png")
     fig.savefig(paths[-1], dpi=160)
@@ -121,7 +123,9 @@ def figures(m: dict) -> list[Path]:
             xs.append(meas)
             ys.append(yl["forward"])
             cs.append("tab:blue" if S.SITES[k.split("_")[0]][2] else "tab:orange")
-        ax.scatter(xs, ys, marker=mk, c=cs, alpha=0.85 if v != "v1" else 0.35, label=v)
+        ax.scatter(xs, ys, marker=mk, c=cs, alpha=0.85 if v != "v1" else 0.35)
+        ax.scatter([], [], marker=mk, c="grey", alpha=0.85 if v != "v1" else 0.35,
+                   label="v1 generic crop model" if v == "v1" else f"{v} the updated twin")
     ax.plot([0, 16], [0, 16], c="grey", lw=0.8)
     ax.set_xlim(0, 16)
     ax.set_ylim(0, 16)
