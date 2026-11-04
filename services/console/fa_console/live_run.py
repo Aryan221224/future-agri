@@ -12,10 +12,17 @@ Two sources:
   partial scan.
 
 Dose from telemetry is approximate: a cell passed by a spraying segment within half a swath
-gets the prescribed rate once per batch (flow is not yet used).
+gets the prescribed rate once per sortie (flow is not yet used). The last point of each sortie
+is kept between batches, so a pass split over several batches loses no segment. Telemetry
+far outside the field is rejected item by item.
+
+A run in progress is never replaced (409); a batch is counted only once it has been applied,
+so a batch that failed can be sent again; ``finish`` books the job only once the session
+accepted it, so a busy session leaves the run running and the call can be retried.
 """
 from __future__ import annotations
 
+import copy
 import json
 import threading
 
@@ -28,10 +35,11 @@ from fa_scan.measure import ScanObservation
 from fa_scan.sprayer_camera import SprayerCamera, cells_along, estimate_from_counts
 
 from .devices import token_hash
-from .errors import NotFound
+from .errors import Busy, NotFound
 from .scene import farm_grid
 from .store import new_id, now
 
+MAX_OFF_FIELD_M = 150.0      # telemetry this far outside the field boundary is not this field's
 _ARR = ("weeds", "weeds_sd", "seen", "dose", "targets", "orig_targets", "pred_mean", "pred_sd", "pred_dose")
 
 
@@ -54,8 +62,14 @@ class LiveRunService:
     def __init__(self, store, farms, sessions, jobs, exports):
         self.store, self.farms, self.sessions, self.jobs, self.exports = store, farms, sessions, jobs, exports
         self._runs: dict[str, dict] = {}
-        self._lock = threading.Lock()
+        self._locks: dict[str, threading.Lock] = {}
+        self._guard = threading.Lock()
         jobs.register("live_run", self._job)
+
+    def _flock(self, fid: str) -> threading.Lock:
+        """One lock per farm: a slow farm never holds up another farm's aircraft."""
+        with self._guard:
+            return self._locks.setdefault(fid, threading.Lock())
 
     # ---------------------------------------------------------------- persistence
     def _path(self, fid: str):
@@ -90,6 +104,12 @@ class LiveRunService:
         source = source or ("aircraft" if farm["mode"] == "field" else "simulated")
         if source not in ("simulated", "aircraft"):
             raise ValueError("source must be 'simulated' or 'aircraft'")
+        try:
+            cur = self._get(fid)
+        except NotFound:
+            cur = None
+        if cur is not None and cur["status"] == "running":
+            raise Busy(f"live run {cur['run_id']} is running on this farm: finish it before starting another")
         s = self.sessions.get(fid)
         op = s.ops.get(op_id)
         if op is None:
@@ -102,7 +122,7 @@ class LiveRunService:
             r = {"run_id": new_id("run_"), "source": "simulated camera", "op_id": op_id, "product": op.product,
                  "mode": "closed loop", "status": "running", "valve": bool(valve), "started": now(),
                  "sorties": [], "audit": [], "planned": None, "flown": None, "batches": 0, "seqs": []}
-            with self._lock:
+            with self._flock(fid):
                 self._runs[fid] = r
                 self._save(fid, r)
             job = self.jobs.submit("live_run", fid, {"op_id": op_id, "valve": bool(valve)})
@@ -120,8 +140,8 @@ class LiveRunService:
              "seen": np.zeros(len(pred.targets), bool), "dose": np.zeros(len(pred.targets)),
              "targets": pred.targets.copy(), "orig_targets": pred.targets.copy(),
              "pred_mean": pred.weeds_mean, "pred_sd": pred.weeds_sd, "pred_dose": pred.dose_l_ha,
-             "deviation": {}}
-        with self._lock:
+             "deviation": {}, "last_tel": {}, "sortie_cells": {}}
+        with self._flock(fid):
             self._runs[fid] = r
             self._save(fid, r)
         self.store.add_event(fid, "live_run_started", {"run": r["run_id"], "op": op_id, "source": "aircraft"})
@@ -134,7 +154,7 @@ class LiveRunService:
         s = self.sessions.get(fid)
 
         def on_sortie(rep: dict) -> None:
-            with self._lock:
+            with self._flock(fid):
                 r["sorties"].append({k: rep[k] for k in ("n", "cells_sprayed", "cells_seen", "litres", "time_min",
                                                          "correction", "remaining")})
                 r["drone"] = rep["track"][-1] if rep["track"] else r.get("drone")
@@ -148,9 +168,14 @@ class LiveRunService:
         s.closed_loop_listener = on_sortie
         try:
             out = self.sessions.act(fid, "fly_closed_loop", {"op_id": p["op_id"], "valve": p["valve"]})["result"]
+        except Exception as e:
+            with self._flock(fid):
+                r.update(status="failed", reason=str(e) or type(e).__name__)
+                self._save(fid, r)
+            raise
         finally:
             s.closed_loop_listener = None
-        with self._lock:
+        with self._flock(fid):
             if out["flown"]:
                 cl = out["closed_loop"]
                 r.update(status="done", planned=cl["planned"], flown=cl["flown"], audit=cl["audit"],
@@ -166,40 +191,73 @@ class LiveRunService:
         if dev is None:
             raise PermissionError("unknown device token")
         fid = dev["farm_id"]
-        with self._lock:
+        grid = farm_grid(self.farms.load(fid))
+        session = self.sessions.get(fid)                    # loaded (maybe restored) outside the lock
+        with self._flock(fid):
             r = self._get(fid)
             if r["source"] != "aircraft" or batch.get("run_id") != r["run_id"]:
                 raise NotFound("no live run with this id on the device's farm")
             if r["status"] != "running":
                 raise ValueError(f"the live run is {r['status']}")
-            grid = farm_grid(self.farms.load(fid))
+            if r.get("finishing"):
+                raise Busy("the live run is being finished")
             ok, errs = validate_batch(batch, grid.n_cells)
             if ok["seq"] in r["seqs"]:
                 return {"accepted": 0, "duplicate": True, "errors": errs}
-            r["seqs"].append(ok["seq"])
-            r["batches"] = len(r["seqs"])
-            self._apply(fid, r, ok, grid)
-            self._save(fid, r)
+            ok, off = self._on_field(ok, grid)
+            errs += off
+            nxt = copy.deepcopy(r)                          # applied in full, or not at all
+            self._apply(fid, nxt, ok, grid, session)
+            nxt["seqs"].append(ok["seq"])                    # counted only once applied
+            nxt["batches"] = len(nxt["seqs"])
+            self._save(fid, nxt)
+            r.clear()
+            r.update(nxt)
         self.store.touch_device(dev["id"])
         return {"accepted": len(ok["telemetry"]) + len(ok["cells"]), "duplicate": False, "errors": errs}
 
-    def _apply(self, fid: str, r: dict, b: dict, grid) -> None:
+    @staticmethod
+    def _on_field(b: dict, grid) -> tuple[dict, list[str]]:
+        """Telemetry within MAX_OFF_FIELD_M of the field, in grid-local metres; the rest rejected."""
+        if not b["telemetry"]:
+            return b, []
+        from pyproj import Transformer
+        from shapely import distance, points
+        tr = Transformer.from_crs("EPSG:4326", grid.crs, always_xy=True)
+        xs, ys = tr.transform([p["lon"] for p in b["telemetry"]], [p["lat"] for p in b["telemetry"]])
+        dist = distance(grid.polygon_local, points(np.column_stack([xs, ys])))
+        keep, errs = [], []
+        for i, (p, x, y, dm) in enumerate(zip(b["telemetry"], xs, ys, dist)):
+            if not np.isfinite(dm) or dm > MAX_OFF_FIELD_M:
+                errs.append(f"telemetry {i}: outside the field ({dm / 1000:.1f} km from its edge)"
+                            if np.isfinite(dm) else f"telemetry {i}: outside the field")
+            else:
+                keep.append({**p, "x": float(x), "y": float(y)})
+        return {**b, "telemetry": keep}, errs
+
+    def _apply(self, fid: str, r: dict, b: dict, grid, session=None) -> None:
         n = grid.n_cells
         if b["telemetry"]:
-            from pyproj import Transformer
-            tr = Transformer.from_crs("EPSG:4326", grid.crs, always_xy=True)
-            pts = []
-            for p in b["telemetry"]:
-                x, y = tr.transform(p["lon"], p["lat"])
-                pts.append({"x": x, "y": y, "z": p["alt_agl_m"], "spraying": p["spraying"], "sortie": p["sortie"],
-                            "t": p["t"]})
+            pts = sorted(({"x": p["x"], "y": p["y"], "z": p["alt_agl_m"], "spraying": p["spraying"],
+                           "sortie": p["sortie"], "t": p["t"]} for p in b["telemetry"]), key=lambda p: str(p["t"]))
             r["drone"] = {k: pts[-1][k] for k in ("x", "y", "z", "sortie")}
-            sprayed = np.zeros(n, bool)
+            last = r.setdefault("last_tel", {})
+            done = r.setdefault("sortie_cells", {})
+            add = np.zeros(n, bool)
             for k in sorted({p["sortie"] for p in pts}):
-                sprayed |= cells_along(pts, grid, r["swath"], sortie=k)
-            r["dose"] = r["dose"] + np.where(sprayed, r["rate"], 0.0)
+                own = [p for p in pts if p["sortie"] == k]
+                prev = last.get(str(k))
+                track = ([prev] if prev is not None else []) + own   # the segment across the batch gap
+                sprayed = cells_along(track, grid, r["swath"], sortie=k)
+                before = np.zeros(n, bool)
+                before[done.get(str(k), [])] = True
+                add |= sprayed & ~before                        # a sortie doses a cell once
+                done[str(k)] = np.where(before | sprayed)[0].tolist()
+                last[str(k)] = own[-1]
+            r["dose"] = r["dose"] + np.where(add, r["rate"], 0.0)
             fl = r["flown"]
             fl["sorties"] = max(fl["sorties"], max(p["sortie"] for p in pts))
+            fl["litres"] = round(float(r["dose"].sum() * grid.cell_m ** 2 / 1e4), 2)
         seen = np.zeros(n, bool)
         if b["cells"]:
             idx = np.array([c["cell"] for c in b["cells"]])
@@ -219,7 +277,7 @@ class LiveRunService:
         else:
             dw = dd = None
         if r["mode"] == "closed loop":
-            s = self.sessions.get(fid)
+            s = session if session is not None else self.sessions.get(fid)
             tg, why = remaining_targets(s.twin, r["weeds"], r["dose"], r["rate"], r["product"],
                                         original=r["orig_targets"])
             for d in (dw, dd):
@@ -239,7 +297,7 @@ class LiveRunService:
 
     # ---------------------------------------------------------------- operator
     def freeze(self, fid: str) -> dict:
-        with self._lock:
+        with self._flock(fid):
             r = self._get(fid)
             if r["mode"] != "open loop":
                 r["mode"] = "open loop"
@@ -259,23 +317,46 @@ class LiveRunService:
         return self.exports.targets_kml(fid, f"{farm['name']} - next sortie ({r['op_id']})", r["targets"])
 
     def finish(self, fid: str) -> dict:
-        with self._lock:
+        """Book the job as flown (the run's as-applied dose) and hand what the camera saw to the
+        twin, as one logged session action. The run is finished only once that succeeded."""
+        with self._flock(fid):
             r = self._get(fid)
-            if r["source"] != "aircraft" or r["status"] != "running":
+            if r["source"] != "aircraft" or r["status"] != "running" or r.get("finishing"):
                 raise ValueError("only a running aircraft live run can be finished")
+            r["finishing"] = True
+        path = None
+        try:
             grid = farm_grid(self.farms.load(fid))
             cells = np.where(r["seen"])[0]
+            ref, obs = None, None
+            if len(cells):
+                ref = new_id("scan_")
+                sd = [None if not np.isfinite(v) else float(v) for v in r["weeds_sd"][cells]]
+                saved = {"live_run": r["run_id"], "cells": cells.tolist(), "est": r["weeds"][cells].tolist(),
+                         "sd": sd, "gsd_m": r["gsd_m"] or 0.003, "day_index": r["das"]}
+                d = self.store.farm_dir(fid) / "scans"
+                d.mkdir(exist_ok=True)
+                path = d / f"{ref}.json"
+                path.write_text(json.dumps(saved))
+                obs = obs_from_saved(saved, grid)
+            dose = np.asarray(r["dose"], float)
+            if dose.sum() > 0 or obs is not None:
+                fl = r["flown"]
+                record = {"day": r["day"], "dose_l_ha": [round(float(v), 4) for v in dose],
+                          "litres": fl.get("litres") or None, "sorties": fl.get("sorties") or 1,
+                          "time_min": fl.get("time_min") or None, "run_id": r["run_id"]}
+                self.sessions.act(fid, "book_live_run", {"op_id": r["op_id"], "record": record, "ref": ref,
+                                                         "obs": obs})
+        except Exception:
+            if path is not None and path.exists():
+                path.unlink()
+            with self._flock(fid):
+                r.pop("finishing", None)
+            raise
+        with self._flock(fid):
+            r.pop("finishing", None)
             r["status"] = "finished"
             self._save(fid, r)
-        if len(cells):
-            ref = new_id("scan_")
-            sd = [None if not np.isfinite(v) else float(v) for v in r["weeds_sd"][cells]]
-            saved = {"live_run": r["run_id"], "cells": cells.tolist(), "est": r["weeds"][cells].tolist(), "sd": sd,
-                     "gsd_m": r["gsd_m"] or 0.003, "day_index": r["das"]}
-            d = self.store.farm_dir(fid) / "scans"
-            d.mkdir(exist_ok=True)
-            (d / f"{ref}.json").write_text(json.dumps(saved))
-            self.sessions.act(fid, "scan_now", {"obs": obs_from_saved(saved, grid), "ref": ref})
         self.store.add_event(fid, "live_run_finished", {"run": r["run_id"], "cells_seen": int(len(cells))})
         return self.state(fid)
 

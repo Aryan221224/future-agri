@@ -159,8 +159,9 @@ def _pass_points(app, fid, n=12):
     from fa_console.scene import farm_grid
     grid = farm_grid(app.state.farms.load(fid))
     xy = grid.cells_xy
-    y = float(np.median(np.unique(xy[:, 1])))
-    x0, x1 = xy[:, 0].min(), xy[:, 0].max()
+    ys = np.unique(xy[:, 1])
+    y = float(ys[len(ys) // 2])                              # a row of cell centres
+    x0, x1 = xy[:, 0].min() - 5.0, xy[:, 0].max() + 5.0
     tr = Transformer.from_crs(grid.crs, "EPSG:4326", always_xy=True)
     out = []
     for i in range(n):

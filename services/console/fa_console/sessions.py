@@ -29,7 +29,7 @@ from .scene import b64, farm_grid
 from .store import new_id
 
 ACTIONS = {"step", "run_until", "approve", "reject", "defer", "fly_now", "scan_now", "record_flight",
-           "report_scouting", "fly_closed_loop"}
+           "report_scouting", "fly_closed_loop", "book_live_run"}
 SNAP_VARS = ("lai", "cc", "weeds", "blight", "dose_fungicide", "dose_herbicide")
 
 

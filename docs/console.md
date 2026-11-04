@@ -89,7 +89,14 @@ approved spray job has **Fly closed loop** (virtual farm) or **Start live run** 
   device token (**Live → Add a device**, kind *camera*). A batch sent twice is counted once.
   Nothing is sent to the aircraft: **Download next sortie (KML)** gives the remaining targets
   for its app. **Freeze plan (open loop)** stops all corrections. **Finish and update the twin**
-  hands what the camera saw to the twin as a partial scan; unseen cells keep what the twin knew.
+  books the job as flown with the dose built from telemetry and hands what the camera saw to
+  the twin (not a survey scan: no scan cost); unseen cells keep what the twin knew.
+* A re-fly of under-dosed cells is a top-up at the median shortfall, and never takes a cell
+  past 125 % of the rate; cells it would overdose are left and logged.
+* Safe to retry: a run in progress is never replaced by a new one (HTTP 409); a batch that
+  failed to apply is not counted, so the aircraft can send it again; telemetry more than
+  150 m outside the field is rejected item by item; if the farm's session is busy, **Finish**
+  returns 409 and the run stays open for another try.
 
 The **Live run** page shows the drone, the camera footprint, the cells seen, where the field
 differs from the prediction, the remaining targets, planned vs flown, the sortie log and the

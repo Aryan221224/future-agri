@@ -256,14 +256,18 @@ class SeasonSession:
             return
         self._ingest(d, obs, herbicide=herbicide, purpose="pass")
 
-    def _ingest(self, d: dt.date, obs, herbicide: bool, purpose: str) -> None:
-        self.costs["scans"] += self.econ.scan_ha
-        self.st["scans"] += 1
+    def _assimilate(self, d: dt.date, obs) -> None:
+        """What a camera saw goes into the twin; unseen cells keep what was known."""
         dfarm = build_digital_farm(obs, self.grid)
         self.last_digital = dfarm
         if self.twin is not None:
             self.twin.ingest(dfarm, d - DAY, seed=self.seed)
-            self.last_digital = self.twin.digital          # merged: unseen cells keep what was known
+            self.last_digital = self.twin.digital
+
+    def _ingest(self, d: dt.date, obs, herbicide: bool, purpose: str) -> None:
+        self.costs["scans"] += self.econ.scan_ha
+        self.st["scans"] += 1
+        self._assimilate(d, obs)
         seen_w = obs.weed_density_est[np.isfinite(obs.weed_density_est)]
         self._event("scan", f"{purpose} scan ingested (GSD {obs.gsd_m * 1000:.0f} mm)", purpose=purpose,
                     gsd_m=obs.gsd_m, weeds_m2=round(float(seen_w.mean()), 2) if len(seen_w) else None,
@@ -692,6 +696,52 @@ class SeasonSession:
                     op=op.id, kpis=kpis, notes=notes)
         return op.as_dict()
 
+    def book_live_run(self, op_id: str, record: dict, ref: str | None = None, obs=None) -> dict:
+        """A job flown as a live closed loop by the aircraft. The as-applied dose the run built
+        from telemetry is booked as the flight (when anything was sprayed), and what the
+        sprayer's camera saw (``obs``, resolved from ``ref`` on replay) is assimilated as a
+        partial observation. It is not a survey scan: no scan cost, no scan job closed."""
+        op = self._op(op_id)
+        if op.product == "scan" or op.status not in (*OPEN, "dropped"):
+            raise ValueError(f"operation {op_id} is {op.status}")
+        try:
+            d = _date(record["day"])
+            dose = np.asarray(record["dose_l_ha"], float)
+        except (KeyError, TypeError, ValueError) as e:
+            raise ValueError("a live run record needs 'day' and 'dose_l_ha'") from e
+        if dose.shape != (self.grid.n_cells,) or not np.isfinite(dose).all() or (dose < 0).any():
+            raise ValueError("dose_l_ha must give a non-negative dose for every cell")
+        flight = MissionSettings(**op.settings) if op.settings else self.flight
+        entry = self._log("book_live_run", {"op_id": op_id, "record": record, "ref": ref})
+        try:
+            if dose.sum() > 0:
+                cell_ha = self.grid.cell_m ** 2 / 1e4
+                deposited = float(dose.sum() * cell_ha)
+                litres = float(record.get("litres") or deposited)
+                tm = dose > 0
+                d_t, rate = dose[tm], flight.rate_l_ha
+                sorties = max(1, int(record.get("sorties") or 1))
+                kpis = {k: 0.0 for k in ("flight_min", "energy_wh", "ha_per_hour")}
+                kpis.update(litres=round(litres, 2), sorties=sorties, battery_swaps=sorties - 1, refills=0,
+                            time_min=float(record.get("time_min") or 0.0), source="live run",
+                            cv_pct=round(100 * float(d_t.std() / d_t.mean()), 1),
+                            skipped_frac=round(float((d_t < 0.5 * rate).mean()), 4),
+                            overdosed_frac=round(float((d_t > 1.5 * rate).mean()), 4),
+                            off_target_frac=round(max(0.0, 1 - deposited / litres), 4),
+                            area_ha=round(float(tm.sum() * cell_ha), 3))
+                self._account(d, op, flight, kpis, dose, [], [])
+                self._event("flight", f"{op.product} flown as a live closed loop: {litres:.1f} L over "
+                                      f"{kpis['area_ha']:.2f} ha", op=op.id, kpis=kpis, closed_loop=True)
+            if obs is not None:
+                self._assimilate(d, obs)
+                seen_w = obs.weed_density_est[np.isfinite(obs.weed_density_est)]
+                self._event("observation", "the sprayer camera's counts assimilated",
+                            weeds_m2=round(float(seen_w.mean()), 2) if len(seen_w) else None)
+        except Exception:
+            self._unlog(entry)
+            raise
+        return {"flown": bool(dose.sum() > 0), "op": op.as_dict()}
+
     def report_scouting(self, severity: float | None = None) -> dict:
         """The result of a field check for blight on a live field (None = not seen)."""
         if self.twin is None:
@@ -755,7 +805,7 @@ class SeasonSession:
             if live:
                 s.world.horizon = _date(a["obs_until"]) if a.get("obs_until") else None
             p = dict(a.get("params") or {})
-            if a["action"] == "scan_now" and p.get("ref") is not None:
+            if a["action"] in ("scan_now", "book_live_run") and p.get("ref") is not None:
                 if resolver is None:
                     raise ValueError("an uploaded scan needs a resolver to replay")
                 p["obs"] = resolver(p["ref"])
