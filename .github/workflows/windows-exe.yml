@@ -23,7 +23,7 @@ jobs:
         working-directory: services/console
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pyinstaller==6.11.1
+          pip install -r requirements.txt pyinstaller==6.22.3 pyinstaller-hooks-contrib
       - name: Build
         run: pyinstaller packaging/windows/futureagri.spec --noconfirm --clean
       - name: Smoke test (starts and answers /api/health)

@@ -7,3 +7,5 @@ reportlab>=4.0               # the plan PDF (BSD)
 pillow>=10.0
 duckdb>=1.0                  # field boundaries (Fields of The World)
 pyarrow>=15
+pymavlink>=2.4.40           # ArduPilot back-end (LGPL-3.0, used as a library)
+pyserial>=3.5               # USB / telemetry-radio links

@@ -1,0 +1,81 @@
+# ArduCopter 4.5+ parameters for the 10 L T1-class quad sprayer (the drone twin's airframe)
+# after swapping the JIYI K3-A Pro for an ArduPilot flight controller.
+# Load in Mission Planner / QGroundControl (Config -> Full Parameter List -> Load), write,
+# reboot, then run the calibrations (accelerometer, compass, radio, ESC) as usual.
+# The console checks the safety lines (FENCE_*, FS_*, BATT_FS_*, SPRAY_ENABLE, RTL_ALT)
+# before every job and refuses to fly when they differ.
+
+# ---- frame: quad X, 34.7" props, 120 KV, 12S
+FRAME_CLASS 1
+FRAME_TYPE 1
+MOT_PWM_TYPE 0
+MOT_SPIN_ARM 0.10
+MOT_SPIN_MIN 0.15
+MOT_THST_EXPO 0.75
+MOT_THST_HOVER 0.45
+MOT_HOVER_LEARN 2
+MOT_BAT_VOLT_MAX 50.4
+MOT_BAT_VOLT_MIN 42.0
+ATC_ANG_RLL_P 4.5
+ATC_ANG_PIT_P 4.5
+ANGLE_MAX 2500          # 25 deg (the K3-A Pro allows 30)
+
+# ---- battery: 12S 16 Ah, analog voltage + current from the power module
+BATT_MONITOR 4
+BATT_CAPACITY 16000
+BATT_LOW_VOLT 42.6      # 3.55 V/cell under load
+BATT_CRT_VOLT 41.4      # 3.45 V/cell
+BATT_LOW_MAH 3200
+BATT_CRT_MAH 1600
+BATT_FS_LOW_ACT 2       # RTL
+BATT_FS_CRT_ACT 1       # LAND where it is
+BATT_FS_VOLTSRC 1       # sag-compensated voltage
+
+# ---- failsafes
+FS_THR_ENABLE 1         # RC lost: RTL (the software keeps flying only while the GCS link is up)
+FS_THR_VALUE 975
+FS_GCS_ENABLE 1         # console link lost for FS_GCS_TIMEOUT: RTL
+FS_GCS_TIMEOUT 5
+FS_EKF_ACTION 1         # EKF bad: LAND
+FS_EKF_THRESH 0.8
+FS_VIBE_ENABLE 1
+SYSID_MYGCS 255         # the console's MAVLink system id
+
+# ---- geofence: the console uploads the field polygon before every sortie
+FENCE_ENABLE 1
+FENCE_TYPE 7            # max altitude + circle + polygon
+FENCE_ACTION 1          # RTL (or LAND if RTL is not possible)
+FENCE_ALT_MAX 30
+FENCE_RADIUS 1000
+FENCE_MARGIN 2
+
+# ---- navigation
+RTL_ALT 800             # cm
+RTL_ALT_FINAL 0
+RTL_LOIT_TIME 2000
+RTL_SPEED 500
+WPNAV_SPEED 500
+WPNAV_ACCEL 150
+WPNAV_RADIUS 50
+WPNAV_SPEED_UP 150
+WPNAV_SPEED_DN 100
+LAND_SPEED 40
+PILOT_SPEED_UP 200
+
+# ---- sprayer: pump driver on AUX1 (SERVO9), no spinner; flow scales with speed
+SPRAY_ENABLE 1
+SPRAY_PUMP_RATE 10
+SPRAY_PUMP_MIN 0
+SPRAY_SPEED_MIN 50      # cm/s: no spraying below 0.5 m/s (as the K3-A Pro's cut-off)
+SERVO9_FUNCTION 22      # SprayerPump
+SERVO9_MIN 1000
+SERVO9_MAX 2000
+
+# ---- links: TELEM1 = SiK radio 57600, TELEM2 = companion computer (mavlink-router) 921600
+SERIAL1_PROTOCOL 2
+SERIAL1_BAUD 57
+SERIAL2_PROTOCOL 2
+SERIAL2_BAUD 921
+
+# ---- height: optional downward radar / lidar for terrain following at spray height
+# RNGFND1_TYPE <your sensor>   then  SURFTRAK_MODE 1

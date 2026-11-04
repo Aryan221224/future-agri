@@ -6,11 +6,12 @@ from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs, co
 
 ROOT = Path(SPECPATH).resolve().parents[1]
 SRC = ["packages/fa_core", "services/twin", "services/planner", "services/loop", "services/farm",
-       "services/scan", "services/drone", "services/runner", "services/console"]
+       "services/scan", "services/drone", "services/runner", "services/console", "services/agent",
+       "services/aircraft"]
 OURS = ["fa_core", "fa_twin", "fa_planner", "fa_loop", "fa_farm", "fa_scan", "fa_drone", "fa_runner",
-        "fa_console"]
+        "fa_console", "fa_agent", "fa_aircraft"]
 # Third-party packages that carry data files, compiled extensions or plugins.
-THIRD = ["numpy", "pcse", "pyproj", "rasterio", "shapely", "ortools", "duckdb", "pyarrow", "icechunk", "zarr",
+THIRD = ["numpy", "pymavlink", "serial", "pcse", "pyproj", "rasterio", "shapely", "ortools", "duckdb", "pyarrow", "icechunk", "zarr",
          "numcodecs", "xarray", "reportlab", "uvicorn", "pystac_client", "fsspec", "s3fs", "botocore",
          "aiobotocore", "certifi", "traitlets", "pandas", "scipy", "yaml", "PIL", "multipart", "fastapi",
          "starlette", "pydantic", "pydantic_core", "requests"]
@@ -22,6 +23,8 @@ datas = [
     (str(ROOT / "services/drone/fa_drone/data"), "fa_drone/data"),
     (str(ROOT / "services/farm/fa_farm/data"), "fa_farm/data"),
     (str(ROOT / "services/scan/fa_scan/data"), "fa_scan/data"),
+    (str(ROOT / "services/agent/fa_agent/data"), "fa_agent/data"),
+    (str(ROOT / "services/aircraft/fa_aircraft/params"), "fa_aircraft/params"),
 ]
 binaries, hidden = [], []
 import sys
