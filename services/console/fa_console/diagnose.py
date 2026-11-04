@@ -24,6 +24,13 @@ LIMIT_S = 60
 LAT, LON = 28.466, 77.536          # farmland near Greater Noida; any land point works
 
 
+def _report_dir() -> Path:
+    """The checkout root, or the folder of FutureAgri.exe in a frozen build."""
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parents[3]
+
+
 def _check(name: str, fn, lines: list[str]) -> object:
     t0 = time.time()
     ex = cf.ThreadPoolExecutor(1)
@@ -90,7 +97,7 @@ def speed(argv) -> int:
             say(f"   {name}: {len(r.content) / 1e3:.0f} kB in {dt_s:.1f} s = {len(r.content) / 1e3 / dt_s:.0f} kB/s")
         except Exception as e:  # noqa: BLE001
             say(f"   {name}: FAILED after {time.time() - t1:.1f} s: {type(e).__name__}: {e}")
-    out = Path(__file__).resolve().parents[3] / "diagnose_speed.txt"
+    out = _report_dir() / "diagnose_speed.txt"
     try:
         out.write_text("\n".join(lines) + "\n", encoding="utf-8")
         print(f"\nreport written to {out}", flush=True)
@@ -171,7 +178,7 @@ def main() -> int:
     _check("Python  -> NASA POWER (weather)",
            lambda: len(power_daily(LAT, LON, dt.date(2024, 1, 1), dt.date(2024, 1, 31), tmp)[0]), lines)
 
-    out = Path(__file__).resolve().parents[3] / "diagnose_log.txt"
+    out = _report_dir() / "diagnose_log.txt"
     try:
         out.write_text("\n".join(lines) + "\n", encoding="utf-8")
         print(f"\nreport written to {out}", flush=True)

@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
@@ -30,7 +31,9 @@ from typing import Any
 
 log = logging.getLogger(__name__)
 
-VENDOR_ROOT = Path(__file__).resolve().parents[3] / "vendor"
+# A frozen build (PyInstaller) unpacks the vendored files next to the bundled modules.
+VENDOR_ROOT = (Path(getattr(sys, "_MEIPASS", "")) if getattr(sys, "frozen", False)
+               else Path(__file__).resolve().parents[3]) / "vendor"
 
 # The crop-parameter repository keeps one branch per WOFOST version and they are
 # NOT interchangeable: the wofost81 sets drop AMAXTB (different photosynthesis

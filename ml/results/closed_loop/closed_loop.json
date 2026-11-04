@@ -1,13 +1,9 @@
 {
- "created": "2026-11-01T17:43:34",
+ "created": "2026-11-04T07:53:41",
  "templates": [
   "A1",
-  "A2",
-  "A3",
-  "A4",
   "A5",
-  "A6",
-  "A8"
+  "A6"
  ],
  "seeds": [
   0,
@@ -31,138 +27,138 @@
   },
   "closed": {
    "n": 9,
-   "litres_mean": 28.721,
-   "litres_sd": 35.99,
-   "litres_diff_mean": 6.839,
+   "litres_mean": 22.944,
+   "litres_sd": 28.613,
+   "litres_diff_mean": 1.062,
    "litres_diff_ci95": [
-    0.946,
-    12.732
+    0.241,
+    1.883
    ],
-   "litres_pct_diff_mean": 40.5,
+   "litres_pct_diff_mean": 8.97,
    "litres_pct_diff_ci95": [
-    29.83,
-    51.17
+    5.78,
+    12.15
    ],
-   "sorties_mean": 4.333,
-   "sorties_sd": 3.536,
-   "sorties_diff_mean": 1.556,
+   "sorties_mean": 4.889,
+   "sorties_sd": 4.343,
+   "sorties_diff_mean": 2.111,
    "sorties_diff_ci95": [
-    0.979,
-    2.132
+    1.006,
+    3.216
    ],
-   "sorties_pct_diff_mean": 80.69,
+   "sorties_pct_diff_mean": 89.68,
    "sorties_pct_diff_ci95": [
-    61.57,
-    99.81
+    78.68,
+    100.68
    ],
-   "time_min_mean": 37.772,
-   "time_min_sd": 47.324,
-   "time_min_diff_mean": 5.332,
+   "time_min_mean": 42.734,
+   "time_min_sd": 54.761,
+   "time_min_diff_mean": 10.294,
    "time_min_diff_ci95": [
-    0.699,
-    9.965
+    1.574,
+    19.015
    ],
-   "time_min_pct_diff_mean": 48.85,
+   "time_min_pct_diff_mean": 54.51,
    "time_min_pct_diff_ci95": [
-    28.41,
-    69.28
+    38.15,
+    70.87
    ],
-   "weeds_after_m2_mean": 1.051,
-   "weeds_after_m2_sd": 0.37,
-   "weeds_after_diff_mean": -0.313,
+   "weeds_after_m2_mean": 1.21,
+   "weeds_after_m2_sd": 0.345,
+   "weeds_after_diff_mean": -0.155,
    "weeds_after_diff_ci95": [
-    -0.368,
-    -0.258
+    -0.183,
+    -0.126
    ],
-   "weeds_after_pct_diff_mean": -24.98,
+   "weeds_after_pct_diff_mean": -12.38,
    "weeds_after_pct_diff_ci95": [
-    -32.47,
-    -17.48
+    -16.25,
+    -8.51
    ],
-   "yield_t_ha_mean": 23.659,
-   "yield_t_ha_sd": 20.998,
-   "yield_diff_mean": 0.002,
+   "yield_t_ha_mean": 23.661,
+   "yield_t_ha_sd": 21.003,
+   "yield_diff_mean": 0.005,
    "yield_diff_ci95": [
-    0.001,
-    0.004
+    -0.002,
+    0.013
    ],
    "yield_pct_diff_mean": 0.02,
    "yield_pct_diff_ci95": [
     0.01,
-    0.03
+    0.04
    ],
-   "net_pct_diff_mean": -0.32,
+   "net_pct_diff_mean": -0.23,
    "net_pct_diff_ci95": [
-    -0.58,
-    -0.06
+    -0.44,
+    -0.03
    ]
   },
   "closed_valve": {
    "n": 9,
-   "litres_mean": 28.5,
-   "litres_sd": 35.701,
-   "litres_diff_mean": 6.618,
+   "litres_mean": 22.804,
+   "litres_sd": 28.423,
+   "litres_diff_mean": 0.922,
    "litres_diff_ci95": [
-    0.877,
-    12.359
+    0.215,
+    1.629
    ],
-   "litres_pct_diff_mean": 38.93,
+   "litres_pct_diff_mean": 7.79,
    "litres_pct_diff_ci95": [
-    28.83,
-    49.04
+    4.95,
+    10.62
    ],
-   "sorties_mean": 4.333,
-   "sorties_sd": 3.536,
-   "sorties_diff_mean": 1.556,
+   "sorties_mean": 4.889,
+   "sorties_sd": 4.343,
+   "sorties_diff_mean": 2.111,
    "sorties_diff_ci95": [
-    0.979,
-    2.132
+    1.006,
+    3.216
    ],
-   "sorties_pct_diff_mean": 80.69,
+   "sorties_pct_diff_mean": 89.68,
    "sorties_pct_diff_ci95": [
-    61.57,
-    99.81
+    78.68,
+    100.68
    ],
-   "time_min_mean": 37.772,
-   "time_min_sd": 47.324,
-   "time_min_diff_mean": 5.332,
+   "time_min_mean": 42.734,
+   "time_min_sd": 54.761,
+   "time_min_diff_mean": 10.294,
    "time_min_diff_ci95": [
-    0.699,
-    9.965
+    1.574,
+    19.015
    ],
-   "time_min_pct_diff_mean": 48.85,
+   "time_min_pct_diff_mean": 54.51,
    "time_min_pct_diff_ci95": [
-    28.41,
-    69.28
+    38.15,
+    70.87
    ],
-   "weeds_after_m2_mean": 1.063,
-   "weeds_after_m2_sd": 0.366,
-   "weeds_after_diff_mean": -0.301,
+   "weeds_after_m2_mean": 1.228,
+   "weeds_after_m2_sd": 0.336,
+   "weeds_after_diff_mean": -0.137,
    "weeds_after_diff_ci95": [
-    -0.351,
-    -0.251
+    -0.155,
+    -0.118
    ],
-   "weeds_after_pct_diff_mean": -24.03,
+   "weeds_after_pct_diff_mean": -10.86,
    "weeds_after_pct_diff_ci95": [
-    -31.06,
-    -17.01
+    -13.82,
+    -7.9
    ],
-   "yield_t_ha_mean": 23.655,
-   "yield_t_ha_sd": 20.995,
-   "yield_diff_mean": -0.001,
+   "yield_t_ha_mean": 23.654,
+   "yield_t_ha_sd": 20.997,
+   "yield_diff_mean": -0.002,
    "yield_diff_ci95": [
-    -0.008,
-    0.006
+    -0.007,
+    0.004
    ],
-   "yield_pct_diff_mean": 0.01,
+   "yield_pct_diff_mean": 0.0,
    "yield_pct_diff_ci95": [
     -0.01,
-    0.04
+    0.02
    ],
-   "net_pct_diff_mean": -0.34,
+   "net_pct_diff_mean": -0.25,
    "net_pct_diff_ci95": [
-    -0.58,
-    -0.09
+    -0.44,
+    -0.06
    ]
   },
   "by_template": {
@@ -184,17 +180,17 @@
     },
     "closed": {
      "n": 3,
-     "litres_mean": 7.87,
-     "litres_sd": 0.629,
-     "litres_diff_mean": 1.897,
+     "litres_mean": 6.447,
+     "litres_sd": 0.355,
+     "litres_diff_mean": 0.473,
      "litres_diff_ci95": [
-      1.19,
-      2.603
+      0.298,
+      0.649
      ],
-     "litres_pct_diff_mean": 31.94,
+     "litres_pct_diff_mean": 7.97,
      "litres_pct_diff_ci95": [
-      19.14,
-      44.74
+      4.79,
+      11.14
      ],
      "sorties_mean": 2.0,
      "sorties_sd": 0.0,
@@ -220,56 +216,56 @@
       36.98,
       64.97
      ],
-     "weeds_after_m2_mean": 1.124,
-     "weeds_after_m2_sd": 0.02,
-     "weeds_after_diff_mean": -0.269,
+     "weeds_after_m2_mean": 1.265,
+     "weeds_after_m2_sd": 0.022,
+     "weeds_after_diff_mean": -0.128,
      "weeds_after_diff_ci95": [
-      -0.316,
-      -0.222
+      -0.153,
+      -0.103
      ],
-     "weeds_after_pct_diff_mean": -19.28,
+     "weeds_after_pct_diff_mean": -9.15,
      "weeds_after_pct_diff_ci95": [
-      -22.17,
-      -16.38
+      -10.75,
+      -7.55
      ],
-     "yield_t_ha_mean": 5.993,
-     "yield_t_ha_sd": 0.003,
-     "yield_diff_mean": 0.002,
+     "yield_t_ha_mean": 5.992,
+     "yield_t_ha_sd": 0.004,
+     "yield_diff_mean": 0.001,
      "yield_diff_ci95": [
       0.001,
-      0.002
+      0.001
      ],
-     "yield_pct_diff_mean": 0.03,
+     "yield_pct_diff_mean": 0.02,
      "yield_pct_diff_ci95": [
       0.02,
-      0.04
+      0.02
      ],
-     "net_ha_mean": 1488906.653,
-     "net_ha_sd": 898.246,
-     "net_diff_mean": -1934.547,
+     "net_ha_mean": 1489205.007,
+     "net_ha_sd": 753.398,
+     "net_diff_mean": -1636.193,
      "net_diff_ci95": [
-      -2338.11,
-      -1530.983
+      -1877.418,
+      -1394.969
      ],
-     "net_pct_diff_mean": -0.13,
+     "net_pct_diff_mean": -0.11,
      "net_pct_diff_ci95": [
-      -0.16,
-      -0.1
+      -0.13,
+      -0.09
      ]
     },
     "closed_valve": {
      "n": 3,
-     "litres_mean": 7.87,
-     "litres_sd": 0.629,
-     "litres_diff_mean": 1.897,
+     "litres_mean": 6.447,
+     "litres_sd": 0.355,
+     "litres_diff_mean": 0.473,
      "litres_diff_ci95": [
-      1.19,
-      2.603
+      0.298,
+      0.649
      ],
-     "litres_pct_diff_mean": 31.94,
+     "litres_pct_diff_mean": 7.97,
      "litres_pct_diff_ci95": [
-      19.14,
-      44.74
+      4.79,
+      11.14
      ],
      "sorties_mean": 2.0,
      "sorties_sd": 0.0,
@@ -295,41 +291,41 @@
       36.98,
       64.97
      ],
-     "weeds_after_m2_mean": 1.124,
-     "weeds_after_m2_sd": 0.02,
-     "weeds_after_diff_mean": -0.269,
+     "weeds_after_m2_mean": 1.265,
+     "weeds_after_m2_sd": 0.022,
+     "weeds_after_diff_mean": -0.128,
      "weeds_after_diff_ci95": [
-      -0.316,
-      -0.222
+      -0.153,
+      -0.103
      ],
-     "weeds_after_pct_diff_mean": -19.28,
+     "weeds_after_pct_diff_mean": -9.15,
      "weeds_after_pct_diff_ci95": [
-      -22.17,
-      -16.38
+      -10.75,
+      -7.55
      ],
-     "yield_t_ha_mean": 5.993,
-     "yield_t_ha_sd": 0.003,
-     "yield_diff_mean": 0.002,
+     "yield_t_ha_mean": 5.992,
+     "yield_t_ha_sd": 0.004,
+     "yield_diff_mean": 0.001,
      "yield_diff_ci95": [
       0.001,
-      0.002
+      0.001
      ],
-     "yield_pct_diff_mean": 0.03,
+     "yield_pct_diff_mean": 0.02,
      "yield_pct_diff_ci95": [
       0.02,
-      0.04
+      0.02
      ],
-     "net_ha_mean": 1488906.653,
-     "net_ha_sd": 898.246,
-     "net_diff_mean": -1934.547,
+     "net_ha_mean": 1489205.007,
+     "net_ha_sd": 753.398,
+     "net_diff_mean": -1636.193,
      "net_diff_ci95": [
-      -2338.11,
-      -1530.983
+      -1877.418,
+      -1394.969
      ],
-     "net_pct_diff_mean": -0.13,
+     "net_pct_diff_mean": -0.11,
      "net_pct_diff_ci95": [
-      -0.16,
-      -0.1
+      -0.13,
+      -0.09
      ]
     },
     "currency": "JPY"
@@ -352,152 +348,152 @@
     },
     "closed": {
      "n": 3,
-     "litres_mean": 76.303,
-     "litres_sd": 7.779,
-     "litres_diff_mean": 17.88,
+     "litres_mean": 60.953,
+     "litres_sd": 2.31,
+     "litres_diff_mean": 2.53,
      "litres_diff_ci95": [
-      9.897,
-      25.863
+      1.201,
+      3.859
      ],
-     "litres_pct_diff_mean": 30.55,
+     "litres_pct_diff_mean": 4.32,
      "litres_pct_diff_ci95": [
-      17.29,
-      43.81
+      2.09,
+      6.55
      ],
-     "sorties_mean": 9.0,
-     "sorties_sd": 1.0,
-     "sorties_diff_mean": 2.667,
+     "sorties_mean": 10.667,
+     "sorties_sd": 0.577,
+     "sorties_diff_mean": 4.333,
      "sorties_diff_ci95": [
-      2.013,
-      3.32
+      3.68,
+      4.987
      ],
-     "sorties_pct_diff_mean": 42.06,
+     "sorties_pct_diff_mean": 69.05,
      "sorties_pct_diff_ci95": [
-      32.6,
-      51.53
+      54.05,
+      84.05
      ],
-     "time_min_mean": 100.437,
-     "time_min_sd": 9.498,
-     "time_min_diff_mean": 11.333,
+     "time_min_mean": 115.323,
+     "time_min_sd": 10.322,
+     "time_min_diff_mean": 26.22,
      "time_min_diff_ci95": [
-      -0.929,
-      23.596
+      12.866,
+      39.574
      ],
-     "time_min_pct_diff_mean": 13.81,
+     "time_min_pct_diff_mean": 30.8,
      "time_min_pct_diff_ci95": [
-      -1.93,
-      29.55
+      11.64,
+      49.96
      ],
-     "weeds_after_m2_mean": 1.434,
-     "weeds_after_m2_sd": 0.058,
-     "weeds_after_diff_mean": -0.277,
+     "weeds_after_m2_mean": 1.573,
+     "weeds_after_m2_sd": 0.028,
+     "weeds_after_diff_mean": -0.139,
      "weeds_after_diff_ci95": [
-      -0.363,
-      -0.191
+      -0.165,
+      -0.112
      ],
-     "weeds_after_pct_diff_mean": -16.14,
+     "weeds_after_pct_diff_mean": -8.08,
      "weeds_after_pct_diff_ci95": [
-      -20.94,
-      -11.34
+      -9.41,
+      -6.76
      ],
-     "yield_t_ha_mean": 50.903,
-     "yield_t_ha_sd": 6.676,
-     "yield_diff_mean": 0.0,
+     "yield_t_ha_mean": 50.915,
+     "yield_t_ha_sd": 6.655,
+     "yield_diff_mean": 0.012,
      "yield_diff_ci95": [
-      0.0,
-      0.0
+      -0.012,
+      0.036
      ],
-     "yield_pct_diff_mean": 0.0,
+     "yield_pct_diff_mean": 0.03,
      "yield_pct_diff_ci95": [
-      0.0,
-      0.0
+      -0.03,
+      0.08
      ],
-     "net_ha_mean": 6605.64,
-     "net_ha_sd": 769.641,
-     "net_diff_mean": -0.293,
+     "net_ha_mean": 6607.827,
+     "net_ha_sd": 770.653,
+     "net_diff_mean": 1.893,
      "net_diff_ci95": [
-      -9.827,
-      9.24
+      -7.262,
+      11.049
      ],
-     "net_pct_diff_mean": 0.01,
+     "net_pct_diff_mean": 0.04,
      "net_pct_diff_ci95": [
-      -0.15,
-      0.16
+      -0.11,
+      0.19
      ]
     },
     "closed_valve": {
      "n": 3,
-     "litres_mean": 75.683,
-     "litres_sd": 7.901,
-     "litres_diff_mean": 17.26,
+     "litres_mean": 60.567,
+     "litres_sd": 1.946,
+     "litres_diff_mean": 2.143,
      "litres_diff_ci95": [
-      9.058,
-      25.462
+      0.89,
+      3.396
      ],
-     "litres_pct_diff_mean": 29.5,
+     "litres_pct_diff_mean": 3.68,
      "litres_pct_diff_ci95": [
-      15.8,
-      43.19
+      1.5,
+      5.85
      ],
-     "sorties_mean": 9.0,
-     "sorties_sd": 1.0,
-     "sorties_diff_mean": 2.667,
+     "sorties_mean": 10.667,
+     "sorties_sd": 0.577,
+     "sorties_diff_mean": 4.333,
      "sorties_diff_ci95": [
-      2.013,
-      3.32
+      3.68,
+      4.987
      ],
-     "sorties_pct_diff_mean": 42.06,
+     "sorties_pct_diff_mean": 69.05,
      "sorties_pct_diff_ci95": [
-      32.6,
-      51.53
+      54.05,
+      84.05
      ],
-     "time_min_mean": 100.437,
-     "time_min_sd": 9.498,
-     "time_min_diff_mean": 11.333,
+     "time_min_mean": 115.323,
+     "time_min_sd": 10.322,
+     "time_min_diff_mean": 26.22,
      "time_min_diff_ci95": [
-      -0.929,
-      23.596
+      12.866,
+      39.574
      ],
-     "time_min_pct_diff_mean": 13.81,
+     "time_min_pct_diff_mean": 30.8,
      "time_min_pct_diff_ci95": [
-      -1.93,
-      29.55
+      11.64,
+      49.96
      ],
-     "weeds_after_m2_mean": 1.447,
-     "weeds_after_m2_sd": 0.062,
-     "weeds_after_diff_mean": -0.264,
+     "weeds_after_m2_mean": 1.586,
+     "weeds_after_m2_sd": 0.017,
+     "weeds_after_diff_mean": -0.125,
      "weeds_after_diff_ci95": [
-      -0.359,
-      -0.17
+      -0.161,
+      -0.09
      ],
-     "weeds_after_pct_diff_mean": -15.39,
+     "weeds_after_pct_diff_mean": -7.29,
      "weeds_after_pct_diff_ci95": [
-      -20.65,
-      -10.13
+      -9.12,
+      -5.46
      ],
-     "yield_t_ha_mean": 50.894,
-     "yield_t_ha_sd": 6.692,
-     "yield_diff_mean": -0.009,
+     "yield_t_ha_mean": 50.895,
+     "yield_t_ha_sd": 6.69,
+     "yield_diff_mean": -0.008,
      "yield_diff_ci95": [
-      -0.028,
-      0.009
+      -0.024,
+      0.008
      ],
      "yield_pct_diff_mean": -0.02,
      "yield_pct_diff_ci95": [
-      -0.06,
+      -0.05,
       0.02
      ],
-     "net_ha_mean": 6601.653,
-     "net_ha_sd": 773.207,
-     "net_diff_mean": -4.28,
+     "net_ha_mean": 6604.87,
+     "net_ha_sd": 775.876,
+     "net_diff_mean": -1.063,
      "net_diff_ci95": [
-      -9.853,
-      1.293
+      -5.705,
+      3.579
      ],
-     "net_pct_diff_mean": -0.06,
+     "net_pct_diff_mean": -0.01,
      "net_pct_diff_ci95": [
-      -0.14,
-      0.02
+      -0.08,
+      0.05
      ]
     },
     "currency": "EUR"
@@ -520,17 +516,17 @@
     },
     "closed": {
      "n": 3,
-     "litres_mean": 1.99,
-     "litres_sd": 0.298,
-     "litres_diff_mean": 0.74,
+     "litres_mean": 1.433,
+     "litres_sd": 0.199,
+     "litres_diff_mean": 0.183,
      "litres_diff_ci95": [
-      0.58,
-      0.9
+      0.144,
+      0.223
      ],
-     "litres_pct_diff_mean": 59.02,
+     "litres_pct_diff_mean": 14.62,
      "litres_pct_diff_ci95": [
-      52.95,
-      65.09
+      13.17,
+      16.06
      ],
      "sorties_mean": 2.0,
      "sorties_sd": 0.0,
@@ -556,56 +552,56 @@
       70.8,
       92.7
      ],
-     "weeds_after_m2_mean": 0.596,
-     "weeds_after_m2_sd": 0.068,
-     "weeds_after_diff_mean": -0.393,
+     "weeds_after_m2_mean": 0.791,
+     "weeds_after_m2_sd": 0.095,
+     "weeds_after_diff_mean": -0.198,
      "weeds_after_diff_ci95": [
-      -0.486,
-      -0.3
+      -0.252,
+      -0.145
      ],
-     "weeds_after_pct_diff_mean": -39.51,
+     "weeds_after_pct_diff_mean": -19.9,
      "weeds_after_pct_diff_ci95": [
-      -44.46,
-      -34.56
+      -23.25,
+      -16.55
      ],
-     "yield_t_ha_mean": 14.08,
+     "yield_t_ha_mean": 14.077,
      "yield_t_ha_sd": 0.066,
-     "yield_diff_mean": 0.006,
+     "yield_diff_mean": 0.003,
      "yield_diff_ci95": [
-      0.005,
-      0.006
+      0.002,
+      0.003
      ],
-     "yield_pct_diff_mean": 0.04,
+     "yield_pct_diff_mean": 0.02,
      "yield_pct_diff_ci95": [
-      0.04,
-      0.04
+      0.01,
+      0.02
      ],
-     "net_ha_mean": 550813.913,
-     "net_ha_sd": 3828.207,
-     "net_diff_mean": -4644.16,
+     "net_ha_mean": 551944.517,
+     "net_ha_sd": 3617.279,
+     "net_diff_mean": -3513.557,
      "net_diff_ci95": [
-      -5493.171,
-      -3795.149
+      -4103.624,
+      -2923.489
      ],
-     "net_pct_diff_mean": -0.84,
+     "net_pct_diff_mean": -0.63,
      "net_pct_diff_ci95": [
-      -0.99,
-      -0.68
+      -0.74,
+      -0.52
      ]
     },
     "closed_valve": {
      "n": 3,
-     "litres_mean": 1.947,
-     "litres_sd": 0.326,
-     "litres_diff_mean": 0.697,
+     "litres_mean": 1.4,
+     "litres_sd": 0.226,
+     "litres_diff_mean": 0.15,
      "litres_diff_ci95": [
-      0.499,
-      0.894
+      0.076,
+      0.224
      ],
-     "litres_pct_diff_mean": 55.36,
+     "litres_pct_diff_mean": 11.72,
      "litres_pct_diff_ci95": [
-      45.84,
-      64.89
+      7.3,
+      16.14
      ],
      "sorties_mean": 2.0,
      "sorties_sd": 0.0,
@@ -631,41 +627,41 @@
       70.8,
       92.7
      ],
-     "weeds_after_m2_mean": 0.619,
-     "weeds_after_m2_sd": 0.1,
-     "weeds_after_diff_mean": -0.37,
+     "weeds_after_m2_mean": 0.832,
+     "weeds_after_m2_sd": 0.142,
+     "weeds_after_diff_mean": -0.157,
      "weeds_after_diff_ci95": [
-      -0.439,
-      -0.301
+      -0.187,
+      -0.127
      ],
-     "weeds_after_pct_diff_mean": -37.44,
+     "weeds_after_pct_diff_mean": -16.13,
      "weeds_after_pct_diff_ci95": [
-      -42.35,
-      -32.52
+      -20.09,
+      -12.16
      ],
-     "yield_t_ha_mean": 14.079,
+     "yield_t_ha_mean": 14.076,
      "yield_t_ha_sd": 0.065,
-     "yield_diff_mean": 0.005,
+     "yield_diff_mean": 0.002,
      "yield_diff_ci95": [
-      0.004,
-      0.006
+      0.001,
+      0.002
      ],
-     "yield_pct_diff_mean": 0.04,
+     "yield_pct_diff_mean": 0.01,
      "yield_pct_diff_ci95": [
-      0.03,
-      0.04
+      0.01,
+      0.02
      ],
-     "net_ha_mean": 550892.177,
-     "net_ha_sd": 3852.175,
-     "net_diff_mean": -4565.897,
+     "net_ha_mean": 551987.26,
+     "net_ha_sd": 3639.113,
+     "net_diff_mean": -3470.813,
      "net_diff_ci95": [
-      -5462.296,
-      -3669.497
+      -4091.344,
+      -2850.283
      ],
-     "net_pct_diff_mean": -0.82,
+     "net_pct_diff_mean": -0.63,
      "net_pct_diff_ci95": [
-      -0.99,
-      -0.66
+      -0.74,
+      -0.51
      ]
     },
     "currency": "KES"
@@ -686,7 +682,7 @@
    "yield_t_ha": 5.993,
    "net_ha": 1491246.6,
    "currency": "JPY",
-   "seconds": 22.0
+   "seconds": 21.1
   },
   {
    "template": "A1",
@@ -694,14 +690,14 @@
    "arm": "closed",
    "op_id": "herbicide-2025-06-24-1",
    "day": "2025-06-28",
-   "litres": 7.18,
+   "litres": 6.09,
    "sorties": 2,
    "time_min": 9.8,
-   "weeds_after_m2": 1.145,
-   "yield_t_ha": 5.995,
-   "net_ha": 1489553.95,
+   "weeds_after_m2": 1.287,
+   "yield_t_ha": 5.994,
+   "net_ha": 1489737.35,
    "currency": "JPY",
-   "seconds": 24.7
+   "seconds": 23.6
   },
   {
    "template": "A1",
@@ -709,14 +705,14 @@
    "arm": "closed_valve",
    "op_id": "herbicide-2025-06-24-1",
    "day": "2025-06-28",
-   "litres": 7.18,
+   "litres": 6.09,
    "sorties": 2,
    "time_min": 9.8,
-   "weeds_after_m2": 1.145,
-   "yield_t_ha": 5.995,
-   "net_ha": 1489553.95,
+   "weeds_after_m2": 1.287,
+   "yield_t_ha": 5.994,
+   "net_ha": 1489737.35,
    "currency": "JPY",
-   "seconds": 27.5
+   "seconds": 26.5
   },
   {
    "template": "A1",
@@ -731,7 +727,7 @@
    "yield_t_ha": 5.994,
    "net_ha": 1491051.74,
    "currency": "JPY",
-   "seconds": 21.4
+   "seconds": 22.0
   },
   {
    "template": "A1",
@@ -739,14 +735,14 @@
    "arm": "closed",
    "op_id": "herbicide-2025-06-24-1",
    "day": "2025-06-28",
-   "litres": 8.02,
+   "litres": 6.8,
    "sorties": 2,
    "time_min": 10.05,
-   "weeds_after_m2": 1.122,
+   "weeds_after_m2": 1.243,
    "yield_t_ha": 5.995,
-   "net_ha": 1489284.86,
+   "net_ha": 1489534.71,
    "currency": "JPY",
-   "seconds": 24.3
+   "seconds": 24.6
   },
   {
    "template": "A1",
@@ -754,14 +750,14 @@
    "arm": "closed_valve",
    "op_id": "herbicide-2025-06-24-1",
    "day": "2025-06-28",
-   "litres": 8.02,
+   "litres": 6.8,
    "sorties": 2,
    "time_min": 10.05,
-   "weeds_after_m2": 1.122,
+   "weeds_after_m2": 1.243,
    "yield_t_ha": 5.995,
-   "net_ha": 1489284.86,
+   "net_ha": 1489534.71,
    "currency": "JPY",
-   "seconds": 26.9
+   "seconds": 26.8
   },
   {
    "template": "A1",
@@ -776,7 +772,7 @@
    "yield_t_ha": 5.987,
    "net_ha": 1490225.26,
    "currency": "JPY",
-   "seconds": 22.3
+   "seconds": 19.4
   },
   {
    "template": "A1",
@@ -784,14 +780,14 @@
    "arm": "closed",
    "op_id": "herbicide-2025-06-24-1",
    "day": "2025-06-28",
-   "litres": 8.41,
+   "litres": 6.45,
    "sorties": 2,
    "time_min": 9.35,
-   "weeds_after_m2": 1.105,
-   "yield_t_ha": 5.989,
-   "net_ha": 1487881.15,
+   "weeds_after_m2": 1.266,
+   "yield_t_ha": 5.988,
+   "net_ha": 1488342.96,
    "currency": "JPY",
-   "seconds": 24.9
+   "seconds": 22.5
   },
   {
    "template": "A1",
@@ -799,68 +795,14 @@
    "arm": "closed_valve",
    "op_id": "herbicide-2025-06-24-1",
    "day": "2025-06-28",
-   "litres": 8.41,
+   "litres": 6.45,
    "sorties": 2,
    "time_min": 9.35,
-   "weeds_after_m2": 1.105,
-   "yield_t_ha": 5.989,
-   "net_ha": 1487881.15,
+   "weeds_after_m2": 1.266,
+   "yield_t_ha": 5.988,
+   "net_ha": 1488342.96,
    "currency": "JPY",
-   "seconds": 27.7
-  },
-  {
-   "template": "A2",
-   "seed": 0,
-   "arm": null,
-   "skipped": "no herbicide job proposed this season"
-  },
-  {
-   "template": "A2",
-   "seed": 1,
-   "arm": null,
-   "skipped": "no herbicide job proposed this season"
-  },
-  {
-   "template": "A2",
-   "seed": 2,
-   "arm": null,
-   "skipped": "no herbicide job proposed this season"
-  },
-  {
-   "template": "A3",
-   "seed": 0,
-   "arm": null,
-   "skipped": "no herbicide job proposed this season"
-  },
-  {
-   "template": "A3",
-   "seed": 1,
-   "arm": null,
-   "skipped": "no herbicide job proposed this season"
-  },
-  {
-   "template": "A3",
-   "seed": 2,
-   "arm": null,
-   "skipped": "no herbicide job proposed this season"
-  },
-  {
-   "template": "A4",
-   "seed": 0,
-   "arm": null,
-   "skipped": "no herbicide job proposed this season"
-  },
-  {
-   "template": "A4",
-   "seed": 1,
-   "arm": null,
-   "skipped": "no herbicide job proposed this season"
-  },
-  {
-   "template": "A4",
-   "seed": 2,
-   "arm": null,
-   "skipped": "no herbicide job proposed this season"
+   "seconds": 24.7
   },
   {
    "template": "A5",
@@ -875,7 +817,7 @@
    "yield_t_ha": 43.195,
    "net_ha": 5707.73,
    "currency": "EUR",
-   "seconds": 78.9
+   "seconds": 69.3
   },
   {
    "template": "A5",
@@ -883,14 +825,14 @@
    "arm": "closed",
    "op_id": "herbicide-2025-06-04-3",
    "day": "2025-06-11",
-   "litres": 68.67,
-   "sorties": 8,
-   "time_min": 89.78,
-   "weeds_after_m2": 1.484,
-   "yield_t_ha": 43.195,
-   "net_ha": 5717.09,
+   "litres": 59.68,
+   "sorties": 10,
+   "time_min": 103.54,
+   "weeds_after_m2": 1.559,
+   "yield_t_ha": 43.231,
+   "net_ha": 5718.06,
    "currency": "EUR",
-   "seconds": 107.7
+   "seconds": 94.5
   },
   {
    "template": "A5",
@@ -898,14 +840,14 @@
    "arm": "closed_valve",
    "op_id": "herbicide-2025-06-04-3",
    "day": "2025-06-11",
-   "litres": 67.72,
-   "sorties": 8,
-   "time_min": 89.78,
-   "weeds_after_m2": 1.505,
-   "yield_t_ha": 43.167,
-   "net_ha": 5709.03,
+   "litres": 59.33,
+   "sorties": 10,
+   "time_min": 103.54,
+   "weeds_after_m2": 1.572,
+   "yield_t_ha": 43.171,
+   "net_ha": 5709.07,
    "currency": "EUR",
-   "seconds": 138.4
+   "seconds": 124.5
   },
   {
    "template": "A5",
@@ -920,7 +862,7 @@
    "yield_t_ha": 54.668,
    "net_ha": 7039.63,
    "currency": "EUR",
-   "seconds": 79.6
+   "seconds": 74.0
   },
   {
    "template": "A5",
@@ -928,14 +870,14 @@
    "arm": "closed",
    "op_id": "herbicide-2025-06-04-3",
    "day": "2025-06-11",
-   "litres": 84.22,
-   "sorties": 10,
-   "time_min": 108.01,
-   "weeds_after_m2": 1.37,
+   "litres": 63.62,
+   "sorties": 11,
+   "time_min": 122.77,
+   "weeds_after_m2": 1.554,
    "yield_t_ha": 54.668,
-   "net_ha": 7035.55,
+   "net_ha": 7040.78,
    "currency": "EUR",
-   "seconds": 112.8
+   "seconds": 111.4
   },
   {
    "template": "A5",
@@ -943,14 +885,14 @@
    "arm": "closed_valve",
    "op_id": "herbicide-2025-06-04-3",
    "day": "2025-06-11",
-   "litres": 83.52,
-   "sorties": 10,
-   "time_min": 108.01,
-   "weeds_after_m2": 1.382,
+   "litres": 62.81,
+   "sorties": 11,
+   "time_min": 122.77,
+   "weeds_after_m2": 1.581,
    "yield_t_ha": 54.668,
-   "net_ha": 7031.61,
+   "net_ha": 7040.9,
    "currency": "EUR",
-   "seconds": 148.1
+   "seconds": 172.5
   },
   {
    "template": "A5",
@@ -965,7 +907,7 @@
    "yield_t_ha": 54.847,
    "net_ha": 7070.44,
    "currency": "EUR",
-   "seconds": 89.4
+   "seconds": 135.0
   },
   {
    "template": "A5",
@@ -973,14 +915,14 @@
    "arm": "closed",
    "op_id": "herbicide-2025-06-04-3",
    "day": "2025-06-11",
-   "litres": 76.02,
-   "sorties": 9,
-   "time_min": 103.52,
-   "weeds_after_m2": 1.449,
+   "litres": 59.56,
+   "sorties": 11,
+   "time_min": 119.66,
+   "weeds_after_m2": 1.605,
    "yield_t_ha": 54.847,
-   "net_ha": 7064.28,
+   "net_ha": 7064.64,
    "currency": "EUR",
-   "seconds": 128.1
+   "seconds": 164.6
   },
   {
    "template": "A5",
@@ -988,14 +930,14 @@
    "arm": "closed_valve",
    "op_id": "herbicide-2025-06-04-3",
    "day": "2025-06-11",
-   "litres": 75.81,
-   "sorties": 9,
-   "time_min": 103.52,
-   "weeds_after_m2": 1.454,
+   "litres": 59.56,
+   "sorties": 11,
+   "time_min": 119.66,
+   "weeds_after_m2": 1.605,
    "yield_t_ha": 54.847,
-   "net_ha": 7064.32,
+   "net_ha": 7064.64,
    "currency": "EUR",
-   "seconds": 165.6
+   "seconds": 196.8
   },
   {
    "template": "A6",
@@ -1010,7 +952,7 @@
    "yield_t_ha": 14.048,
    "net_ha": 554231.98,
    "currency": "KES",
-   "seconds": 6.6
+   "seconds": 11.1
   },
   {
    "template": "A6",
@@ -1018,14 +960,14 @@
    "arm": "closed",
    "op_id": "herbicide-2025-05-04-1",
    "day": "2025-05-17",
-   "litres": 2.04,
+   "litres": 1.5,
    "sorties": 2,
    "time_min": 3.21,
-   "weeds_after_m2": 0.551,
-   "yield_t_ha": 14.054,
-   "net_ha": 549539.13,
+   "weeds_after_m2": 0.754,
+   "yield_t_ha": 14.051,
+   "net_ha": 550622.16,
    "currency": "KES",
-   "seconds": 10.2
+   "seconds": 17.3
   },
   {
    "template": "A6",
@@ -1033,14 +975,14 @@
    "arm": "closed_valve",
    "op_id": "herbicide-2025-05-04-1",
    "day": "2025-05-17",
-   "litres": 1.97,
+   "litres": 1.46,
    "sorties": 2,
    "time_min": 3.21,
-   "weeds_after_m2": 0.56,
-   "yield_t_ha": 14.054,
-   "net_ha": 549688.26,
+   "weeds_after_m2": 0.785,
+   "yield_t_ha": 14.05,
+   "net_ha": 550690.07,
    "currency": "KES",
-   "seconds": 13.8
+   "seconds": 22.3
   },
   {
    "template": "A6",
@@ -1055,7 +997,7 @@
    "yield_t_ha": 14.149,
    "net_ha": 558987.6,
    "currency": "KES",
-   "seconds": 5.3
+   "seconds": 9.2
   },
   {
    "template": "A6",
@@ -1063,14 +1005,14 @@
    "arm": "closed",
    "op_id": "herbicide-2025-05-04-1",
    "day": "2025-05-17",
-   "litres": 1.67,
+   "litres": 1.21,
    "sorties": 2,
    "time_min": 2.89,
-   "weeds_after_m2": 0.674,
-   "yield_t_ha": 14.155,
-   "net_ha": 555116.87,
+   "weeds_after_m2": 0.899,
+   "yield_t_ha": 14.152,
+   "net_ha": 556036.91,
    "currency": "KES",
-   "seconds": 8.5
+   "seconds": 14.5
   },
   {
    "template": "A6",
@@ -1078,14 +1020,14 @@
    "arm": "closed_valve",
    "op_id": "herbicide-2025-05-04-1",
    "day": "2025-05-17",
-   "litres": 1.61,
+   "litres": 1.15,
    "sorties": 2,
    "time_min": 2.89,
-   "weeds_after_m2": 0.734,
-   "yield_t_ha": 14.153,
-   "net_ha": 555202.53,
+   "weeds_after_m2": 0.991,
+   "yield_t_ha": 14.15,
+   "net_ha": 556097.23,
    "currency": "KES",
-   "seconds": 11.6
+   "seconds": 19.4
   },
   {
    "template": "A6",
@@ -1100,7 +1042,7 @@
    "yield_t_ha": 14.025,
    "net_ha": 553154.64,
    "currency": "KES",
-   "seconds": 6.3
+   "seconds": 6.9
   },
   {
    "template": "A6",
@@ -1108,14 +1050,14 @@
    "arm": "closed",
    "op_id": "herbicide-2025-05-04-1",
    "day": "2025-05-17",
-   "litres": 2.26,
+   "litres": 1.59,
    "sorties": 2,
    "time_min": 3.34,
-   "weeds_after_m2": 0.563,
-   "yield_t_ha": 14.03,
-   "net_ha": 547785.74,
+   "weeds_after_m2": 0.719,
+   "yield_t_ha": 14.027,
+   "net_ha": 549174.48,
    "currency": "KES",
-   "seconds": 9.6
+   "seconds": 10.4
   },
   {
    "template": "A6",
@@ -1123,32 +1065,14 @@
    "arm": "closed_valve",
    "op_id": "herbicide-2025-05-04-1",
    "day": "2025-05-17",
-   "litres": 2.26,
+   "litres": 1.59,
    "sorties": 2,
    "time_min": 3.34,
-   "weeds_after_m2": 0.563,
-   "yield_t_ha": 14.03,
-   "net_ha": 547785.74,
+   "weeds_after_m2": 0.719,
+   "yield_t_ha": 14.027,
+   "net_ha": 549174.48,
    "currency": "KES",
-   "seconds": 12.9
-  },
-  {
-   "template": "A8",
-   "seed": 0,
-   "arm": null,
-   "skipped": "ValueError: archetype A8 (Large-scale cotton (defoliation)) not supported: Defoliant timing is the drone task here and no defoliation model exists; WOFOST cotton parameters are uncalibrated (engine.UNCALIBRATED)."
-  },
-  {
-   "template": "A8",
-   "seed": 1,
-   "arm": null,
-   "skipped": "ValueError: archetype A8 (Large-scale cotton (defoliation)) not supported: Defoliant timing is the drone task here and no defoliation model exists; WOFOST cotton parameters are uncalibrated (engine.UNCALIBRATED)."
-  },
-  {
-   "template": "A8",
-   "seed": 2,
-   "arm": null,
-   "skipped": "ValueError: archetype A8 (Large-scale cotton (defoliation)) not supported: Defoliant timing is the drone task here and no defoliation model exists; WOFOST cotton parameters are uncalibrated (engine.UNCALIBRATED)."
+   "seconds": 13.6
   }
  ]
 }

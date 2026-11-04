@@ -30,15 +30,26 @@ still in the air, not only the next one.
   * *In pass:* an optional spot valve opens only where the camera sees weeds above the
     threshold, or did not see at all (fail-safe). It never gives a cell more than the plan.
   * *Between sorties:* the planner's own herbicide rule re-runs on the updated map. Cells at
-    ≥ 90 % of the rate drop out and under-dosed cells come back, at most twice each.
-  * *After the job:* what the camera saw is assimilated as a partial scan.
+    ≥ 90 % of the rate drop out and under-dosed cells come back, at most twice each. A
+    re-fly is a top-up at the median shortfall and never takes a cell past 125 % of the
+    rate; cells it would overdose are left as they are and audited. Cells the spot valve
+    closed on are done.
+  * *After the job:* what the camera saw is assimilated as a partial observation (weed
+    counts only: the crop's stage and leaf area are left alone, and no survey scan is
+    booked). An aircraft run is booked as one logged action (`book_live_run`): the
+    as-applied dose from telemetry plus the camera's counts, replayed identically.
 * **One session action** (`SeasonSession.fly_closed_loop`). It is logged and replays
   identically, and it takes the same weather draw and seed as an open-loop flight, so the
   two differ only by the loop.
 * **The aircraft speaks `fa.live/1`** (`fa_core.live_msgs`). Batches carry per-cell counts
   and telemetry, never imagery:
-  * each batch is idempotent by `(run_id, seq)` and authenticated by device token;
-  * bad items are rejected one by one.
+  * each batch is idempotent by `(run_id, seq)` and authenticated by device token; a batch
+    is counted only once it has been applied, so one that failed can be sent again;
+  * bad items are rejected one by one, including telemetry more than 150 m outside the field;
+  * a pass split over several batches keeps its segments (the last point of each sortie is
+    carried over), and a sortie doses a cell once;
+  * a running run is never replaced (409), and **finish** stays retryable while the
+    farm's session is busy.
   * Nothing is sent to the aircraft: the next sortie is a KML for its app, and the
     operator can freeze the plan (open loop) at any time.
   * Every correction is in the audit log with its reason.
@@ -48,7 +59,9 @@ still in the air, not only the next one.
 
 ## Measured result (simulation)
 
-`python ml/closed_loop_bench.py --templates all --seeds 0-2`: the twin's own policy runs
+`python ml/closed_loop_bench.py --templates A1,A5,A6 --seeds 0-2` (re-run after the overdose
+cap and the valve fix; the first run, `--templates all`, found which templates propose a
+herbicide job): the twin's own policy runs
 until its first herbicide job, then the season is forked three ways on that job's first
 flyable day. Results: [`ml/results/closed_loop/closed_loop.md`](../../ml/results/closed_loop/closed_loop.md).
 
@@ -61,21 +74,26 @@ Paired differences vs the open-loop flight of the same job (mean and 95 % interv
 
 | | Δ product | Δ weeds 7 days after | Δ yield | Δ net per ha |
 |---|---|---|---|---|
-| closed loop | **+40 %** [+30, +51] | **−25 %** [−33, −18] | +0.02 % [+0.01, +0.03] | **−0.3 %** [−0.6, −0.1] |
-| closed loop + spot valve | +39 % [+29, +49] | −24 % [−31, −17] | +0.01 % [−0.01, +0.04] | −0.3 % [−0.6, −0.1] |
+| closed loop | **+9.0 %** [+5.8, +12.2] | **−12.4 %** [−16.2, −8.5] | +0.02 % [+0.01, +0.04] | **−0.23 %** [−0.44, −0.03] |
+| closed loop + spot valve | +7.8 % [+5.0, +10.6] | −10.9 % [−13.8, −7.9] | +0.00 % [−0.01, +0.02] | −0.25 % [−0.44, −0.06] |
+
+Before the overdose cap (the re-fly flew the full rate again) the same benchmark measured
++40 % product for −25 % weeds: most of that extra product went onto cells that already had
+most of their dose.
 
 **What this says:**
 
 * The closed loop does what it is built to do: it finds the cells the single pass left under
-  90 % of the rate (often 30–45 % of the targets in the drone twin's pattern), re-flies them,
-  and leaves a quarter fewer weeds.
+  90 % of the rate (often 30–45 % of the targets in the drone twin's pattern), tops them up,
+  and leaves about an eighth fewer weeds for about a tenth more product.
 * At these weed levels, and after this point in the critical period, the extra kill does not
   show in yield. The extra product and flight time cost slightly more than they return, so
   net per ha is a little lower in every template.
 * The spec hoped for less product *and* fewer weeds. Fewer weeds is measured; **less product
   is not**.
-* The spot valve adds almost nothing on spot jobs, because the targets already are the cells
-  above the threshold. It would matter on a blanket job, or when the survey map is old.
+* The spot valve saves a little product (−1 point) for a little less kill on spot jobs,
+  because the targets already are the cells above the threshold. It would matter more on a
+  blanket job, or when the survey map is old.
 
 ## Consequences
 
