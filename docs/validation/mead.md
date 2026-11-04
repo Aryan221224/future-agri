@@ -279,6 +279,90 @@ On the rainfed pivot, 2017-2023, the twin used 84% less herbicide than blanket s
 * **Labour hours:** only the 29 fewer pivot passes, about 100 h of pivot running time each,
   appear above.
 
+## v5: stem reserves, canopy size, Sentinel-2 (tested, not shipped)
+
+Three changes were built and tested together (`ml/mead/v5.py`, [ADR 0021](../adr/0021-remobilisation-canopy-sentinel2.md)):
+
+* **Stem reserves to grain under drought:** CERES-Maize's rule. Stem is drawn down to 85% of
+  its silking weight when drought leaves the grain short of demand. No fitted parameter.
+* **Canopy size in the satellite anchor:** the ensemble fits the leaf share of new growth as
+  well as timing. A satellite-cover operator with k = 0.33 was fitted on Ne1 2001-2003 only.
+* **Sentinel-2 from 2017:** 26 usable scenes per season against 4.6 from Landsat.
+
+### The clean test: 12 seasons, 2014-2021, combine yields
+
+None of these seasons was used to build v4 or to choose v5. The irrigated pivots run with
+the farm's metered passes. The rainfed pivot runs with its recorded sowing date, seeding rate
+and hybrid.
+
+| field | year | water | measured | v4 forward | v4 anchored | v5 15 July | v5 anchored | scenes (v5) |
+|---|---|---|---|---|---|---|---|---|
+| Ne1 | 2014 | irrigated | 11.1 | 11.9 | 13.5 | 11.9 | 11.9 | 3 Landsat |
+| Ne1 | 2015 | irrigated | 11.9 | 13.2 | 14.3 | 13.2 | 13.4 | 4 Landsat |
+| Ne1 | 2016 | irrigated | 12.7 | 12.5 | 12.2 | 12.5 | 12.2 | 5 Landsat |
+| Ne1 | 2017 | irrigated | 14.1 | 15.5 | 16.8 | 15.8 | 15.1 | 13 S2 |
+| Ne1 | 2018 | irrigated | 8.5 | 13.5 | 13.7 | 12.2 | 13.8 | 33 S2 |
+| Ne1 | 2020 | irrigated | 13.7 | 14.6 | 12.9 | 12.6 | 12.6 | 34 S2 |
+| Ne1 | 2021 | irrigated | 14.2 | 13.8 | 15.1 | 12.4 | 11.4 | 30 S2 |
+| Ne2 | 2015 | irrigated | 13.5 | 13.2 | 14.1 | 13.2 | 13.3 | 4 Landsat |
+| Ne2 | 2021 | irrigated | 16.9 | 13.8 | 15.3 | 12.9 | 13.2 | 29 S2 |
+| Ne3 | 2015 | rainfed | 11.7 | 11.8 | 11.9 | 13.8 | 14.0 | 5 Landsat |
+| Ne3 | 2017 | rainfed | 12.1 | 14.9 | 14.3 | 15.1 | 14.8 | 11 S2 |
+| Ne3 | 2021 | rainfed | 11.9 | 12.9 | 11.9 | 13.2 | 12.2 | 32 S2 |
+
+Yield RMSE, t/ha:
+
+| | forward (at sowing) | 15 July | anchored (full season) |
+|---|---|---|---|
+| v4 | 2.03 | 2.24 | 2.16 |
+| v5 | 2.03 | 2.17 | 2.39 |
+| v4, without Ne1 2018 | 1.49 | 1.58 | 1.61 |
+| v5, without Ne1 2018 | 1.49 | 1.96 | 1.91 |
+| mean of these 12 seasons (a bound no forecast has) | 1.98 | | |
+
+What it shows:
+
+* **Stem reserves:** the rule moved nothing in all 12 seasons, so v5 forward equals v4
+  forward. The irrigated pivots never ran short of water, and 2015, 2017 and 2021 were not
+  drought years on the rainfed pivot. The only season where it fired was Ne3 2003. There it
+  took the forecast from 7.4 to 8.6 t/ha against a measured 7.8, so the miss went from -0.4
+  to +0.7 t/ha.
+* **Canopy size:** worse on the clean test. On the irrigated fields the bias went from
+  +1.2 to 0.0, but the scatter grew. On the rainfed field the anchored RMSE went from 1.30 to
+  2.09: Ne3 2015 was pushed from 11.9 to 14.0 against a measured 11.7.
+* **Sentinel-2:** six times the scenes, no gain. On the 7 seasons with both sensors the
+  anchored RMSE was 2.93 with Sentinel-2 and 2.64 with Landsat. More scenes let the canopy-size
+  fit move further, and it moved the wrong way on Ne1 2021 and Ne2 2021.
+* **Ne1 2018** came in at 8.5 t/ha. Every version simulated about 13.5, and its 33 Sentinel-2
+  scenes did not pull the forecast down. The farm records give no cause the model
+  could use. Leaving this one season out lowers every RMSE above by a fifth to a quarter.
+* The model forecast at sowing (1.49 without 2018) is about as good as the seasons' own
+  mean (1.59), and no better. The 2001-2007 held-out result (1.51 against a naive 2.48) came
+  from a wider spread of seasons, rainfed droughts among them. On the 2014-2021 seasons,
+  which were mostly good years, the model has little spread to explain.
+
+### On 2001-2007 (diagnostic only)
+
+On the 8 held-out site-years from v1-v4, v5 looked better:
+
+| | forward | 15 July | anchored |
+|---|---|---|---|
+| v4 | 1.51 | 1.79 | 2.03 |
+| v5 | 1.52 | 1.36 | 1.57 |
+| v5, rainfed (3) | 0.97 | 0.54 | 0.39 |
+
+On the rainfed pivot, anchored biomass came much closer to measured. For Ne3 2005 it was
+16.2 t/ha against a measured 16.8 (v4 gave 12.3). But these seasons were open during
+development: three of them were used for quick checks while the anchor was built. The
+2014-2021 result is the one to trust, and it says no.
+
+**Decision:** the software keeps the v4 defaults (remobilisation off, timing-only anchor,
+either sensor). All three features remain available as options:
+
+* `ZoneConfig(remobilisation=True)`;
+* `anchor_to_cover(..., **fa_farm.anchor.SATELLITE)`;
+* `fa_farm.sources.satellite.s2_cover_series`.
+
 ## Reproduce
 
 ```
@@ -290,6 +374,8 @@ python ml/mead/ablation.py                  # which input carries what
 python ml/mead/decisions.py --years 2017-2023 --seeds 2   # spraying policies on Ne3
 python ml/mead/water.py && python ml/mead/water.py --plot    # irrigation 2014-2021 vs the farm's passes
 python ml/mead/leadtime.py && python ml/mead/leadtime.py --plot   # forecast error by date
+python ml/mead/v5.py fetch-sat && python ml/mead/v5.py run-fresh   # v5 on the 12 fresh seasons 2014-2021
+python ml/mead/v5.py run-2001                                      # v5 on the 2001-2007 site-years
 ```
 
 ## Sources

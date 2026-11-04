@@ -230,7 +230,10 @@ def _agromanagement(cfg: ZoneConfig, events: list[dict] | None = None,
                      "StateEvents": None}}]
 
 
-REMOBILISING_CROPS = {"maize"}
+#: Crops that remobilise by default. Empty: on the fresh 2014-2021 Mead seasons the rule moved
+#: nothing, and on the one drought season it fired (Ne3 2003) it overshot (docs/adr/0021).
+#: Opt in per zone with ZoneConfig(remobilisation=True).
+REMOBILISING_CROPS: frozenset = frozenset()
 
 
 def remobilises(cfg: ZoneConfig) -> bool:

@@ -58,8 +58,9 @@ def usable_cover(series: list[tuple], drop_below: float = 0.25) -> list[tuple]:
     return out
 
 
-#: The software's satellite anchor (v5): satellite FVC operator (k fitted on training seasons),
-#: canopy size fitted as well as timing, parameters only.
+#: The v5 satellite anchor (opt-in, not the default): satellite FVC operator (k fitted on training
+#: seasons), canopy size fitted as well as timing, parameters only. See docs/adr/0021 for why it
+#: is not shipped: better on 2001-2007, worse on the fresh 2014-2021 seasons.
 SATELLITE = {"operator": "FVC", "canopy_size": True, "update_state": False}
 
 

@@ -1,0 +1,1023 @@
+{
+ "seasons": [
+  {
+   "site": "Ne1",
+   "year": 2014,
+   "irrigated": true,
+   "measured_t_ha": 11.14,
+   "sensor": "Landsat",
+   "v4": {
+    "forward": {
+     "yield_t_ha": 11.87,
+     "agb_t_ha": 24.32,
+     "lai_max": 6.12,
+     "remobilised_kg_ha": null
+    },
+    "midseason": {
+     "yield_t_ha": 11.87,
+     "agb_t_ha": 24.32,
+     "lai_max": 6.12,
+     "remobilised_kg_ha": null,
+     "n_obs": 1,
+     "leaf_share": null
+    },
+    "anchored": {
+     "yield_t_ha": 13.46,
+     "agb_t_ha": 22.89,
+     "lai_max": 4.96,
+     "remobilised_kg_ha": null,
+     "n_obs": 3,
+     "leaf_share": null
+    }
+   },
+   "v5": {
+    "forward": {
+     "yield_t_ha": 11.87,
+     "agb_t_ha": 24.32,
+     "lai_max": 6.12,
+     "remobilised_kg_ha": 0.0
+    },
+    "midseason": {
+     "yield_t_ha": 11.87,
+     "agb_t_ha": 24.32,
+     "lai_max": 6.12,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 1,
+     "leaf_share": null
+    },
+    "anchored": {
+     "yield_t_ha": 11.87,
+     "agb_t_ha": 23.28,
+     "lai_max": 5.48,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 3,
+     "leaf_share": 0.9253824448584912
+    }
+   },
+   "seconds": 45.9
+  },
+  {
+   "site": "Ne1",
+   "year": 2015,
+   "irrigated": true,
+   "measured_t_ha": 11.86,
+   "sensor": "Landsat",
+   "v4": {
+    "forward": {
+     "yield_t_ha": 13.23,
+     "agb_t_ha": 24.34,
+     "lai_max": 5.98,
+     "remobilised_kg_ha": null
+    },
+    "midseason": {
+     "yield_t_ha": 13.23,
+     "agb_t_ha": 24.34,
+     "lai_max": 5.98,
+     "remobilised_kg_ha": null,
+     "n_obs": 2,
+     "leaf_share": null
+    },
+    "anchored": {
+     "yield_t_ha": 14.28,
+     "agb_t_ha": 23.63,
+     "lai_max": 5.32,
+     "remobilised_kg_ha": null,
+     "n_obs": 4,
+     "leaf_share": null
+    }
+   },
+   "v5": {
+    "forward": {
+     "yield_t_ha": 13.23,
+     "agb_t_ha": 24.34,
+     "lai_max": 5.98,
+     "remobilised_kg_ha": 0.0
+    },
+    "midseason": {
+     "yield_t_ha": 13.23,
+     "agb_t_ha": 24.34,
+     "lai_max": 5.98,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 2,
+     "leaf_share": null
+    },
+    "anchored": {
+     "yield_t_ha": 13.37,
+     "agb_t_ha": 24.52,
+     "lai_max": 6.08,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 4,
+     "leaf_share": 1.0035738102013296
+    }
+   },
+   "seconds": 48.1
+  },
+  {
+   "site": "Ne1",
+   "year": 2016,
+   "irrigated": true,
+   "measured_t_ha": 12.69,
+   "sensor": "Landsat",
+   "v4": {
+    "forward": {
+     "yield_t_ha": 12.48,
+     "agb_t_ha": 22.58,
+     "lai_max": 5.61,
+     "remobilised_kg_ha": null
+    },
+    "midseason": {
+     "yield_t_ha": 12.48,
+     "agb_t_ha": 22.58,
+     "lai_max": 5.61,
+     "remobilised_kg_ha": null,
+     "n_obs": 2,
+     "leaf_share": null
+    },
+    "anchored": {
+     "yield_t_ha": 12.21,
+     "agb_t_ha": 20.37,
+     "lai_max": 4.43,
+     "remobilised_kg_ha": null,
+     "n_obs": 5,
+     "leaf_share": null
+    }
+   },
+   "v5": {
+    "forward": {
+     "yield_t_ha": 12.48,
+     "agb_t_ha": 22.58,
+     "lai_max": 5.61,
+     "remobilised_kg_ha": 0.0
+    },
+    "midseason": {
+     "yield_t_ha": 12.48,
+     "agb_t_ha": 22.58,
+     "lai_max": 5.61,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 2,
+     "leaf_share": null
+    },
+    "anchored": {
+     "yield_t_ha": 12.2,
+     "agb_t_ha": 21.53,
+     "lai_max": 5.38,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 5,
+     "leaf_share": 1.0375403249868704
+    }
+   },
+   "seconds": 60.4
+  },
+  {
+   "site": "Ne1",
+   "year": 2017,
+   "irrigated": true,
+   "measured_t_ha": 14.12,
+   "sensor": "S2",
+   "v4": {
+    "forward": {
+     "yield_t_ha": 15.54,
+     "agb_t_ha": 27.13,
+     "lai_max": 6.88,
+     "remobilised_kg_ha": null
+    },
+    "midseason": {
+     "yield_t_ha": 16.38,
+     "agb_t_ha": 26.6,
+     "lai_max": 6.32,
+     "remobilised_kg_ha": null,
+     "n_obs": 4,
+     "leaf_share": null
+    },
+    "anchored": {
+     "yield_t_ha": 16.8,
+     "agb_t_ha": 26.05,
+     "lai_max": 5.94,
+     "remobilised_kg_ha": null,
+     "n_obs": 13,
+     "leaf_share": null
+    }
+   },
+   "v5": {
+    "forward": {
+     "yield_t_ha": 15.54,
+     "agb_t_ha": 27.13,
+     "lai_max": 6.88,
+     "remobilised_kg_ha": 0.0
+    },
+    "midseason": {
+     "yield_t_ha": 15.82,
+     "agb_t_ha": 26.99,
+     "lai_max": 6.68,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 4,
+     "leaf_share": 0.9843234651107989
+    },
+    "anchored": {
+     "yield_t_ha": 15.07,
+     "agb_t_ha": 26.74,
+     "lai_max": 6.87,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 13,
+     "leaf_share": 1.0034223708658334
+    }
+   },
+   "v5_landsat": {
+    "forward": {
+     "yield_t_ha": 15.54,
+     "agb_t_ha": 27.13,
+     "lai_max": 6.88,
+     "remobilised_kg_ha": 0.0
+    },
+    "midseason": {
+     "yield_t_ha": 15.67,
+     "agb_t_ha": 27.38,
+     "lai_max": 7.08,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 3,
+     "leaf_share": 1.030011167705188
+    },
+    "anchored": {
+     "yield_t_ha": 15.67,
+     "agb_t_ha": 27.38,
+     "lai_max": 7.08,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 3,
+     "leaf_share": 1.030011167705188
+    }
+   },
+   "seconds": 177.9
+  },
+  {
+   "site": "Ne1",
+   "year": 2018,
+   "irrigated": true,
+   "measured_t_ha": 8.47,
+   "sensor": "S2",
+   "v4": {
+    "forward": {
+     "yield_t_ha": 13.47,
+     "agb_t_ha": 24.95,
+     "lai_max": 6.44,
+     "remobilised_kg_ha": null
+    },
+    "midseason": {
+     "yield_t_ha": 14.19,
+     "agb_t_ha": 24.56,
+     "lai_max": 6.17,
+     "remobilised_kg_ha": null,
+     "n_obs": 14,
+     "leaf_share": null
+    },
+    "anchored": {
+     "yield_t_ha": 13.74,
+     "agb_t_ha": 22.42,
+     "lai_max": 5.56,
+     "remobilised_kg_ha": null,
+     "n_obs": 33,
+     "leaf_share": null
+    }
+   },
+   "v5": {
+    "forward": {
+     "yield_t_ha": 13.47,
+     "agb_t_ha": 24.95,
+     "lai_max": 6.44,
+     "remobilised_kg_ha": 0.0
+    },
+    "midseason": {
+     "yield_t_ha": 12.24,
+     "agb_t_ha": 25.25,
+     "lai_max": 7.07,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 14,
+     "leaf_share": 1.031088026539693
+    },
+    "anchored": {
+     "yield_t_ha": 13.8,
+     "agb_t_ha": 23.83,
+     "lai_max": 6.65,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 33,
+     "leaf_share": 1.112610796455182
+    }
+   },
+   "v5_landsat": {
+    "forward": {
+     "yield_t_ha": 13.47,
+     "agb_t_ha": 24.95,
+     "lai_max": 6.44,
+     "remobilised_kg_ha": 0.0
+    },
+    "midseason": {
+     "yield_t_ha": 13.64,
+     "agb_t_ha": 24.67,
+     "lai_max": 6.24,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 3,
+     "leaf_share": 0.9733502777580827
+    },
+    "anchored": {
+     "yield_t_ha": 13.65,
+     "agb_t_ha": 24.72,
+     "lai_max": 6.28,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 6,
+     "leaf_share": 0.978724974158281
+    }
+   },
+   "seconds": 332.0
+  },
+  {
+   "site": "Ne1",
+   "year": 2020,
+   "irrigated": true,
+   "measured_t_ha": 13.72,
+   "sensor": "S2",
+   "v4": {
+    "forward": {
+     "yield_t_ha": 14.61,
+     "agb_t_ha": 24.57,
+     "lai_max": 5.6,
+     "remobilised_kg_ha": null
+    },
+    "midseason": {
+     "yield_t_ha": 13.62,
+     "agb_t_ha": 22.63,
+     "lai_max": 4.94,
+     "remobilised_kg_ha": null,
+     "n_obs": 14,
+     "leaf_share": null
+    },
+    "anchored": {
+     "yield_t_ha": 12.89,
+     "agb_t_ha": 22.41,
+     "lai_max": 5.32,
+     "remobilised_kg_ha": null,
+     "n_obs": 34,
+     "leaf_share": null
+    }
+   },
+   "v5": {
+    "forward": {
+     "yield_t_ha": 14.61,
+     "agb_t_ha": 24.57,
+     "lai_max": 5.6,
+     "remobilised_kg_ha": 0.0
+    },
+    "midseason": {
+     "yield_t_ha": 12.63,
+     "agb_t_ha": 24.45,
+     "lai_max": 6.13,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 14,
+     "leaf_share": 0.9766552202857458
+    },
+    "anchored": {
+     "yield_t_ha": 12.59,
+     "agb_t_ha": 23.99,
+     "lai_max": 6.47,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 34,
+     "leaf_share": 1.1070739001167857
+    }
+   },
+   "v5_landsat": {
+    "forward": {
+     "yield_t_ha": 14.61,
+     "agb_t_ha": 24.57,
+     "lai_max": 5.6,
+     "remobilised_kg_ha": 0.0
+    },
+    "midseason": {
+     "yield_t_ha": 14.61,
+     "agb_t_ha": 24.57,
+     "lai_max": 5.6,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 1,
+     "leaf_share": null
+    },
+    "anchored": {
+     "yield_t_ha": 14.18,
+     "agb_t_ha": 23.62,
+     "lai_max": 5.33,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 5,
+     "leaf_share": 1.013707789049944
+    }
+   },
+   "seconds": 316.6
+  },
+  {
+   "site": "Ne1",
+   "year": 2021,
+   "irrigated": true,
+   "measured_t_ha": 14.23,
+   "sensor": "S2",
+   "v4": {
+    "forward": {
+     "yield_t_ha": 13.75,
+     "agb_t_ha": 24.75,
+     "lai_max": 6.01,
+     "remobilised_kg_ha": null
+    },
+    "midseason": {
+     "yield_t_ha": 13.88,
+     "agb_t_ha": 22.4,
+     "lai_max": 4.89,
+     "remobilised_kg_ha": null,
+     "n_obs": 8,
+     "leaf_share": null
+    },
+    "anchored": {
+     "yield_t_ha": 15.11,
+     "agb_t_ha": 22.45,
+     "lai_max": 4.24,
+     "remobilised_kg_ha": null,
+     "n_obs": 30,
+     "leaf_share": null
+    }
+   },
+   "v5": {
+    "forward": {
+     "yield_t_ha": 13.75,
+     "agb_t_ha": 24.75,
+     "lai_max": 6.01,
+     "remobilised_kg_ha": 0.0
+    },
+    "midseason": {
+     "yield_t_ha": 12.39,
+     "agb_t_ha": 23.55,
+     "lai_max": 5.76,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 8,
+     "leaf_share": 0.9247060140777169
+    },
+    "anchored": {
+     "yield_t_ha": 11.38,
+     "agb_t_ha": 23.13,
+     "lai_max": 5.83,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 30,
+     "leaf_share": 0.9162571343577293
+    }
+   },
+   "v5_landsat": {
+    "forward": {
+     "yield_t_ha": 13.75,
+     "agb_t_ha": 24.75,
+     "lai_max": 6.01,
+     "remobilised_kg_ha": 0.0
+    },
+    "midseason": {
+     "yield_t_ha": 13.75,
+     "agb_t_ha": 24.75,
+     "lai_max": 6.01,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 2,
+     "leaf_share": null
+    },
+    "anchored": {
+     "yield_t_ha": 13.98,
+     "agb_t_ha": 25.32,
+     "lai_max": 6.15,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 5,
+     "leaf_share": 1.0149224862054258
+    }
+   },
+   "seconds": 185.7
+  },
+  {
+   "site": "Ne2",
+   "year": 2015,
+   "irrigated": true,
+   "measured_t_ha": 13.5,
+   "sensor": "Landsat",
+   "v4": {
+    "forward": {
+     "yield_t_ha": 13.23,
+     "agb_t_ha": 24.34,
+     "lai_max": 5.98,
+     "remobilised_kg_ha": null
+    },
+    "midseason": {
+     "yield_t_ha": 13.23,
+     "agb_t_ha": 24.34,
+     "lai_max": 5.98,
+     "remobilised_kg_ha": null,
+     "n_obs": 2,
+     "leaf_share": null
+    },
+    "anchored": {
+     "yield_t_ha": 14.11,
+     "agb_t_ha": 23.76,
+     "lai_max": 5.45,
+     "remobilised_kg_ha": null,
+     "n_obs": 4,
+     "leaf_share": null
+    }
+   },
+   "v5": {
+    "forward": {
+     "yield_t_ha": 13.23,
+     "agb_t_ha": 24.34,
+     "lai_max": 5.98,
+     "remobilised_kg_ha": 0.0
+    },
+    "midseason": {
+     "yield_t_ha": 13.23,
+     "agb_t_ha": 24.34,
+     "lai_max": 5.98,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 2,
+     "leaf_share": null
+    },
+    "anchored": {
+     "yield_t_ha": 13.26,
+     "agb_t_ha": 24.78,
+     "lai_max": 6.22,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 4,
+     "leaf_share": 1.0243966740262878
+    }
+   },
+   "seconds": 25.5
+  },
+  {
+   "site": "Ne2",
+   "year": 2021,
+   "irrigated": true,
+   "measured_t_ha": 16.95,
+   "sensor": "S2",
+   "v4": {
+    "forward": {
+     "yield_t_ha": 13.84,
+     "agb_t_ha": 24.74,
+     "lai_max": 5.99,
+     "remobilised_kg_ha": null
+    },
+    "midseason": {
+     "yield_t_ha": 14.04,
+     "agb_t_ha": 22.43,
+     "lai_max": 4.79,
+     "remobilised_kg_ha": null,
+     "n_obs": 8,
+     "leaf_share": null
+    },
+    "anchored": {
+     "yield_t_ha": 15.26,
+     "agb_t_ha": 23.11,
+     "lai_max": 4.49,
+     "remobilised_kg_ha": null,
+     "n_obs": 29,
+     "leaf_share": null
+    }
+   },
+   "v5": {
+    "forward": {
+     "yield_t_ha": 13.84,
+     "agb_t_ha": 24.74,
+     "lai_max": 5.99,
+     "remobilised_kg_ha": 0.0
+    },
+    "midseason": {
+     "yield_t_ha": 12.86,
+     "agb_t_ha": 23.81,
+     "lai_max": 5.81,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 8,
+     "leaf_share": 0.9483423976964814
+    },
+    "anchored": {
+     "yield_t_ha": 13.23,
+     "agb_t_ha": 24.46,
+     "lai_max": 5.95,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 29,
+     "leaf_share": 0.959262933861929
+    }
+   },
+   "v5_landsat": {
+    "forward": {
+     "yield_t_ha": 13.84,
+     "agb_t_ha": 24.74,
+     "lai_max": 5.99,
+     "remobilised_kg_ha": 0.0
+    },
+    "midseason": {
+     "yield_t_ha": 13.84,
+     "agb_t_ha": 24.74,
+     "lai_max": 5.99,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 2,
+     "leaf_share": null
+    },
+    "anchored": {
+     "yield_t_ha": 14.28,
+     "agb_t_ha": 25.49,
+     "lai_max": 6.13,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 5,
+     "leaf_share": 1.0152409049140516
+    }
+   },
+   "seconds": 170.6
+  },
+  {
+   "site": "Ne3",
+   "year": 2015,
+   "irrigated": false,
+   "measured_t_ha": 11.68,
+   "sensor": "Landsat",
+   "v4": {
+    "forward": {
+     "yield_t_ha": 11.82,
+     "agb_t_ha": 18.36,
+     "lai_max": 2.78,
+     "remobilised_kg_ha": null
+    },
+    "midseason": {
+     "yield_t_ha": 11.96,
+     "agb_t_ha": 19.07,
+     "lai_max": 2.98,
+     "remobilised_kg_ha": null,
+     "n_obs": 3,
+     "leaf_share": null
+    },
+    "anchored": {
+     "yield_t_ha": 11.93,
+     "agb_t_ha": 19.49,
+     "lai_max": 3.22,
+     "remobilised_kg_ha": null,
+     "n_obs": 5,
+     "leaf_share": null
+    }
+   },
+   "v5": {
+    "forward": {
+     "yield_t_ha": 11.82,
+     "agb_t_ha": 18.36,
+     "lai_max": 2.78,
+     "remobilised_kg_ha": 0.0
+    },
+    "midseason": {
+     "yield_t_ha": 13.76,
+     "agb_t_ha": 22.25,
+     "lai_max": 4.2,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 3,
+     "leaf_share": 1.114341304896602
+    },
+    "anchored": {
+     "yield_t_ha": 14.0,
+     "agb_t_ha": 23.95,
+     "lai_max": 5.49,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 5,
+     "leaf_share": 1.191417609956875
+    }
+   },
+   "seconds": 40.0
+  },
+  {
+   "site": "Ne3",
+   "year": 2017,
+   "irrigated": false,
+   "measured_t_ha": 12.05,
+   "sensor": "S2",
+   "v4": {
+    "forward": {
+     "yield_t_ha": 14.9,
+     "agb_t_ha": 24.35,
+     "lai_max": 5.03,
+     "remobilised_kg_ha": null
+    },
+    "midseason": {
+     "yield_t_ha": 15.32,
+     "agb_t_ha": 24.09,
+     "lai_max": 4.7,
+     "remobilised_kg_ha": null,
+     "n_obs": 3,
+     "leaf_share": null
+    },
+    "anchored": {
+     "yield_t_ha": 14.28,
+     "agb_t_ha": 22.4,
+     "lai_max": 4.24,
+     "remobilised_kg_ha": null,
+     "n_obs": 11,
+     "leaf_share": null
+    }
+   },
+   "v5": {
+    "forward": {
+     "yield_t_ha": 14.9,
+     "agb_t_ha": 24.35,
+     "lai_max": 5.03,
+     "remobilised_kg_ha": 0.0
+    },
+    "midseason": {
+     "yield_t_ha": 15.11,
+     "agb_t_ha": 25.08,
+     "lai_max": 5.59,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 3,
+     "leaf_share": 1.0440580704027251
+    },
+    "anchored": {
+     "yield_t_ha": 14.8,
+     "agb_t_ha": 24.69,
+     "lai_max": 5.8,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 11,
+     "leaf_share": 1.1215215662376041
+    }
+   },
+   "v5_landsat": {
+    "forward": {
+     "yield_t_ha": 14.9,
+     "agb_t_ha": 24.35,
+     "lai_max": 5.03,
+     "remobilised_kg_ha": 0.0
+    },
+    "midseason": {
+     "yield_t_ha": 14.9,
+     "agb_t_ha": 24.35,
+     "lai_max": 5.03,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 1,
+     "leaf_share": null
+    },
+    "anchored": {
+     "yield_t_ha": 15.02,
+     "agb_t_ha": 24.81,
+     "lai_max": 5.37,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 3,
+     "leaf_share": 1.0256427726875186
+    }
+   },
+   "seconds": 69.2
+  },
+  {
+   "site": "Ne3",
+   "year": 2021,
+   "irrigated": false,
+   "measured_t_ha": 11.89,
+   "sensor": "S2",
+   "v4": {
+    "forward": {
+     "yield_t_ha": 12.91,
+     "agb_t_ha": 21.54,
+     "lai_max": 3.95,
+     "remobilised_kg_ha": null
+    },
+    "midseason": {
+     "yield_t_ha": 12.42,
+     "agb_t_ha": 20.5,
+     "lai_max": 3.67,
+     "remobilised_kg_ha": null,
+     "n_obs": 9,
+     "leaf_share": null
+    },
+    "anchored": {
+     "yield_t_ha": 11.87,
+     "agb_t_ha": 19.94,
+     "lai_max": 3.59,
+     "remobilised_kg_ha": null,
+     "n_obs": 32,
+     "leaf_share": null
+    }
+   },
+   "v5": {
+    "forward": {
+     "yield_t_ha": 12.91,
+     "agb_t_ha": 21.54,
+     "lai_max": 3.95,
+     "remobilised_kg_ha": 0.0
+    },
+    "midseason": {
+     "yield_t_ha": 13.17,
+     "agb_t_ha": 23.73,
+     "lai_max": 5.45,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 9,
+     "leaf_share": 1.070166491380567
+    },
+    "anchored": {
+     "yield_t_ha": 12.25,
+     "agb_t_ha": 23.36,
+     "lai_max": 5.7,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 32,
+     "leaf_share": 1.0884648377183066
+    }
+   },
+   "v5_landsat": {
+    "forward": {
+     "yield_t_ha": 12.91,
+     "agb_t_ha": 21.54,
+     "lai_max": 3.95,
+     "remobilised_kg_ha": 0.0
+    },
+    "midseason": {
+     "yield_t_ha": 12.91,
+     "agb_t_ha": 21.54,
+     "lai_max": 3.95,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 2,
+     "leaf_share": null
+    },
+    "anchored": {
+     "yield_t_ha": 13.75,
+     "agb_t_ha": 24.53,
+     "lai_max": 5.71,
+     "remobilised_kg_ha": 0.0,
+     "n_obs": 5,
+     "leaf_share": 1.1207807725063335
+    }
+   },
+   "seconds": 163.5
+  }
+ ],
+ "summary": {
+  "v4": {
+   "forward": {
+    "all": {
+     "n": 12,
+     "rmse": 2.0293738771683576,
+     "bias": 0.7791666666666667
+    },
+    "irrigated": {
+     "n": 9,
+     "rmse": 2.1144424008865,
+     "bias": 0.5933333333333333
+    },
+    "rainfed": {
+     "n": 3,
+     "rmse": 1.749523744718354,
+     "bias": 1.3366666666666667
+    }
+   },
+   "midseason": {
+    "all": {
+     "n": 12,
+     "rmse": 2.2361723249040235,
+     "bias": 0.8599999999999999
+    },
+    "irrigated": {
+     "n": 9,
+     "rmse": 2.332223545603351,
+     "bias": 0.6933333333333331
+    },
+    "rainfed": {
+     "n": 3,
+     "rmse": 1.91939226492832,
+     "bias": 1.36
+    }
+   },
+   "anchored": {
+    "all": {
+     "n": 12,
+     "rmse": 2.1631728240403416,
+     "bias": 1.1366666666666665
+    },
+    "irrigated": {
+     "n": 9,
+     "rmse": 2.3831818133653915,
+     "bias": 1.2422222222222223
+    },
+    "rainfed": {
+     "n": 3,
+     "rmse": 1.2956079653969397,
+     "bias": 0.8199999999999991
+    }
+   }
+  },
+  "v5": {
+   "forward": {
+    "all": {
+     "n": 12,
+     "rmse": 2.0293738771683576,
+     "bias": 0.7791666666666667
+    },
+    "irrigated": {
+     "n": 9,
+     "rmse": 2.1144424008865,
+     "bias": 0.5933333333333333
+    },
+    "rainfed": {
+     "n": 3,
+     "rmse": 1.749523744718354,
+     "bias": 1.3366666666666667
+    }
+   },
+   "midseason": {
+    "all": {
+     "n": 12,
+     "rmse": 2.1652540266675406,
+     "bias": 0.5408333333333334
+    },
+    "irrigated": {
+     "n": 9,
+     "rmse": 2.1325910166847377,
+     "bias": 0.0077777777777780065
+    },
+    "rainfed": {
+     "n": 3,
+     "rmse": 2.2604129416251943,
+     "bias": 2.1399999999999992
+    }
+   },
+   "anchored": {
+    "all": {
+     "n": 12,
+     "rmse": 2.393296192840883,
+     "bias": 0.45999999999999996
+    },
+    "irrigated": {
+     "n": 9,
+     "rmse": 2.4868520931758953,
+     "bias": 0.009999999999999985
+    },
+    "rainfed": {
+     "n": 3,
+     "rmse": 2.0876222519092544,
+     "bias": 1.8099999999999998
+    }
+   }
+  },
+  "v5_landsat": {
+   "forward": {
+    "all": {
+     "n": 7,
+     "rmse": 2.587715484471086,
+     "bias": 1.084285714285714
+    },
+    "irrigated": {
+     "n": 5,
+     "rmse": 2.7463066107046386,
+     "bias": 0.7439999999999998
+    },
+    "rainfed": {
+     "n": 2,
+     "rmse": 2.140432199346664,
+     "bias": 1.9349999999999996
+    }
+   },
+   "midseason": {
+    "all": {
+     "n": 7,
+     "rmse": 2.6454516222592854,
+     "bias": 1.127142857142857
+    },
+    "irrigated": {
+     "n": 5,
+     "rmse": 2.822268591045154,
+     "bias": 0.8039999999999999
+    },
+    "rainfed": {
+     "n": 2,
+     "rmse": 2.140432199346664,
+     "bias": 1.9349999999999996
+    }
+   },
+   "anchored": {
+    "all": {
+     "n": 7,
+     "rmse": 2.643547400207315,
+     "bias": 1.2999999999999996
+    },
+    "irrigated": {
+     "n": 5,
+     "rmse": 2.706950313544746,
+     "bias": 0.8539999999999999
+    },
+    "rainfed": {
+     "n": 2,
+     "rmse": 2.4779527840538034,
+     "bias": 2.414999999999999
+    }
+   }
+  },
+  "s2_vs_landsat_2017_2021": {
+   "S2": {
+    "midseason": 2.6567084898422704,
+    "anchored": 2.9335814289022215
+   },
+   "Landsat": {
+    "midseason": 2.6454516222592854,
+    "anchored": 2.643547400207315
+   }
+  },
+  "scenes_2017_2021": {
+   "S2": 26.0,
+   "Landsat": 4.571428571428571
+  },
+  "naive_mean_of_these_seasons": {
+   "note": "uses the test seasons' own mean: a lower bound no forecast has",
+   "rmse": 1.984325382144325
+  }
+ }
+}
