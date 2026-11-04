@@ -7,12 +7,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: {python-version: "3.11"}
-      - run: pip install -r requirements.txt
+        with: {python-version: "3.12", cache: pip}
+      - run: pip install -r requirements.txt -r services/console/requirements.txt httpx httpx2 pymavlink pyserial
       - name: Licence gate
         run: python scripts/check_licences.py
       - name: Tests
-        run: make test
+        run: python -m pytest tests -q -p no:warnings -m "not slow" --ignore=tests/e2e
+      - name: S-BUS bridge firmware core (host tests, sanitizers)
+        run: make -C firmware/sbus_bridge -f host.mk test
       - name: End-to-end closed loop
         run: make demo
       - name: SQL schema parses against the PostgreSQL grammar

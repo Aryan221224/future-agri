@@ -2,7 +2,7 @@
 # Build from the repository root:  pyinstaller packaging/windows/futureagri.spec --noconfirm
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_all, collect_submodules
+from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs, collect_submodules
 
 ROOT = Path(SPECPATH).resolve().parents[1]
 SRC = ["packages/fa_core", "services/twin", "services/planner", "services/loop", "services/farm",
@@ -10,7 +10,7 @@ SRC = ["packages/fa_core", "services/twin", "services/planner", "services/loop",
 OURS = ["fa_core", "fa_twin", "fa_planner", "fa_loop", "fa_farm", "fa_scan", "fa_drone", "fa_runner",
         "fa_console"]
 # Third-party packages that carry data files, compiled extensions or plugins.
-THIRD = ["pcse", "pyproj", "rasterio", "shapely", "ortools", "duckdb", "pyarrow", "icechunk", "zarr",
+THIRD = ["numpy", "pcse", "pyproj", "rasterio", "shapely", "ortools", "duckdb", "pyarrow", "icechunk", "zarr",
          "numcodecs", "xarray", "reportlab", "uvicorn", "pystac_client", "fsspec", "s3fs", "botocore",
          "aiobotocore", "certifi", "traitlets", "pandas", "scipy", "yaml", "PIL", "multipart", "fastapi",
          "starlette", "pydantic", "pydantic_core", "requests"]
@@ -28,15 +28,17 @@ import sys
 sys.path[:0] = pathex
 for m in OURS:
     hidden += collect_submodules(m)
+def _no_tests(name: str) -> bool:
+    return ".tests" not in name and ".testing" not in name and not name.endswith(".conftest")
+
+
 for m in THIRD:
     try:
-        d, b, h = collect_all(m)
+        hidden += collect_submodules(m, filter=_no_tests)
+        datas += collect_data_files(m, excludes=["**/tests/**", "**/testing/**"])
+        binaries += collect_dynamic_libs(m)
     except Exception as e:  # a package not installed in this environment
         print(f"spec: skipping {m}: {e}")
-        continue
-    datas += d
-    binaries += b
-    hidden += h
 hidden += ["uvicorn.logging", "uvicorn.loops.auto", "uvicorn.protocols.http.auto",
            "uvicorn.protocols.websockets.auto", "uvicorn.lifespan.on"]
 
