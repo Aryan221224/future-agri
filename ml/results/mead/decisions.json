@@ -1,0 +1,68 @@
+[
+ {
+  "year": 2019,
+  "seed": 0,
+  "policy": "none",
+  "currency": "USD",
+  "yield_dry_kg_ha": 5669.7,
+  "net_ha": 1140.65,
+  "fungicide_sprays": 0,
+  "herbicide": "none",
+  "herbicide_treated_frac": 0.0,
+  "missions": 0,
+  "litres": 0.0,
+  "drone_time_min": 0.0,
+  "weed_loss_pct": 6.62,
+  "scans": 0,
+  "costs": {
+   "fungicide_product": 0.0,
+   "herbicide_product": 0.0,
+   "application": 0.0,
+   "scans": 0.0
+  }
+ },
+ {
+  "year": 2019,
+  "seed": 0,
+  "policy": "calendar",
+  "currency": "USD",
+  "yield_dry_kg_ha": 5902.3,
+  "net_ha": 1087.74,
+  "fungicide_sprays": 0,
+  "herbicide": "blanket",
+  "herbicide_treated_frac": 1.0,
+  "missions": 1,
+  "litres": 733.96,
+  "drone_time_min": 1821.5,
+  "weed_loss_pct": 2.78,
+  "scans": 0,
+  "costs": {
+   "fungicide_product": 0.0,
+   "herbicide_product": 30.0,
+   "application": 69.7,
+   "scans": 0.0
+  }
+ },
+ {
+  "year": 2019,
+  "seed": 0,
+  "policy": "twin",
+  "currency": "USD",
+  "yield_dry_kg_ha": 5669.7,
+  "net_ha": 1132.65,
+  "fungicide_sprays": 0,
+  "herbicide": "none",
+  "herbicide_treated_frac": 0.0,
+  "missions": 0,
+  "litres": 0.0,
+  "drone_time_min": 0.0,
+  "weed_loss_pct": 6.62,
+  "scans": 1,
+  "costs": {
+   "fungicide_product": 0.0,
+   "herbicide_product": 0.0,
+   "application": 0.0,
+   "scans": 8.0
+  }
+ }
+]

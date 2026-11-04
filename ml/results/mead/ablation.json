@@ -1,0 +1,812 @@
+{
+ "v4": {
+  "summary": {
+   "irrigated": {
+    "yield_rmse": 1.7724897743005454,
+    "yield_bias": -0.36000000000000015,
+    "agb_bias": 2.0459999999999994,
+    "lai_rmse": 0.974
+   },
+   "rainfed": {
+    "yield_rmse": 0.9368386556214824,
+    "yield_bias": -0.8599999999999998,
+    "agb_bias": -2.6199999999999997,
+    "lai_rmse": 1.7733333333333334
+   }
+  },
+  "rows": {
+   "Ne1_2004": {
+    "yield": 12.1,
+    "meas": 10.05,
+    "agb": 25.01,
+    "agb_meas": 19.41,
+    "lai_max": 6.75,
+    "lai_max_meas": 5.16,
+    "lai_rmse": 1.84
+   },
+   "Ne1_2005": {
+    "yield": 12.41,
+    "meas": 11.47,
+    "agb": 22.75,
+    "agb_meas": 20.11,
+    "lai_max": 6.12,
+    "lai_max_meas": 5.18,
+    "lai_rmse": 1.13
+   },
+   "Ne2_2001": {
+    "yield": 12.24,
+    "meas": 13.62,
+    "agb": 21.88,
+    "agb_meas": 21.96,
+    "lai_max": 6.29,
+    "lai_max_meas": 6.08,
+    "lai_rmse": 0.43
+   },
+   "Ne2_2003": {
+    "yield": 11.24,
+    "meas": 14.15,
+    "agb": 22.47,
+    "agb_meas": 22.6,
+    "lai_max": 6.15,
+    "lai_max_meas": 5.53,
+    "lai_rmse": 0.6
+   },
+   "Ne2_2005": {
+    "yield": 12.33,
+    "meas": 12.83,
+    "agb": 22.59,
+    "agb_meas": 20.39,
+    "lai_max": 6.04,
+    "lai_max_meas": 4.84,
+    "lai_rmse": 0.87
+   },
+   "Ne3_2001": {
+    "yield": 7.49,
+    "meas": 8.81,
+    "agb": 11.62,
+    "agb_meas": 16.24,
+    "lai_max": 1.64,
+    "lai_max_meas": 3.88,
+    "lai_rmse": 1.73
+   },
+   "Ne3_2003": {
+    "yield": 7.4,
+    "meas": 7.81,
+    "agb": 14.33,
+    "agb_meas": 13.55,
+    "lai_max": 2.57,
+    "lai_max_meas": 4.27,
+    "lai_rmse": 1.56
+   },
+   "Ne3_2005": {
+    "yield": 8.09,
+    "meas": 8.94,
+    "agb": 12.75,
+    "agb_meas": 16.77,
+    "lai_max": 1.77,
+    "lai_max_meas": 4.33,
+    "lai_rmse": 2.03
+   }
+  }
+ },
+ "no stand": {
+  "summary": {
+   "irrigated": {
+    "yield_rmse": 1.7717900552830739,
+    "yield_bias": -0.36000000000000015,
+    "agb_bias": 2.0799999999999996,
+    "lai_rmse": 0.968
+   },
+   "rainfed": {
+    "yield_rmse": 3.6196684931081737,
+    "yield_bias": -3.606666666666667,
+    "agb_bias": -0.22666666666666657,
+    "lai_rmse": 1.3433333333333335
+   }
+  },
+  "rows": {
+   "Ne1_2004": {
+    "yield": 12.1,
+    "meas": 10.05,
+    "agb": 25.01,
+    "agb_meas": 19.41,
+    "lai_max": 6.75,
+    "lai_max_meas": 5.16,
+    "lai_rmse": 1.84
+   },
+   "Ne1_2005": {
+    "yield": 12.41,
+    "meas": 11.47,
+    "agb": 22.75,
+    "agb_meas": 20.11,
+    "lai_max": 6.12,
+    "lai_max_meas": 5.18,
+    "lai_rmse": 1.13
+   },
+   "Ne2_2001": {
+    "yield": 12.22,
+    "meas": 13.62,
+    "agb": 21.77,
+    "agb_meas": 21.96,
+    "lai_max": 6.19,
+    "lai_max_meas": 6.08,
+    "lai_rmse": 0.36
+   },
+   "Ne2_2003": {
+    "yield": 11.25,
+    "meas": 14.15,
+    "agb": 22.69,
+    "agb_meas": 22.6,
+    "lai_max": 6.31,
+    "lai_max_meas": 5.53,
+    "lai_rmse": 0.62
+   },
+   "Ne2_2005": {
+    "yield": 12.34,
+    "meas": 12.83,
+    "agb": 22.65,
+    "agb_meas": 20.39,
+    "lai_max": 6.08,
+    "lai_max_meas": 4.84,
+    "lai_rmse": 0.89
+   },
+   "Ne3_2001": {
+    "yield": 5.13,
+    "meas": 8.81,
+    "agb": 14.85,
+    "agb_meas": 16.24,
+    "lai_max": 6.17,
+    "lai_max_meas": 3.88,
+    "lai_rmse": 1.39
+   },
+   "Ne3_2003": {
+    "yield": 3.87,
+    "meas": 7.81,
+    "agb": 15.35,
+    "agb_meas": 13.55,
+    "lai_max": 6.28,
+    "lai_max_meas": 4.27,
+    "lai_rmse": 1.71
+   },
+   "Ne3_2005": {
+    "yield": 5.74,
+    "meas": 8.94,
+    "agb": 15.68,
+    "agb_meas": 16.77,
+    "lai_max": 5.7,
+    "lai_max_meas": 4.33,
+    "lai_rmse": 0.93
+   }
+  }
+ },
+ "no gauge": {
+  "summary": {
+   "irrigated": {
+    "yield_rmse": 3.178260530541824,
+    "yield_bias": -1.846,
+    "agb_bias": -0.4780000000000001,
+    "lai_rmse": 1.014
+   },
+   "rainfed": {
+    "yield_rmse": 2.9882101666382166,
+    "yield_bias": -2.973333333333333,
+    "agb_bias": -5.329999999999999,
+    "lai_rmse": 1.84
+   }
+  },
+  "rows": {
+   "Ne1_2004": {
+    "yield": 13.04,
+    "meas": 10.05,
+    "agb": 24.03,
+    "agb_meas": 19.41,
+    "lai_max": 6.42,
+    "lai_max_meas": 5.16,
+    "lai_rmse": 1.31
+   },
+   "Ne1_2005": {
+    "yield": 9.88,
+    "meas": 11.47,
+    "agb": 19.31,
+    "agb_meas": 20.11,
+    "lai_max": 5.8,
+    "lai_max_meas": 5.18,
+    "lai_rmse": 1.33
+   },
+   "Ne2_2001": {
+    "yield": 10.55,
+    "meas": 13.62,
+    "agb": 20.01,
+    "agb_meas": 21.96,
+    "lai_max": 6.27,
+    "lai_max_meas": 6.08,
+    "lai_rmse": 0.48
+   },
+   "Ne2_2003": {
+    "yield": 9.65,
+    "meas": 14.15,
+    "agb": 19.51,
+    "agb_meas": 22.6,
+    "lai_max": 5.95,
+    "lai_max_meas": 5.53,
+    "lai_rmse": 1.14
+   },
+   "Ne2_2005": {
+    "yield": 9.77,
+    "meas": 12.83,
+    "agb": 19.22,
+    "agb_meas": 20.39,
+    "lai_max": 5.73,
+    "lai_max_meas": 4.84,
+    "lai_rmse": 0.81
+   },
+   "Ne3_2001": {
+    "yield": 6.25,
+    "meas": 8.81,
+    "agb": 9.9,
+    "agb_meas": 16.24,
+    "lai_max": 1.48,
+    "lai_max_meas": 3.88,
+    "lai_rmse": 1.81
+   },
+   "Ne3_2003": {
+    "yield": 4.56,
+    "meas": 7.81,
+    "agb": 10.81,
+    "agb_meas": 13.55,
+    "lai_max": 2.31,
+    "lai_max_meas": 4.27,
+    "lai_rmse": 1.51
+   },
+   "Ne3_2005": {
+    "yield": 5.83,
+    "meas": 8.94,
+    "agb": 9.86,
+    "agb_meas": 16.77,
+    "lai_max": 1.51,
+    "lai_max_meas": 4.33,
+    "lai_rmse": 2.2
+   }
+  }
+ },
+ "no residue": {
+  "summary": {
+   "irrigated": {
+    "yield_rmse": 1.7724897743005454,
+    "yield_bias": -0.36000000000000015,
+    "agb_bias": 2.0459999999999994,
+    "lai_rmse": 0.974
+   },
+   "rainfed": {
+    "yield_rmse": 1.1963555770199203,
+    "yield_bias": -1.1866666666666665,
+    "agb_bias": -2.899999999999999,
+    "lai_rmse": 1.7699999999999998
+   }
+  },
+  "rows": {
+   "Ne1_2004": {
+    "yield": 12.1,
+    "meas": 10.05,
+    "agb": 25.01,
+    "agb_meas": 19.41,
+    "lai_max": 6.75,
+    "lai_max_meas": 5.16,
+    "lai_rmse": 1.84
+   },
+   "Ne1_2005": {
+    "yield": 12.41,
+    "meas": 11.47,
+    "agb": 22.75,
+    "agb_meas": 20.11,
+    "lai_max": 6.12,
+    "lai_max_meas": 5.18,
+    "lai_rmse": 1.13
+   },
+   "Ne2_2001": {
+    "yield": 12.24,
+    "meas": 13.62,
+    "agb": 21.88,
+    "agb_meas": 21.96,
+    "lai_max": 6.29,
+    "lai_max_meas": 6.08,
+    "lai_rmse": 0.43
+   },
+   "Ne2_2003": {
+    "yield": 11.24,
+    "meas": 14.15,
+    "agb": 22.47,
+    "agb_meas": 22.6,
+    "lai_max": 6.15,
+    "lai_max_meas": 5.53,
+    "lai_rmse": 0.6
+   },
+   "Ne2_2005": {
+    "yield": 12.33,
+    "meas": 12.83,
+    "agb": 22.59,
+    "agb_meas": 20.39,
+    "lai_max": 6.04,
+    "lai_max_meas": 4.84,
+    "lai_rmse": 0.87
+   },
+   "Ne3_2001": {
+    "yield": 7.45,
+    "meas": 8.81,
+    "agb": 11.58,
+    "agb_meas": 16.24,
+    "lai_max": 1.64,
+    "lai_max_meas": 3.88,
+    "lai_rmse": 1.73
+   },
+   "Ne3_2003": {
+    "yield": 6.6,
+    "meas": 7.81,
+    "agb": 13.65,
+    "agb_meas": 13.55,
+    "lai_max": 2.56,
+    "lai_max_meas": 4.27,
+    "lai_rmse": 1.55
+   },
+   "Ne3_2005": {
+    "yield": 7.95,
+    "meas": 8.94,
+    "agb": 12.63,
+    "agb_meas": 16.77,
+    "lai_max": 1.77,
+    "lai_max_meas": 4.33,
+    "lai_rmse": 2.03
+   }
+  }
+ },
+ "SoilGrids not SSURGO": {
+  "summary": {
+   "irrigated": {
+    "yield_rmse": 1.7724897743005454,
+    "yield_bias": -0.36000000000000015,
+    "agb_bias": 2.0459999999999994,
+    "lai_rmse": 0.974
+   },
+   "rainfed": {
+    "yield_rmse": 1.2301219451745422,
+    "yield_bias": -1.2066666666666663,
+    "agb_bias": -2.92,
+    "lai_rmse": 1.7733333333333334
+   }
+  },
+  "rows": {
+   "Ne1_2004": {
+    "yield": 12.1,
+    "meas": 10.05,
+    "agb": 25.01,
+    "agb_meas": 19.41,
+    "lai_max": 6.75,
+    "lai_max_meas": 5.16,
+    "lai_rmse": 1.84
+   },
+   "Ne1_2005": {
+    "yield": 12.41,
+    "meas": 11.47,
+    "agb": 22.75,
+    "agb_meas": 20.11,
+    "lai_max": 6.12,
+    "lai_max_meas": 5.18,
+    "lai_rmse": 1.13
+   },
+   "Ne2_2001": {
+    "yield": 12.24,
+    "meas": 13.62,
+    "agb": 21.88,
+    "agb_meas": 21.96,
+    "lai_max": 6.29,
+    "lai_max_meas": 6.08,
+    "lai_rmse": 0.43
+   },
+   "Ne2_2003": {
+    "yield": 11.24,
+    "meas": 14.15,
+    "agb": 22.47,
+    "agb_meas": 22.6,
+    "lai_max": 6.15,
+    "lai_max_meas": 5.53,
+    "lai_rmse": 0.6
+   },
+   "Ne2_2005": {
+    "yield": 12.33,
+    "meas": 12.83,
+    "agb": 22.59,
+    "agb_meas": 20.39,
+    "lai_max": 6.04,
+    "lai_max_meas": 4.84,
+    "lai_rmse": 0.87
+   },
+   "Ne3_2001": {
+    "yield": 7.29,
+    "meas": 8.81,
+    "agb": 11.44,
+    "agb_meas": 16.24,
+    "lai_max": 1.63,
+    "lai_max_meas": 3.88,
+    "lai_rmse": 1.74
+   },
+   "Ne3_2003": {
+    "yield": 6.65,
+    "meas": 7.81,
+    "agb": 13.69,
+    "agb_meas": 13.55,
+    "lai_max": 2.56,
+    "lai_max_meas": 4.27,
+    "lai_rmse": 1.55
+   },
+   "Ne3_2005": {
+    "yield": 8.0,
+    "meas": 8.94,
+    "agb": 12.67,
+    "agb_meas": 16.77,
+    "lai_max": 1.77,
+    "lai_max_meas": 4.33,
+    "lai_rmse": 2.03
+   }
+  }
+ },
+ "shipped root front": {
+  "summary": {
+   "irrigated": {
+    "yield_rmse": 1.7724897743005454,
+    "yield_bias": -0.36000000000000015,
+    "agb_bias": 2.0459999999999994,
+    "lai_rmse": 0.974
+   },
+   "rainfed": {
+    "yield_rmse": 0.975602378020882,
+    "yield_bias": -0.9133333333333331,
+    "agb_bias": -2.6733333333333333,
+    "lai_rmse": 1.7733333333333334
+   }
+  },
+  "rows": {
+   "Ne1_2004": {
+    "yield": 12.1,
+    "meas": 10.05,
+    "agb": 25.01,
+    "agb_meas": 19.41,
+    "lai_max": 6.75,
+    "lai_max_meas": 5.16,
+    "lai_rmse": 1.84
+   },
+   "Ne1_2005": {
+    "yield": 12.41,
+    "meas": 11.47,
+    "agb": 22.75,
+    "agb_meas": 20.11,
+    "lai_max": 6.12,
+    "lai_max_meas": 5.18,
+    "lai_rmse": 1.13
+   },
+   "Ne2_2001": {
+    "yield": 12.24,
+    "meas": 13.62,
+    "agb": 21.88,
+    "agb_meas": 21.96,
+    "lai_max": 6.29,
+    "lai_max_meas": 6.08,
+    "lai_rmse": 0.43
+   },
+   "Ne2_2003": {
+    "yield": 11.24,
+    "meas": 14.15,
+    "agb": 22.47,
+    "agb_meas": 22.6,
+    "lai_max": 6.15,
+    "lai_max_meas": 5.53,
+    "lai_rmse": 0.6
+   },
+   "Ne2_2005": {
+    "yield": 12.33,
+    "meas": 12.83,
+    "agb": 22.59,
+    "agb_meas": 20.39,
+    "lai_max": 6.04,
+    "lai_max_meas": 4.84,
+    "lai_rmse": 0.87
+   },
+   "Ne3_2001": {
+    "yield": 7.48,
+    "meas": 8.81,
+    "agb": 11.6,
+    "agb_meas": 16.24,
+    "lai_max": 1.64,
+    "lai_max_meas": 3.88,
+    "lai_rmse": 1.73
+   },
+   "Ne3_2003": {
+    "yield": 7.32,
+    "meas": 7.81,
+    "agb": 14.26,
+    "agb_meas": 13.55,
+    "lai_max": 2.57,
+    "lai_max_meas": 4.27,
+    "lai_rmse": 1.56
+   },
+   "Ne3_2005": {
+    "yield": 8.02,
+    "meas": 8.94,
+    "agb": 12.68,
+    "agb_meas": 16.77,
+    "lai_max": 1.77,
+    "lai_max_meas": 4.33,
+    "lai_rmse": 2.03
+   }
+  }
+ },
+ "1 May sowing": {
+  "summary": {
+   "irrigated": {
+    "yield_rmse": 2.218571612547136,
+    "yield_bias": -0.07000000000000028,
+    "agb_bias": 2.8779999999999992,
+    "lai_rmse": 1.342
+   },
+   "rainfed": {
+    "yield_rmse": 0.9821914273704493,
+    "yield_bias": -0.8700000000000001,
+    "agb_bias": -1.7333333333333325,
+    "lai_rmse": 1.46
+   }
+  },
+  "rows": {
+   "Ne1_2004": {
+    "yield": 13.88,
+    "meas": 10.05,
+    "agb": 26.56,
+    "agb_meas": 19.41,
+    "lai_max": 6.78,
+    "lai_max_meas": 5.16,
+    "lai_rmse": 1.81
+   },
+   "Ne1_2005": {
+    "yield": 12.17,
+    "meas": 11.47,
+    "agb": 23.3,
+    "agb_meas": 20.11,
+    "lai_max": 6.45,
+    "lai_max_meas": 5.18,
+    "lai_rmse": 1.57
+   },
+   "Ne2_2001": {
+    "yield": 11.78,
+    "meas": 13.62,
+    "agb": 22.42,
+    "agb_meas": 21.96,
+    "lai_max": 6.6,
+    "lai_max_meas": 6.08,
+    "lai_rmse": 1.33
+   },
+   "Ne2_2003": {
+    "yield": 11.78,
+    "meas": 14.15,
+    "agb": 23.33,
+    "agb_meas": 22.6,
+    "lai_max": 6.34,
+    "lai_max_meas": 5.53,
+    "lai_rmse": 0.89
+   },
+   "Ne2_2005": {
+    "yield": 12.16,
+    "meas": 12.83,
+    "agb": 23.25,
+    "agb_meas": 20.39,
+    "lai_max": 6.41,
+    "lai_max_meas": 4.84,
+    "lai_rmse": 1.11
+   },
+   "Ne3_2001": {
+    "yield": 7.35,
+    "meas": 8.81,
+    "agb": 12.35,
+    "agb_meas": 16.24,
+    "lai_max": 1.89,
+    "lai_max_meas": 3.88,
+    "lai_rmse": 1.45
+   },
+   "Ne3_2003": {
+    "yield": 7.01,
+    "meas": 7.81,
+    "agb": 14.63,
+    "agb_meas": 13.55,
+    "lai_max": 2.83,
+    "lai_max_meas": 4.27,
+    "lai_rmse": 1.23
+   },
+   "Ne3_2005": {
+    "yield": 8.59,
+    "meas": 8.94,
+    "agb": 14.38,
+    "agb_meas": 16.77,
+    "lai_max": 2.16,
+    "lai_max_meas": 4.33,
+    "lai_rmse": 1.7
+   }
+  }
+ },
+ "stand: seed weight only": {
+  "summary": {
+   "irrigated": {
+    "yield_rmse": 1.7685191545471026,
+    "yield_bias": -0.3580000000000002,
+    "agb_bias": 2.0780000000000003,
+    "lai_rmse": 0.97
+   },
+   "rainfed": {
+    "yield_rmse": 3.19721754029969,
+    "yield_bias": -3.1666666666666665,
+    "agb_bias": -0.11333333333333269,
+    "lai_rmse": 1.1433333333333333
+   }
+  },
+  "rows": {
+   "Ne1_2004": {
+    "yield": 12.1,
+    "meas": 10.05,
+    "agb": 25.01,
+    "agb_meas": 19.41,
+    "lai_max": 6.75,
+    "lai_max_meas": 5.16,
+    "lai_rmse": 1.84
+   },
+   "Ne1_2005": {
+    "yield": 12.41,
+    "meas": 11.47,
+    "agb": 22.75,
+    "agb_meas": 20.11,
+    "lai_max": 6.12,
+    "lai_max_meas": 5.18,
+    "lai_rmse": 1.13
+   },
+   "Ne2_2001": {
+    "yield": 12.22,
+    "meas": 13.62,
+    "agb": 21.78,
+    "agb_meas": 21.96,
+    "lai_max": 6.2,
+    "lai_max_meas": 6.08,
+    "lai_rmse": 0.37
+   },
+   "Ne2_2003": {
+    "yield": 11.26,
+    "meas": 14.15,
+    "agb": 22.67,
+    "agb_meas": 22.6,
+    "lai_max": 6.29,
+    "lai_max_meas": 5.53,
+    "lai_rmse": 0.62
+   },
+   "Ne2_2005": {
+    "yield": 12.34,
+    "meas": 12.83,
+    "agb": 22.65,
+    "agb_meas": 20.39,
+    "lai_max": 6.07,
+    "lai_max_meas": 4.84,
+    "lai_rmse": 0.89
+   },
+   "Ne3_2001": {
+    "yield": 5.65,
+    "meas": 8.81,
+    "agb": 14.98,
+    "agb_meas": 16.24,
+    "lai_max": 5.81,
+    "lai_max_meas": 3.88,
+    "lai_rmse": 1.03
+   },
+   "Ne3_2003": {
+    "yield": 4.1,
+    "meas": 7.81,
+    "agb": 15.33,
+    "agb_meas": 13.55,
+    "lai_max": 5.99,
+    "lai_max_meas": 4.27,
+    "lai_rmse": 1.55
+   },
+   "Ne3_2005": {
+    "yield": 6.31,
+    "meas": 8.94,
+    "agb": 15.91,
+    "agb_meas": 16.77,
+    "lai_max": 5.25,
+    "lai_max_meas": 4.33,
+    "lai_rmse": 0.85
+   }
+  }
+ },
+ "stand: sqrt leaf share": {
+  "summary": {
+   "irrigated": {
+    "yield_rmse": 1.770214676246923,
+    "yield_bias": -0.3580000000000002,
+    "agb_bias": 2.062,
+    "lai_rmse": 0.97
+   },
+   "rainfed": {
+    "yield_rmse": 1.6996960512593613,
+    "yield_bias": -1.4166666666666663,
+    "agb_bias": -0.13666666666666552,
+    "lai_rmse": 0.9866666666666667
+   }
+  },
+  "rows": {
+   "Ne1_2004": {
+    "yield": 12.1,
+    "meas": 10.05,
+    "agb": 25.01,
+    "agb_meas": 19.41,
+    "lai_max": 6.75,
+    "lai_max_meas": 5.16,
+    "lai_rmse": 1.84
+   },
+   "Ne1_2005": {
+    "yield": 12.41,
+    "meas": 11.47,
+    "agb": 22.75,
+    "agb_meas": 20.11,
+    "lai_max": 6.12,
+    "lai_max_meas": 5.18,
+    "lai_rmse": 1.13
+   },
+   "Ne2_2001": {
+    "yield": 12.23,
+    "meas": 13.62,
+    "agb": 21.83,
+    "agb_meas": 21.96,
+    "lai_max": 6.25,
+    "lai_max_meas": 6.08,
+    "lai_rmse": 0.4
+   },
+   "Ne2_2003": {
+    "yield": 11.25,
+    "meas": 14.15,
+    "agb": 22.57,
+    "agb_meas": 22.6,
+    "lai_max": 6.22,
+    "lai_max_meas": 5.53,
+    "lai_rmse": 0.6
+   },
+   "Ne2_2005": {
+    "yield": 12.34,
+    "meas": 12.83,
+    "agb": 22.62,
+    "agb_meas": 20.39,
+    "lai_max": 6.06,
+    "lai_max_meas": 4.84,
+    "lai_rmse": 0.88
+   },
+   "Ne3_2001": {
+    "yield": 7.42,
+    "meas": 8.81,
+    "agb": 14.71,
+    "agb_meas": 16.24,
+    "lai_max": 3.42,
+    "lai_max_meas": 3.88,
+    "lai_rmse": 0.73
+   },
+   "Ne3_2003": {
+    "yield": 5.23,
+    "meas": 7.81,
+    "agb": 15.21,
+    "agb_meas": 13.55,
+    "lai_max": 4.35,
+    "lai_max_meas": 4.27,
+    "lai_rmse": 1.07
+   },
+   "Ne3_2005": {
+    "yield": 8.66,
+    "meas": 8.94,
+    "agb": 16.23,
+    "agb_meas": 16.77,
+    "lai_max": 3.38,
+    "lai_max_meas": 4.33,
+    "lai_rmse": 1.16
+   }
+  }
+ }
+}
