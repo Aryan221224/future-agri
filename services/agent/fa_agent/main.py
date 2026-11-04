@@ -39,7 +39,7 @@ class AgentConfig:
     home: dict | None = None                  # {"lat", "lon"}; else the job's home
     ntrip: dict | None = None                 # {"host", "port", "mount", "user", "password"}
     power: dict | None = field(default_factory=lambda: {"bus": 1, "addr": 0x40, "shunt_ohm": 0.0005})
-    relay: dict | None = field(default_factory=lambda: {"chip": "gpiochip0", "line": 17})
+    relay: dict | None = field(default_factory=lambda: {"chip": "gpiochip0", "line": 17, "active_high": False})
     profile: str | None = None                # calibrated profile file; default data/k3a_pro.yaml
     spool: str = "/var/lib/fa-agent/spool.jsonl"
 

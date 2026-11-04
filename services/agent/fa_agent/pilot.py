@@ -90,6 +90,7 @@ class Pilot:
         self._abort_reason: str | None = None
         self._land_still = 0.0
         self._ground_since = None
+        self._idle_hold = None
         self.spraying = False
         self.xtrack: float | None = None
 
@@ -217,7 +218,21 @@ class Pilot:
         return us
 
     def _s_idle(self, fix, power, bridge):
+        """No job. If the aircraft is in the air (the pilot flew it up and switched to AUTO),
+        hold it where it is: the ground-idle throttle would be a full-speed descent."""
+        if self._looks_airborne(fix, power):
+            if self._idle_hold is None:
+                self._idle_hold = (fix.e, fix.n, fix.h)
+                self._log("airborne with no job: holding position until a job starts or the pilot takes over")
+            return self._hover(fix, self._idle_hold)
+        self._idle_hold = None
         return self._ground()
+
+    def _looks_airborne(self, fix, power) -> bool:
+        if fix is None:
+            return power is not None and power.current > 3 * self.profile.idle_current_a
+        return fix.h > 0.5 or math.hypot(fix.v_e, fix.v_n) > 0.5 or (
+            power is not None and power.current > 3 * self.profile.idle_current_a)
 
     _s_done = _s_idle
     _s_failed = _s_idle

@@ -13,6 +13,6 @@ ntrip:                                    # RTK corrections over 4G (or remove a
   user: me
   password: secret
 power: {bus: 1, addr: 0x40, shunt_ohm: 0.0005}
-relay: {chip: gpiochip0, line: 17}
+relay: {chip: gpiochip0, line: 17, active_high: false}   # NC relay, energised to cut
 profile: /var/lib/fa-agent/k3a_pro.yaml   # written by the bench test and the calibration flight
 spool: /var/lib/fa-agent/spool.jsonl

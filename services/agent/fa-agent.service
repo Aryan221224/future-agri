@@ -1,0 +1,15 @@
+[Unit]
+Description=Future Agri on-board agent (virtual pilot / uplink)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/future-agri/services/agent
+ExecStart=/home/pi/fa-venv/bin/python -m fa_agent run --config /etc/fa-agent.yaml
+Restart=always
+RestartSec=2
+# the bridge holds the aircraft while the agent restarts (2 s), then the K3-A Pro returns home
+
+[Install]
+WantedBy=multi-user.target

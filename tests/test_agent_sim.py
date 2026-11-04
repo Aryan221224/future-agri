@@ -185,3 +185,37 @@ def test_calibration_flight_measures_this_aircraft_and_improves_accuracy():
     before = run(demo_job(), max_s=600, k3=SimK3(seed=6))
     after = run(demo_job(), max_s=600, profile=prof, k3=SimK3(seed=6))
     assert after.state == "DONE" and after.xtrack_rms <= before.xtrack_rms
+
+
+def test_auto_switched_on_in_the_air_while_the_agent_is_idle_holds_a_hover():
+    """The pilot flies up manually and flips AUTO before any job is started: an idle agent
+    must hold the aircraft where it is, never send the ground-idle throttle (full descent)."""
+    from fa_agent.bridgelink import CoreBridge
+    from fa_agent.pilot import Pilot
+    from fa_agent.profile import K3Profile
+    from fa_agent.sim import Power, SimGnss
+    prof = K3Profile.load()
+    k3 = SimK3(seed=2)
+    k3.s.armed = k3.s.flying = True
+    k3.s.h = 6.0
+    gnss, bridge, pilot = SimGnss(k3, seed=3), CoreBridge(), Pilot(prof)
+    pilot_us = [1500] * 16
+    pilot_us[prof.auto_ch] = 2000                     # AUTO from the start, aircraft already up
+    t, out, next_f, next_a = 0.0, None, 0.0, 0.0
+    for _ in range(3000):                             # 30 s
+        ms = int(t * 1000)
+        if t >= next_f:
+            next_f += 0.014
+            bridge.pilot(pilot_us, ms)
+            _, out = bridge.output(ms)
+        if t >= next_a:
+            next_a += 0.05
+            st = bridge.status(ms)
+            st.at = t
+            us = pilot.tick(t, gnss.poll(t), Power(k3.voltage(), getattr(k3, "amps", 55.0), t), st)
+            if us is not None:
+                bridge.companion(us, 200, ms)
+        k3.step(out, 0.01)
+        t += 0.01
+    assert k3.s.flying and abs(k3.s.h - 6.0) < 1.0, k3.s
+    assert pilot.state == "IDLE" and any("airborne" in e.reason for e in pilot.events)
