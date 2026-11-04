@@ -84,6 +84,9 @@ class ParameterPerturbation:
     RGRLAI: float = 0.15     # max relative LAI growth rate
     WAV: float = 0.25        # initial available soil water
     NAVAILI: float = 0.25    # initial available N
+    #: Canopy size: multiplier on the leaf share of new growth (FLTB, stems the complement).
+    #: Off (0) unless the ensemble is built with ``canopy_size=True``.
+    LEAFSHARE: float = 0.0
 
     def sample(self, rng: np.random.Generator, n: int) -> dict[str, np.ndarray]:
         out = {}
@@ -128,6 +131,11 @@ class AssimilationResult:
 
 #: Beer-Lambert extinction for canopy cover from LAI (green cover, nadir view).
 K_COVER = 0.6
+#: Satellite fractional vegetation cover (scaled NDVI squared, fa_farm.sources.satellite.fvc) is
+#: not phone RGB cover: against destructive LAI on the three training seasons (AmeriFlux US-Ne1
+#: 2001-2003, Landsat within 4 days, n = 14) the best Beer-Lambert fit is k = 0.33 (RMSE 0.08 in
+#: cover; k = 0.6 gives 0.17 and makes every scene read as a smaller canopy than it is).
+K_FVC = 0.33
 
 
 def obs_operator(variable: str, state: dict) -> float:
@@ -143,6 +151,8 @@ def obs_operator(variable: str, state: dict) -> float:
         return lai
     if v in ("CC", "COVER", "CANOPY_COVER"):
         return 1.0 - math.exp(-K_COVER * lai)
+    if v == "FVC":
+        return 1.0 - math.exp(-K_FVC * lai)
     if v == "DVS":
         return float(state.get("DVS") or 0.0)
     raise NotImplementedError(
@@ -199,7 +209,8 @@ class EnsembleTwin:
                  events: list[dict] | None = None, seed: int = 0,
                  engine: str = "auto", inflation: float = 1.0,
                  localisation: float = 0.5, reject_sigma: float = 5.0,
-                 weathers: list | None = None, restart: bool = True):
+                 weathers: list | None = None, restart: bool = True, canopy_size: bool = False,
+                 update_state: bool = True):
         self.cfg = cfg
         self.weather = weather
         self.weathers = list(weathers) if weathers else None
@@ -217,6 +228,16 @@ class EnsembleTwin:
         #: writes parameters into the running crop instead (cheaper, but a stage
         #: observation then only changes future development rates).
         self.restart = restart
+        #: False = parameters only (a calibration): members are re-run with the analysed
+        #: parameters but their LAI is not overwritten, so later observations keep informing the
+        #: parameters instead of being absorbed by the state.
+        self.update_state = update_state
+        #: Also fit canopy SIZE (LEAFSHARE), not only its timing. Cover saturates above LAI ~4,
+        #: so this mostly corrects open canopies (low stand, drought, poor emergence).
+        self.aug_params = self.AUG_PARAMS + (("LEAFSHARE",) if canopy_size else ())
+        if canopy_size and not self.pert.LEAFSHARE:
+            import dataclasses
+            self.pert = dataclasses.replace(self.pert, LEAFSHARE=0.20)
 
         self._factors = self.pert.sample(self.rng, self.n)
         self.members: list = [self._make_member(i) for i in range(self.n)]
@@ -237,6 +258,13 @@ class EnsembleTwin:
         tw._base = {}
         tw._perturb = {}
         tw._fixed = {}
+        if "LEAFSHARE" in self.aug_params:
+            from .management import leaf_share_overrides
+            tw._tables = {"FLTB": list(pp["FLTB"]), "FSTB": list(pp["FSTB"])}
+            f = float(self._factors["LEAFSHARE"][i])
+            tw._base["LEAFSHARE"], tw._perturb["LEAFSHARE"] = 1.0, f
+            for k, v in leaf_share_overrides(tw._tables, f).items():
+                pp.set_override(k, v, check=False)
         for p in self.AUG_PARAMS + ("TDWI",):
             try:
                 base = pp[p]
@@ -269,9 +297,15 @@ class EnsembleTwin:
         for p, v in m._fixed.items():
             pp.set_override(p, v, check=False)
         for p, f in m._perturb.items():
-            pp.set_override(p, m._base[p] * f, check=False)
+            if p == "LEAFSHARE":
+                from .management import leaf_share_overrides
+                for k, v in leaf_share_overrides(m._tables, f).items():
+                    pp.set_override(k, v, check=False)
+            else:
+                pp.set_override(p, m._base[p] * f, check=False)
         tw._member_cfg, tw._weather = m._member_cfg, m._weather
         tw._base, tw._perturb, tw._fixed = m._base, m._perturb, m._fixed
+        tw._tables = getattr(m, "_tables", None)
         if day > tw.day:
             tw.run_till(day)
         return tw
@@ -283,9 +317,12 @@ class EnsembleTwin:
         if crop is None:          # before sowing: the override path still applies
             pp = m.model.parameterprovider
             for p, f in m._perturb.items():
-                pp.set_override(p, m._base[p] * f, check=False)
+                if p != "LEAFSHARE":
+                    pp.set_override(p, m._base[p] * f, check=False)
             return
         for p, f in m._perturb.items():
+            if p not in self._PARAM_HOME:      # LEAFSHARE needs a restart (partitioning tables)
+                continue
             obj = getattr(crop, self._PARAM_HOME[p], None)
             if obj is not None and hasattr(obj.params, p):
                 setattr(obj.params, p, float(m._base[p] * f))
@@ -296,7 +333,7 @@ class EnsembleTwin:
         crop = getattr(m.model, "crop", None)
         out = {}
         for p in m._perturb:
-            obj = getattr(crop, self._PARAM_HOME[p], None) if crop is not None else None
+            obj = getattr(crop, self._PARAM_HOME.get(p, ""), None) if crop is not None else None
             out[p] = float(getattr(obj.params, p)) if obj is not None else m._base[p] * m._perturb[p]
         return out
 
@@ -307,12 +344,12 @@ class EnsembleTwin:
         for m in self.members:
             st = m.state()
             row = [float(st.get(v) or 0.0) for v in self.STATE_ROWS]
-            row += [math.log(max(m._perturb.get(p, 1.0), 1e-6)) for p in self.AUG_PARAMS]
+            row += [math.log(max(m._perturb.get(p, 1.0), 1e-6)) for p in self.aug_params]
             rows.append(row)
         return np.asarray(rows, float).T
 
     def _localisation_vector(self) -> np.ndarray:
-        loc = np.ones(len(self.STATE_ROWS) + len(self.AUG_PARAMS))
+        loc = np.ones(len(self.STATE_ROWS) + len(self.aug_params))
         loc[len(self.STATE_ROWS):] = self.localisation
         return loc
 
@@ -371,7 +408,7 @@ class EnsembleTwin:
         for i, m in enumerate(self.members):
             if m.terminated:
                 continue
-            for j, p in enumerate(self.AUG_PARAMS):
+            for j, p in enumerate(self.aug_params):
                 if p in m._perturb:
                     m._perturb[p] = float(math.exp(logf[j, i]))
             if self.restart:
@@ -383,7 +420,7 @@ class EnsembleTwin:
             else:
                 self._write_params(m)
             try:
-                if (m.state().get("LAI") or 0.0) > 0:
+                if self.update_state and (m.state().get("LAI") or 0.0) > 0:
                     m.set_lai(float(lai_a[i]))
             except Exception as e:
                 log.warning("could not set LAI on member %d: %s", i, e)
@@ -392,7 +429,7 @@ class EnsembleTwin:
     def posterior_parameters(self) -> dict[str, float]:
         """Ensemble-mean parameter values (absolute, not factors)."""
         out = {}
-        for p in self.AUG_PARAMS:
+        for p in self.aug_params:
             vals = [m._base[p] * m._perturb[p] for m in self.members if p in m._perturb]
             if vals:
                 out[p] = float(np.mean(vals))
@@ -423,7 +460,7 @@ class EnsembleTwin:
                 except Exception as e:
                     log.warning("member failed to finish: %s", e)
         res.final_states = [m.summary() for m in self.members]
-        for p in self.AUG_PARAMS:
+        for p in self.aug_params:
             vals = np.array([m._perturb.get(p, 1.0) for m in self.members])
             res.parameter_posterior[p] = (
                 float(vals.mean()), float(vals.std(ddof=1)) if len(vals) > 1 else 0.0)

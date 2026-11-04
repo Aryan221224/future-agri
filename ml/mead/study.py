@@ -538,7 +538,7 @@ def science_inputs_v4(site: str, y: int, variety: str = "Grain_maize_204") -> di
             "weather": wx, "weather_info": winfo, "management": mg, "crop": crop}
 
 
-def _sim_v4(site, y, theta, sci, engine=None, extra=None):
+def _sim_v4(site, y, theta, sci, engine=None, extra=None, remobilisation=False):
     from fa_twin.engine import ZoneConfig, ZoneTwin
     from fa_twin.management import population_overrides
     from fa_twin.weather import records_provider
@@ -552,7 +552,7 @@ def _sim_v4(site, y, theta, sci, engine=None, extra=None):
     sow, harv = mg["sowing"], dt.date(y, 10, 15)
     wx = [r for r in sci["weather"] if dt.date(y - 1, 11, 1) <= r["DAY"] <= dt.date(y, 12, 31)]
     cfg = ZoneConfig(site, lat, lon, "maize", "Grain_maize_204", sow, harv, soil=sci["soil"], WAV=sci["WAV"],
-                     param_overrides=ov)
+                     param_overrides=ov, remobilisation=remobilisation)
     tw = ZoneTwin(cfg, records_provider(wx, lat, lon, d["elevation_m"], "POWER + GHCN gauge",
                                         soil_evap_factor=mg["soil_evap_factor"]),
                   engine=engine or ("Wofost72_PP" if irrigated else "Wofost72_WLP_CWB"))

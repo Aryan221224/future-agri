@@ -121,14 +121,14 @@ def weather(site: str) -> list[dict]:
     return _WX[site]
 
 
-def setup(site: str, y: int) -> dict:
+def setup(site: str, y: int, s: dict | None = None) -> dict:
     """The v4 field set-up for a 2014-2021 season."""
     from fa_farm.sources.base import Cache
     from fa_farm.sources.ssurgo import ssurgo_rootzone
     from fa_twin.hybrids import crop_table, rooting_override, tsums_for_hybrid
     from fa_twin.management import population_overrides, soil_evaporation_factor
     from fa_twin.soilwater import available_water_at_sowing
-    s = SEASONS[(site, y)]
+    s = s or SEASONS[(site, y)]
     lat, lon, _ = S.SITES[site]
     _, sp, _ = ssurgo_rootzone(lat, lon, Cache(S.DATA / "cache"))
     crop = crop_table("maize", "Grain_maize_204")
@@ -151,12 +151,12 @@ def setup(site: str, y: int) -> dict:
             "elev": elev}
 
 
-def _twin(site, y, st, engine, events=None):
+def _twin(site, y, st, engine, events=None, remobilisation=False):
     from fa_twin.engine import ZoneConfig, ZoneTwin
     from fa_twin.weather import records_provider
     lat, lon, _ = S.SITES[site]
     cfg = ZoneConfig(site, lat, lon, "maize", "Grain_maize_204", st["sowing"], dt.date(y, 10, 15),
-                     soil=st["soil"], WAV=st["WAV"], param_overrides=st["overrides"])
+                     soil=st["soil"], WAV=st["WAV"], param_overrides=st["overrides"], remobilisation=remobilisation)
     wx = records_provider(st["weather"], lat, lon, st["elev"], "POWER + GHCN gauge", soil_evap_factor=st["evap_factor"])
     return ZoneTwin(cfg, wx, events=events, engine=engine)
 

@@ -131,6 +131,10 @@ class ZoneConfig:
     max_duration: int = 330
     #: Bare-soil evaporation demand multiplier for surface residue (fa_twin.management; FAO-56).
     soil_evap_factor: float = 1.0
+    #: Stem reserves move to the grain under drought (CERES-Maize rule; fa_twin.remobilisation).
+    #: None = on for the crops the rule was written for (maize). Applies to the water-limited
+    #: WOFOST 7.2 engine; no effect without water stress.
+    remobilisation: bool | None = None
     #: Extra crop-parameter overrides (applied after any regional-variety set).
     param_overrides: dict = field(default_factory=dict)
 
@@ -226,6 +230,14 @@ def _agromanagement(cfg: ZoneConfig, events: list[dict] | None = None,
                      "StateEvents": None}}]
 
 
+REMOBILISING_CROPS = {"maize"}
+
+
+def remobilises(cfg: ZoneConfig) -> bool:
+    r = getattr(cfg, "remobilisation", None)
+    return cfg.crop in REMOBILISING_CROPS if r is None else bool(r)
+
+
 class ZoneTwin:
     """A running WOFOST simulation for one management zone.
 
@@ -251,6 +263,10 @@ class ZoneTwin:
                 e.get("N_amount") for e in self.events) else "Wofost72_WLP_CWB"
         self.engine_name = engine
         model_cls = getattr(models, engine)
+        self.remobilising = remobilises(cfg) and engine == "Wofost72_WLP_CWB"
+        if self.remobilising:
+            from .remobilisation import engine_class
+            model_cls = engine_class(engine)
 
         base_variety, overrides, self.provenance = resolve_variety(cfg.crop, cfg.variety)
         overrides.update(cfg.param_overrides or {})
@@ -331,6 +347,10 @@ class ZoneTwin:
         d["variety"] = self.cfg.variety
         d["uncalibrated_parameters"] = self.uncalibrated
         d["crop_start_type"] = self.start_type
+        if getattr(self, "remobilising", False):
+            from .remobilisation import remobilised
+            r = remobilised(self.model)
+            d["remobilised_kg_ha"] = None if r is None else round(r, 1)
         if self.param_overrides:
             d["param_overrides"] = dict(self.param_overrides)
         if self.provenance:

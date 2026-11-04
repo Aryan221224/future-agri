@@ -18,7 +18,7 @@ import numpy as np
 
 from fa_twin.engine import ZoneConfig
 
-from .anchor import anchor_to_cover
+from .anchor import SATELLITE, anchor_to_cover
 from .archetypes import load_archetypes, season_dates
 from .grid import FarmGrid
 from .sources.base import Cache, DataUnavailable
@@ -189,7 +189,8 @@ def build_virtual_farm(archetype_id: str, year: int, cache: Cache | None = None,
                          WAV=FarmSpec.wav_for(_WavOnly(sf.get("wav_fraction")), soil),
                          soil_evap_factor=sf.get("soil_evap_factor", 1.0),
                          param_overrides=dict(sf.get("science_overrides", {})))
-        overrides, info = anchor_to_cover(cfg, season, series, members=24, seed=seed, engine=engine)
+        # v5 satellite anchor: canopy size as well as timing, satellite-cover operator (fa_farm.anchor)
+        overrides, info = anchor_to_cover(cfg, season, series, members=24, seed=seed, engine=engine, **SATELLITE)
 
     spec = FarmSpec(archetype=a, site=site, year=year, polygon_wgs84=polygon_wgs84, soil=soil,
                     elevation_m=elev, region=a.region, cell_m=cell_m, seed=seed,

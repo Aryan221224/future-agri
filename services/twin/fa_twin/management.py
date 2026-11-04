@@ -32,6 +32,26 @@ RESIDUE_COVER = {                                   # surface cover fraction aft
 }
 
 
+LEAF_SHARE_BOUNDS = (0.4, 1.6)
+
+
+def leaf_share_overrides(params: dict, r: float) -> dict:
+    """FLTB x ``r`` with stems taking exactly the complement (FSTB), so leaves + stems + storage
+    organs still sum to 1. ``r`` is bounded to 0.4-1.6 and a leaf share never takes more than
+    the stems had. Used for plant population and for the satellite canopy-size fit."""
+    r = min(max(float(r), LEAF_SHARE_BOUNDS[0]), LEAF_SHARE_BOUNDS[1])
+    fl, fs = list(params["FLTB"]), list(params["FSTB"])
+    if fl[0::2] != fs[0::2]:
+        raise ValueError("FLTB and FSTB must share their development-stage points")
+    new_fl, new_fs = [], []
+    for i in range(0, len(fl), 2):
+        leaf = round(min(fl[i + 1] * r, fl[i + 1] + fs[i + 1]), 6)
+        # stems take exactly what the leaves gave up: PCSE checks FL+FS+FO == 1 to 1e-4
+        new_fl += [fl[i], leaf]
+        new_fs += [fs[i], fs[i + 1] + fl[i + 1] - leaf]
+    return {"FLTB": new_fl, "FSTB": new_fs}
+
+
 def population_overrides(crop: str, params: dict, population: float | None,
                          reference: float | None = None) -> dict:
     """WOFOST overrides for a sown population (plants/ha). ``params`` holds the variety's current
@@ -42,16 +62,7 @@ def population_overrides(crop: str, params: dict, population: float | None,
     r = min(max(population / ref, POP_BOUNDS[0]), POP_BOUNDS[1])
     if abs(r - 1.0) < 1e-3:
         return {}
-    fl, fs = list(params["FLTB"]), list(params["FSTB"])
-    if fl[0::2] != fs[0::2]:
-        raise ValueError("FLTB and FSTB must share their development-stage points")
-    new_fl, new_fs = [], []
-    for i in range(0, len(fl), 2):
-        leaf = round(fl[i + 1] * r, 6)
-        # stems take exactly what the leaves gave up: PCSE checks FL+FS+FO == 1 to 1e-4
-        new_fl += [fl[i], leaf]
-        new_fs += [fs[i], fs[i + 1] + fl[i + 1] - leaf]
-    return {"TDWI": round(float(params["TDWI"]) * r, 3), "FLTB": new_fl, "FSTB": new_fs}
+    return {"TDWI": round(float(params["TDWI"]) * r, 3), **leaf_share_overrides(params, r)}
 
 
 def residue_cover(tillage: str | None, previous_crop: str | None) -> float:
