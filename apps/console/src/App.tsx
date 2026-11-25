@@ -6,6 +6,7 @@ import { Icon } from './ui/icons'
 import { ThemeToggle } from './ui/ThemeToggle'
 import { Empty, Progress } from './ui/core'
 import { Farms } from './pages/Farms'
+import { ErrorBoundary } from './ui/ErrorBoundary'
 
 const NewFarm = lazy(() => import('./pages/NewFarm'))
 const Mission = lazy(() => import('./pages/Mission'))
@@ -60,9 +61,9 @@ function Root() {
 
 function GlobalPage({ route }: { route: Route }) {
   return (
-    <Suspense fallback={<Loading />}>
+    <ErrorBoundary key={route.name}><Suspense fallback={<Loading />}>
       {route.name === 'newfarm' ? <NewFarm /> : route.name === 'system' ? <System /> : <Farms />}
-    </Suspense>
+    </Suspense></ErrorBoundary>
   )
 }
 
@@ -79,7 +80,7 @@ function FarmPage({ route }: { route: Extract<Route, { name: 'farm' }> }) {
     mission: <Mission />, twin: <Twin3D />, drone: <Drone />, season: <Season />, iterate: <Iterate />,
     plan: <PlanPage />, live: <Live />, records: <Records />, 'live-run': <LiveRun />, aircraft: <Aircraft />,
   }
-  return <Suspense fallback={<Loading />}>{pages[route.page]}</Suspense>
+  return <ErrorBoundary key={`${route.fid}/${route.page}`}><Suspense fallback={<Loading />}>{pages[route.page]}</Suspense></ErrorBoundary>
 }
 
 function BuildState() {
