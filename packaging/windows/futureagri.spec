@@ -1,4 +1,5 @@
-# PyInstaller spec for FutureAgri.exe (one folder: FutureAgri\FutureAgri.exe + _internal).
+# PyInstaller spec for FutureAgri.exe -- ONE self-contained file (dist/FutureAgri.exe).
+# It unpacks itself to a temp folder on start, so the first launch takes a few seconds longer.
 # Build from the repository root:  pyinstaller packaging/windows/futureagri.spec --noconfirm
 from pathlib import Path
 
@@ -50,6 +51,5 @@ a = Analysis([str(ROOT / "packaging/windows/futureagri.py")], pathex=pathex, bin
                                              "notebook", "tkinter", "pytest"],
              noarchive=False)
 pyz = PYZ(a.pure)
-exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="FutureAgri", console=True,
-          icon=None, upx=False)
-coll = COLLECT(exe, a.binaries, a.datas, name="FutureAgri", upx=False)
+exe = EXE(pyz, a.scripts, a.binaries, a.datas, [], name="FutureAgri", console=True,
+          icon=None, upx=False, runtime_tmpdir=None)

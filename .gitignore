@@ -12,3 +12,8 @@ apps/console/node_modules/
 # firmware builds
 firmware/*/build/
 firmware/*/build-host/
+
+# built single-file exe
+/FutureAgri.exe
+/dist/
+/build/

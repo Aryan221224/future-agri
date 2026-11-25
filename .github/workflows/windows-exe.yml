@@ -1,6 +1,6 @@
 name: windows-exe
-# Builds FutureAgri.exe (one folder, zipped) on Windows, checks that it starts and answers
-# /api/health, and uploads it. A tag v* also attaches the zip to a GitHub release.
+# Builds ONE self-contained FutureAgri.exe on Windows, checks that it starts and answers
+# /api/health, and uploads it. A tag v* also attaches the exe to a GitHub release.
 on:
   workflow_dispatch:
   push:
@@ -29,7 +29,7 @@ jobs:
       - name: Smoke test (starts and answers /api/health)
         shell: pwsh
         run: |
-          $p = Start-Process -FilePath dist\FutureAgri\FutureAgri.exe -ArgumentList '--no-browser','--port','8123' -PassThru `
+          $p = Start-Process -FilePath dist\FutureAgri.exe -ArgumentList '--no-browser','--port','8123' -PassThru `
                -RedirectStandardOutput smoke_out.txt -RedirectStandardError smoke_err.txt
           $ok = $false
           for ($i = 0; $i -lt 90; $i++) {
@@ -42,14 +42,9 @@ jobs:
           try { Invoke-WebRequest -UseBasicParsing http://127.0.0.1:8123/ -TimeoutSec 5 | Out-Null } catch { $ok = $false }
           if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force }
           if (-not $ok) { Write-Error "FutureAgri.exe did not answer /api/health"; exit 1 }
-      - name: Zip
-        shell: pwsh
-        run: |
-          Copy-Item packaging\windows\README.txt dist\FutureAgri\README.txt
-          Compress-Archive -Path dist\FutureAgri -DestinationPath FutureAgri-windows-x64.zip
       - uses: actions/upload-artifact@v4
-        with: {name: FutureAgri-windows-x64, path: FutureAgri-windows-x64.zip, retention-days: 30}
+        with: {name: FutureAgri.exe, path: dist/FutureAgri.exe, retention-days: 30}
       - name: Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
-        with: {files: FutureAgri-windows-x64.zip}
+        with: {files: dist/FutureAgri.exe}
